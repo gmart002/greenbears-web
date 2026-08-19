@@ -5,7 +5,7 @@ const express = require('express');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, setSetting, uniqueSlug, DATA_DIR, visitStats } = require('../db');
+const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits } = require('../db');
 
 const now = () => new Date().toISOString();
 
@@ -69,6 +69,9 @@ module.exports = function (checkCsrf) {
     const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
     res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, visits: visitStats() });
   });
+
+  // Reiniciar el contador de visitas
+  router.post('/visitas/reiniciar', checkCsrf, (req, res) => { resetVisits(); res.redirect('/admin/panel'); });
 
   // ---- Noticias ----
   router.get('/noticias/nueva', (req, res) => res.render('admin/noticia-form', { post: null }));

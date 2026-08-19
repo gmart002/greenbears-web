@@ -156,6 +156,7 @@ const _sumSince = db.prepare('SELECT COALESCE(SUM(visits),0) AS v FROM visits WH
 const _recentDays = db.prepare('SELECT day, visits, views FROM visits ORDER BY day DESC LIMIT 14');
 
 function visitsTotal() { return _totals.get().visits; }
+function resetVisits() { db.prepare('DELETE FROM visits').run(); }
 function visitStats() {
   const totals = _totals.get();
   const today = _oneDay.get(dayKey()) || { visits: 0, views: 0 };
@@ -170,4 +171,4 @@ function visitStats() {
   };
 }
 
-module.exports = { db, settings, setSetting, slugify, uniqueSlug, DATA_DIR, recordVisit, visitStats, visitsTotal };
+module.exports = { db, settings, setSetting, slugify, uniqueSlug, DATA_DIR, recordVisit, visitStats, visitsTotal, resetVisits };
