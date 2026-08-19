@@ -2,11 +2,11 @@
 
 <section class="hero <%= s.hero_image ? 'has-img' : '' %>" <%= s.hero_image ? 'style=--hero:url(' + s.hero_image + ')' : '' %>>
   <div class="hero-inner">
-    <div class="eyebrow">🏀 <%= s.tagline %></div>
+    <div class="eyebrow"><%= s.tagline %></div>
     <h1><%= s.site_title %></h1>
     <p><%= s.about %></p>
     <div class="actions">
-      <a class="btn primary" href="<%= pizarraUrl %>" target="_blank" rel="noopener">Abrir la Pizarra ↗</a>
+      <a class="btn primary" href="<%= pizarraUrl %>" target="_blank" rel="noopener">Abrir la Pizarra</a>
       <a class="btn light" href="/jugadores">Ver el equipo</a>
     </div>
   </div>
