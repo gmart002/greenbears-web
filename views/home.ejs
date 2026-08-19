@@ -45,7 +45,7 @@
 <% } %>
 
 <!-- EL CLUB -->
-<section class="section alt">
+<section class="section alt" id="el-club">
   <div class="wrap">
     <div class="club-band">
       <div>
@@ -61,45 +61,19 @@
   </div>
 </section>
 
-<!-- PLANTEL -->
-<section class="section">
-  <div class="wrap">
-    <div class="section-head"><div><span class="kicker">El equipo</span><h2>Plantel</h2></div><a class="btn ghost sm" href="/jugadores">Ver plantel</a></div>
-    <% if (!players.length) { %><div class="empty-state">Aún no hay jugadores cargados.</div>
-    <% } else { %><div class="grid players"><% players.forEach(function(pl){ %><%- include('partials/player-card', { pl: pl }) %><% }) %></div><% } %>
-  </div>
-</section>
-
-<!-- ACTUALIDAD -->
-<section class="section alt">
-  <div class="wrap">
-    <div class="section-head"><div><span class="kicker">Al día</span><h2><%= s.actualidad_label || 'Actualidad' %></h2></div><a class="btn ghost sm" href="/noticias">Ver todas</a></div>
-    <% if (!posts.length) { %><div class="empty-state">Aún no hay publicaciones.</div>
-    <% } else { %>
-    <div class="grid cards">
-      <% posts.forEach(function(p){ %>
-      <a class="card" href="/noticias/<%= p.slug %>">
-        <% if (p.cover) { %><div class="thumb" style="background-image:url(<%= p.cover %>)"></div><% } else { %><div class="thumb ph">Green Bears</div><% } %>
-        <div class="body"><span class="date"><%= fmtDate(p.created_at) %></span><h3><%= p.title %></h3><% if (p.excerpt) { %><p><%= p.excerpt %></p><% } %><span class="more">Leer más →</span></div>
-      </a>
-      <% }) %>
-    </div><% } %>
-  </div>
-</section>
-
 <!-- GALERÍA -->
-<% if (gallery && gallery.length) { %>
-<section class="section">
+<section class="section" id="galeria">
   <div class="wrap">
     <div class="section-head"><div><span class="kicker">Momentos</span><h2>Galería</h2></div><a class="btn ghost sm" href="/galeria">Ver galería</a></div>
+    <% if (gallery && gallery.length) { %>
     <div class="gallery-grid">
       <% gallery.forEach(function(it){ %>
         <a class="gitem" href="/galeria"><img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy"><% if (it.title) { %><span class="cap"><%= it.title %></span><% } %></a>
       <% }) %>
     </div>
+    <% } else { %><div class="empty-state">Aún no hay fotos en la galería.</div><% } %>
   </div>
 </section>
-<% } %>
 
 <!-- INSTAGRAM (se llena con el código del feed en Ajustes) -->
 <% if (s.instagram_embed) { %>
@@ -114,7 +88,7 @@
 <% } %>
 
 <!-- ÚNETE / CONTACTO -->
-<section class="cta-band">
+<section class="cta-band" id="contacto">
   <div class="wrap cta-inner">
     <div>
       <h2>¿Quieres sumarte a los Green Bears?</h2>

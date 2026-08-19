@@ -46,6 +46,8 @@ p{margin:0 0 1rem}
 .brand-logo{width:68px;height:68px;object-fit:contain;flex:none}
 .brand-txt b,.brand-txt small{white-space:nowrap}
 @media (min-width:1161px){ .site-head .brand-txt small{display:none} }
+/* Al bajar por anclas del menu, dejar aire para que el header fijo no tape el titulo */
+#el-club,#galeria,#contacto{scroll-margin-top:100px}
 .brand-txt b{font-family:"Barlow Condensed";font-weight:800;font-size:1.35rem;text-transform:uppercase;display:block;line-height:1}
 .brand-txt small{color:var(--muted);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
 .site-nav{display:flex;align-items:center;gap:3px}
