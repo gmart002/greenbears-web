@@ -8,7 +8,6 @@ const { settings, DATA_DIR, recordVisit, visitsTotal } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PIZARRA_URL = process.env.PIZARRA_URL || 'https://pizarra.grapmining.com';
 
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
@@ -28,7 +27,7 @@ app.use(helmet({
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'", 'https:'],
-      frameSrc: ["'self'", PIZARRA_URL, ...IG],
+      frameSrc: ["'self'", ...IG],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
@@ -82,7 +81,6 @@ app.use((req, res, next) => {
   res.locals.s = settings();
   res.locals.path = req.path;
   res.locals.isAdmin = !!(req.session && req.session.admin);
-  res.locals.pizarraUrl = PIZARRA_URL;
   res.locals.year = new Date().getFullYear();
   res.locals.visitsTotal = visitsTotal();
   next();
