@@ -113,7 +113,7 @@ p{margin:0 0 1rem}
 
 /* Ficha jugador */
 .player{position:relative;background:var(--dark);border-radius:var(--r);overflow:hidden;color:#fff;aspect-ratio:3/4;display:block}
-.player .ph-photo{position:absolute;inset:0;background:var(--photo) center/cover}
+.player .ph-photo{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
 .player .ph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#2e3d34;background:linear-gradient(160deg,#16211a,#0c110e)}
 .player .ph-empty svg{width:46%;opacity:.5}
 .player .num{position:absolute;top:10px;left:12px;font-family:"Barlow Condensed";font-weight:800;font-size:2.2rem;line-height:1;color:#fff;text-shadow:0 2px 8px #000}
