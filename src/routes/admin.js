@@ -62,9 +62,12 @@ module.exports = function (checkCsrf) {
   // ---- Panel ----
   router.get('/panel', (req, res) => {
     const posts = db.prepare('SELECT * FROM posts ORDER BY created_at DESC').all();
-    const players = db.prepare('SELECT * FROM players ORDER BY sort, name').all();
+    const players = db.prepare('SELECT * FROM players ORDER BY staff, sort, name').all();
     const matches = db.prepare('SELECT * FROM matches ORDER BY date DESC').all();
-    res.render('admin/panel', { posts, players, matches });
+    const gallery = db.prepare('SELECT * FROM gallery ORDER BY season DESC, sort, id DESC').all();
+    const sponsors = db.prepare('SELECT * FROM sponsors ORDER BY sort, name').all();
+    const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
+    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages });
   });
 
   // ---- Noticias ----
@@ -106,15 +109,16 @@ module.exports = function (checkCsrf) {
     const b = req.body;
     const photo = uploadedUrl(req.file) || b.photo || '';
     const active = b.active ? 1 : 0;
+    const staff = b.staff ? 1 : 0;
     const sort = parseInt(b.sort, 10) || 0;
     const id = req.params.id ? Number(req.params.id) : 0;
     if (!String(b.name || '').trim()) return res.status(400).send('Falta el nombre');
     if (id) {
-      db.prepare('UPDATE players SET name=?, number=?, position=?, height=?, birthdate=?, photo=?, bio=?, sort=?, active=? WHERE id=?')
-        .run(b.name.trim(), b.number || '', b.position || '', b.height || '', b.birthdate || '', photo, b.bio || '', sort, active, id);
+      db.prepare('UPDATE players SET name=?, number=?, position=?, height=?, birthdate=?, photo=?, bio=?, sort=?, active=?, staff=?, staff_role=? WHERE id=?')
+        .run(b.name.trim(), b.number || '', b.position || '', b.height || '', b.birthdate || '', photo, b.bio || '', sort, active, staff, b.staff_role || '', id);
     } else {
-      db.prepare('INSERT INTO players (name, number, position, height, birthdate, photo, bio, sort, active) VALUES (?,?,?,?,?,?,?,?,?)')
-        .run(b.name.trim(), b.number || '', b.position || '', b.height || '', b.birthdate || '', photo, b.bio || '', sort, active);
+      db.prepare('INSERT INTO players (name, number, position, height, birthdate, photo, bio, sort, active, staff, staff_role) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+        .run(b.name.trim(), b.number || '', b.position || '', b.height || '', b.birthdate || '', photo, b.bio || '', sort, active, staff, b.staff_role || '');
     }
     res.redirect('/admin/panel');
   });
@@ -133,17 +137,18 @@ module.exports = function (checkCsrf) {
   router.post('/partidos/:id?', checkCsrf, (req, res) => {
     const b = req.body;
     const home = b.home ? 1 : 0;
+    const confirmed = b.confirmed ? 1 : 0;
     const status = b.status === 'played' ? 'played' : 'upcoming';
     const our = status === 'played' && b.our_score !== '' ? parseInt(b.our_score, 10) : null;
     const opp = status === 'played' && b.opp_score !== '' ? parseInt(b.opp_score, 10) : null;
     const id = req.params.id ? Number(req.params.id) : 0;
     if (!String(b.opponent || '').trim() || !b.date) return res.status(400).send('Falta rival o fecha');
     if (id) {
-      db.prepare('UPDATE matches SET opponent=?, date=?, location=?, home=?, our_score=?, opp_score=?, status=?, notes=? WHERE id=?')
-        .run(b.opponent.trim(), b.date, b.location || '', home, our, opp, status, b.notes || '', id);
+      db.prepare('UPDATE matches SET opponent=?, date=?, location=?, home=?, tournament=?, confirmed=?, our_score=?, opp_score=?, status=?, notes=? WHERE id=?')
+        .run(b.opponent.trim(), b.date, b.location || '', home, b.tournament || '', confirmed, our, opp, status, b.notes || '', id);
     } else {
-      db.prepare('INSERT INTO matches (opponent, date, location, home, our_score, opp_score, status, notes) VALUES (?,?,?,?,?,?,?,?)')
-        .run(b.opponent.trim(), b.date, b.location || '', home, our, opp, status, b.notes || '');
+      db.prepare('INSERT INTO matches (opponent, date, location, home, tournament, confirmed, our_score, opp_score, status, notes) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        .run(b.opponent.trim(), b.date, b.location || '', home, b.tournament || '', confirmed, our, opp, status, b.notes || '');
     }
     res.redirect('/admin/panel');
   });
@@ -152,11 +157,68 @@ module.exports = function (checkCsrf) {
     res.redirect('/admin/panel');
   });
 
+  // ---- Galería ----
+  router.get('/galeria/nueva', (req, res) => res.render('admin/galeria-form', { item: null }));
+  router.get('/galeria/:id/editar', (req, res, next) => {
+    const item = db.prepare('SELECT * FROM gallery WHERE id = ?').get(req.params.id);
+    if (!item) return next();
+    res.render('admin/galeria-form', { item });
+  });
+  router.post('/galeria/:id?', upload.single('image'), checkCsrf, (req, res) => {
+    const b = req.body;
+    const image = uploadedUrl(req.file) || b.image || '';
+    const sort = parseInt(b.sort, 10) || 0;
+    const id = req.params.id ? Number(req.params.id) : 0;
+    if (!image && !b.video_url) return res.status(400).send('Sube una imagen o pega un enlace de video');
+    if (id) {
+      db.prepare('UPDATE gallery SET title=?, image=?, video_url=?, season=?, sort=? WHERE id=?')
+        .run(b.title || '', image, b.video_url || '', b.season || '', sort, id);
+    } else {
+      db.prepare('INSERT INTO gallery (title, image, video_url, season, sort, created_at) VALUES (?,?,?,?,?,?)')
+        .run(b.title || '', image, b.video_url || '', b.season || '', sort, now());
+    }
+    res.redirect('/admin/panel#galeria');
+  });
+  router.post('/galeria/:id/eliminar', checkCsrf, (req, res) => {
+    db.prepare('DELETE FROM gallery WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#galeria');
+  });
+
+  // ---- Patrocinadores ----
+  router.post('/patrocinadores/:id?', upload.single('logo'), checkCsrf, (req, res) => {
+    const b = req.body;
+    const logo = uploadedUrl(req.file) || b.logo || '';
+    const id = req.params.id ? Number(req.params.id) : 0;
+    if (!String(b.name || '').trim()) return res.status(400).send('Falta el nombre');
+    if (id) db.prepare('UPDATE sponsors SET name=?, logo=?, url=?, sort=? WHERE id=?').run(b.name.trim(), logo, b.url || '', parseInt(b.sort, 10) || 0, id);
+    else db.prepare('INSERT INTO sponsors (name, logo, url, sort) VALUES (?,?,?,?)').run(b.name.trim(), logo, b.url || '', parseInt(b.sort, 10) || 0);
+    res.redirect('/admin/panel#patrocinadores');
+  });
+  router.post('/patrocinadores/:id/eliminar', checkCsrf, (req, res) => {
+    db.prepare('DELETE FROM sponsors WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#patrocinadores');
+  });
+
+  // ---- El club ----
+  router.get('/club', (req, res) => res.render('admin/club'));
+  router.post('/club', upload.single('club_photo'), checkCsrf, (req, res) => {
+    ['club_history', 'club_values', 'club_achievements', 'club_tournaments'].forEach(k => { if (k in req.body) setSetting(k, req.body[k]); });
+    if (req.file) setSetting('club_photo', uploadedUrl(req.file));
+    else if (req.body.club_photo !== undefined) setSetting('club_photo', req.body.club_photo);
+    res.redirect('/admin/club');
+  });
+
+  // ---- Mensajes (contacto) ----
+  router.post('/mensajes/:id/leido', checkCsrf, (req, res) => {
+    db.prepare('UPDATE messages SET read = 1 WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#mensajes');
+  });
+  router.post('/mensajes/:id/eliminar', checkCsrf, (req, res) => {
+    db.prepare('DELETE FROM messages WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#mensajes');
+  });
+
   // ---- Ajustes del sitio ----
   router.get('/ajustes', (req, res) => res.render('admin/ajustes'));
   const ajustesUpload = upload.fields([{ name: 'hero', maxCount: 1 }, { name: 'logo', maxCount: 1 }]);
   router.post('/ajustes', ajustesUpload, checkCsrf, (req, res) => {
-    const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary'];
+    const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary', 'actualidad_label'];
     for (const k of keys) if (k in req.body) setSetting(k, req.body[k]);
     const f = req.files || {};
     if (f.hero && f.hero[0]) setSetting('hero_image', uploadedUrl(f.hero[0]));

@@ -1,0 +1,33 @@
+<% var pageTitle = 'Galería' %>
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Momentos</span><h2>Galería</h2></div></div>
+
+    <% if (!items.length) { %>
+      <div class="empty-state">Aún no hay fotos ni videos.</div>
+    <% } else { %>
+      <% var bySeason = {}; items.forEach(function(it){ var k = it.season || 'General'; (bySeason[k] = bySeason[k] || []).push(it); }); %>
+      <% Object.keys(bySeason).forEach(function(season){ %>
+        <h3 style="margin:26px 0 12px"><%= season %></h3>
+        <div class="gallery-grid">
+          <% bySeason[season].forEach(function(it){ %>
+            <% if (it.video_url) { %>
+              <a class="gitem video" href="<%= it.video_url %>" target="_blank" rel="noopener">
+                <% if (it.image) { %><img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy"><% } else { %><div class="vplace"></div><% } %>
+                <span class="play">▶</span>
+                <% if (it.title) { %><span class="cap"><%= it.title %></span><% } %>
+              </a>
+            <% } else { %>
+              <a class="gitem" href="<%= it.image %>" target="_blank" rel="noopener">
+                <img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy">
+                <% if (it.title) { %><span class="cap"><%= it.title %></span><% } %>
+              </a>
+            <% } %>
+          <% }) %>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

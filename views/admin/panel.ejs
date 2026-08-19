@@ -70,5 +70,76 @@
     </table>
   </section>
 
+  <!-- Galería -->
+  <section class="panel-sec" id="galeria">
+    <header><h2>Galería</h2><a class="btn primary sm" href="/admin/galeria/nueva">+ Agregar foto/video</a></header>
+    <table class="tbl">
+      <thead><tr><th></th><th>Título</th><th class="hide-sm">Temporada</th><th>Tipo</th><th></th></tr></thead>
+      <tbody>
+        <% if (!gallery.length) { %><tr class="empty-row"><td colspan="5">Sin elementos todavía.</td></tr><% } %>
+        <% gallery.forEach(function(it){ %>
+        <tr>
+          <td><% if (it.image) { %><img class="thumb-sm" src="<%= it.image %>" alt=""><% } else { %><div class="thumb-sm"></div><% } %></td>
+          <td><b><%= it.title || '(sin título)' %></b></td>
+          <td class="hide-sm muted"><%= it.season %></td>
+          <td><span class="pill on"><%= it.video_url ? 'Video' : 'Foto' %></span></td>
+          <td><div class="actions">
+            <a class="btn ghost sm" href="/admin/galeria/<%= it.id %>/editar">Editar</a>
+            <form method="post" action="/admin/galeria/<%= it.id %>/eliminar" onsubmit="return confirm('¿Eliminar?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Patrocinadores -->
+  <section class="panel-sec" id="patrocinadores">
+    <header><h2>Patrocinadores</h2></header>
+    <table class="tbl">
+      <thead><tr><th></th><th>Nombre</th><th class="hide-sm">Enlace</th><th></th></tr></thead>
+      <tbody>
+        <% if (!sponsors.length) { %><tr class="empty-row"><td colspan="4">Sin patrocinadores.</td></tr><% } %>
+        <% sponsors.forEach(function(sp){ %>
+        <tr>
+          <td><% if (sp.logo) { %><img class="thumb-sm" src="<%= sp.logo %>" alt=""><% } else { %><div class="thumb-sm"></div><% } %></td>
+          <td><b><%= sp.name %></b></td>
+          <td class="hide-sm muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis"><%= sp.url %></td>
+          <td><div class="actions"><form method="post" action="/admin/patrocinadores/<%= sp.id %>/eliminar" onsubmit="return confirm('¿Eliminar?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <form method="post" action="/admin/patrocinadores" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:14px 20px;border-top:1px solid var(--line)">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field" style="margin:0"><label>Nombre</label><input type="text" name="name" required></div>
+      <div class="field" style="margin:0"><label>Enlace (opcional)</label><input type="text" name="url" placeholder="https://"></div>
+      <div class="field" style="margin:0"><label>Logo</label><input type="file" name="logo" accept="image/*"></div>
+      <button class="btn primary sm">Agregar</button>
+    </form>
+  </section>
+
+  <!-- Mensajes -->
+  <section class="panel-sec" id="mensajes">
+    <header><h2>Mensajes de contacto</h2></header>
+    <table class="tbl">
+      <thead><tr><th>De</th><th class="hide-sm">Contacto</th><th>Mensaje</th><th></th></tr></thead>
+      <tbody>
+        <% if (!messages.length) { %><tr class="empty-row"><td colspan="4">Sin mensajes.</td></tr><% } %>
+        <% messages.forEach(function(mm){ %>
+        <tr style="<%= mm.read ? 'opacity:.6' : '' %>">
+          <td><b><%= mm.name %></b><br><span class="muted" style="font-size:.8rem"><%= mm.reason %> · <%= new Date(mm.created_at).toLocaleDateString('es-CL') %></span></td>
+          <td class="hide-sm"><%= mm.contact %></td>
+          <td style="max-width:360px"><%= mm.body %></td>
+          <td><div class="actions">
+            <% if (!mm.read) { %><form method="post" action="/admin/mensajes/<%= mm.id %>/leido"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm">Leído</button></form><% } %>
+            <form method="post" action="/admin/mensajes/<%= mm.id %>/eliminar" onsubmit="return confirm('¿Eliminar?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
 </div>
 <%- include('../partials/admin-foot') %>

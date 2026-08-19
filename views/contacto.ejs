@@ -1,0 +1,52 @@
+<% var pageTitle = 'Contacto' %>
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap" style="max-width:900px">
+    <div class="section-head"><div><span class="kicker">Súmate</span><h2>Únete / Contacto</h2></div></div>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:36px;align-items:start">
+      <div>
+        <% if (ok) { %>
+          <div class="notice-ok">¡Gracias! Recibimos tu mensaje. Te contactaremos pronto.</div>
+        <% } %>
+        <% if (error) { %><p style="color:#c0403a;font-weight:600"><%= error %></p><% } %>
+        <p class="muted">¿Quieres jugar con nosotros, organizar un amistoso o apoyar al club? Escríbenos.</p>
+        <form method="post" action="/contacto" class="contact-form">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+          <div class="field"><label>Nombre</label><input type="text" name="name" required value="<%= (form&&form.name)||'' %>"></div>
+          <div class="field"><label>Teléfono o correo</label><input type="text" name="contact" placeholder="WhatsApp o email" value="<%= (form&&form.contact)||'' %>"></div>
+          <div class="field"><label>Motivo</label>
+            <select name="reason">
+              <% ['Quiero jugar','Amistoso / partido','Patrocinio / apoyo','Otro'].forEach(function(r){ %>
+                <option <%= form&&form.reason===r?'selected':'' %>><%= r %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field"><label>Mensaje</label><textarea name="body" required><%= (form&&form.body)||'' %></textarea></div>
+          <button class="btn primary">Enviar</button>
+        </form>
+      </div>
+      <aside>
+        <h3>Contáctanos directo</h3>
+        <div class="contact-links">
+          <% if (s.whatsapp) { %><a class="btn ghost" href="<%= s.whatsapp %>" target="_blank" rel="noopener">WhatsApp</a><% } %>
+          <% if (s.instagram) { %><a class="btn ghost" href="<%= s.instagram %>" target="_blank" rel="noopener">Instagram</a><% } %>
+          <% if (s.email) { %><a class="btn ghost" href="mailto:<%= s.email %>">Correo</a><% } %>
+        </div>
+
+        <% if (sponsors && sponsors.length) { %>
+          <h3 style="margin-top:30px">Patrocinadores</h3>
+          <div class="sponsors">
+            <% sponsors.forEach(function(sp){ %>
+              <% if (sp.url) { %><a href="<%= sp.url %>" target="_blank" rel="noopener" title="<%= sp.name %>"><% } %>
+                <% if (sp.logo) { %><img src="<%= sp.logo %>" alt="<%= sp.name %>"><% } else { %><span class="sp-name"><%= sp.name %></span><% } %>
+              <% if (sp.url) { %></a><% } %>
+            <% }) %>
+          </div>
+        <% } %>
+      </aside>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

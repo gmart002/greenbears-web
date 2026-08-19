@@ -10,8 +10,15 @@
   </div>
   <div class="row2">
     <div class="field"><label>Lugar</label><input type="text" name="location" placeholder="Gimnasio…" value="<%= match ? match.location : '' %>"></div>
+    <div class="field"><label>Torneo</label><input type="text" name="tournament" placeholder="Liga, Copa…" value="<%= match ? match.tournament : '' %>"></div>
+  </div>
+  <div class="row2">
     <div class="field"><label>Condición</label>
       <select name="home"><option value="1" <%= (!match||match.home)?'selected':'' %>>Local</option><option value="" <%= (match&&!match.home)?'selected':'' %>>Visita</option></select>
+    </div>
+    <div class="field check" style="align-self:end;margin-bottom:22px">
+      <input type="checkbox" id="conf" name="confirmed" value="1" <%= (!match||match.confirmed)?'checked':'' %>>
+      <label for="conf" style="margin:0">Partido confirmado</label>
     </div>
   </div>
   <div class="field">

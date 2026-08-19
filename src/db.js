@@ -51,7 +51,42 @@ CREATE TABLE IF NOT EXISTS matches (
   status      TEXT NOT NULL DEFAULT 'upcoming', -- upcoming | played
   notes       TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS gallery (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  title       TEXT DEFAULT '',
+  image       TEXT DEFAULT '',
+  video_url   TEXT DEFAULT '',
+  season      TEXT DEFAULT '',
+  sort        INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS sponsors (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  logo        TEXT DEFAULT '',
+  url         TEXT DEFAULT '',
+  sort        INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS messages (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  contact     TEXT DEFAULT '',
+  reason      TEXT DEFAULT '',
+  body        TEXT DEFAULT '',
+  read        INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL
+);
 `);
+
+// Migraciones incrementales (agregar columnas nuevas sin perder datos)
+function addColumn(table, col, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+}
+addColumn('matches', 'tournament', "TEXT DEFAULT ''");
+addColumn('matches', 'confirmed', 'INTEGER NOT NULL DEFAULT 1');
+addColumn('players', 'staff', 'INTEGER NOT NULL DEFAULT 0');   // 0 = jugador, 1 = cuerpo técnico
+addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador, Asistente
 
 // ---------- Ajustes por defecto ----------
 const DEFAULTS = {
@@ -64,7 +99,13 @@ const DEFAULTS = {
   whatsapp: '',
   primary: '#1f9b57',
   hero_image: '',
-  logo_image: ''
+  logo_image: '',
+  club_history: '',
+  club_values: '',
+  club_achievements: '',
+  club_tournaments: '',
+  club_photo: '',
+  actualidad_label: 'Actualidad'
 };
 const getSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
 const setSettingStmt = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');

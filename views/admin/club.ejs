@@ -1,0 +1,19 @@
+<% var pageTitle = 'El Club' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/club" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1>El Club</h1>
+  <p class="muted" style="margin-top:-8px">Textos de la página “El Club”. Puedes usar Markdown (**negrita**, listas). Deja vacío lo que no quieras mostrar.</p>
+  <div class="field"><label>Historia</label><textarea name="club_history"><%= s.club_history %></textarea></div>
+  <div class="field"><label>Valores</label><textarea name="club_values"><%= s.club_values %></textarea></div>
+  <div class="field"><label>Logros</label><textarea name="club_achievements"><%= s.club_achievements %></textarea></div>
+  <div class="field"><label>Torneos en los que participa</label><textarea name="club_tournaments"><%= s.club_tournaments %></textarea></div>
+  <div class="field">
+    <label>Foto del club (histórica o de equipo)</label>
+    <input type="file" name="club_photo" accept="image/*">
+    <% if (s.club_photo) { %><input type="hidden" name="club_photo" value="<%= s.club_photo %>"><img class="cur-img" src="<%= s.club_photo %>" alt=""><% } %>
+  </div>
+  <div class="form-actions"><button class="btn primary">Guardar cambios</button></div>
+</form>
+<%- include('../partials/admin-foot') %>

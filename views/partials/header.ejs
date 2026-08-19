@@ -38,9 +38,12 @@
     <label for="navToggle" class="nav-burger" aria-label="Menú"><span></span><span></span><span></span></label>
     <nav class="site-nav">
       <a href="/" class="<%= path === '/' ? 'on' : '' %>">Inicio</a>
-      <a href="/noticias" class="<%= path.startsWith('/noticias') ? 'on' : '' %>">Noticias</a>
-      <a href="/jugadores" class="<%= path.startsWith('/jugadores') ? 'on' : '' %>">Jugadores</a>
-      <a href="/calendario" class="<%= path.startsWith('/calendario') ? 'on' : '' %>">Calendario</a>
+      <a href="/calendario" class="<%= path.startsWith('/calendario') ? 'on' : '' %>">Partidos</a>
+      <a href="/jugadores" class="<%= path.startsWith('/jugadores') ? 'on' : '' %>">Plantel</a>
+      <a href="/el-club" class="<%= path.startsWith('/el-club') ? 'on' : '' %>">El Club</a>
+      <a href="/noticias" class="<%= path.startsWith('/noticias') ? 'on' : '' %>"><%= s.actualidad_label || 'Actualidad' %></a>
+      <a href="/galeria" class="<%= path.startsWith('/galeria') ? 'on' : '' %>">Galería</a>
+      <a href="/contacto" class="<%= path.startsWith('/contacto') ? 'on' : '' %>">Contacto</a>
       <a href="/pizarra" class="cta <%= path.startsWith('/pizarra') ? 'on' : '' %>">Pizarra</a>
     </nav>
   </div>

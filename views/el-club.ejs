@@ -1,0 +1,31 @@
+<% var pageTitle = 'El Club' %>
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Quiénes somos</span><h2>El Club</h2></div></div>
+
+    <% if (s.club_photo) { %>
+      <img src="<%= s.club_photo %>" alt="<%= s.site_title %>" style="width:100%;border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:28px;max-height:440px;object-fit:cover">
+    <% } %>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:30px">
+      <% if (historyHtml) { %>
+        <div><h3 style="color:var(--primary-d)">Historia</h3><div class="content"><%- historyHtml %></div></div>
+      <% } %>
+      <% if (valuesHtml) { %>
+        <div><h3 style="color:var(--primary-d)">Valores</h3><div class="content"><%- valuesHtml %></div></div>
+      <% } %>
+      <% if (achievementsHtml) { %>
+        <div><h3 style="color:var(--primary-d)">Logros</h3><div class="content"><%- achievementsHtml %></div></div>
+      <% } %>
+      <% if (tournamentsHtml) { %>
+        <div><h3 style="color:var(--primary-d)">Torneos</h3><div class="content"><%- tournamentsHtml %></div></div>
+      <% } %>
+    </div>
+
+    <% if (!historyHtml && !valuesHtml && !achievementsHtml && !tournamentsHtml) { %>
+      <div class="empty-state"><%= s.about %></div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

@@ -1,0 +1,24 @@
+<% var pageTitle = item ? 'Editar elemento' : 'Nuevo elemento' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel#galeria">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/galeria<%= item ? '/' + item.id : '' %>" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1><%= item ? 'Editar elemento' : 'Nuevo elemento' %></h1>
+  <div class="field"><label>Título (opcional)</label><input type="text" name="title" value="<%= item ? item.title : '' %>"></div>
+  <div class="row2">
+    <div class="field"><label>Temporada</label><input type="text" name="season" placeholder="2026" value="<%= item ? item.season : '' %>"></div>
+    <div class="field"><label>Orden</label><input type="number" name="sort" value="<%= item ? item.sort : 0 %>"></div>
+  </div>
+  <div class="field">
+    <label>Foto</label>
+    <input type="file" name="image" accept="image/*">
+    <% if (item && item.image) { %><input type="hidden" name="image" value="<%= item.image %>"><img class="cur-img" src="<%= item.image %>" alt=""><% } %>
+  </div>
+  <div class="field">
+    <label>O enlace de video (YouTube/Instagram)</label>
+    <input type="text" name="video_url" placeholder="https://…" value="<%= item ? item.video_url : '' %>">
+    <div class="hint">Si pones un video, la foto (si la subes) se usa como miniatura.</div>
+  </div>
+  <div class="form-actions"><button class="btn primary">Guardar</button><a class="btn ghost" href="/admin/panel#galeria">Cancelar</a></div>
+</form>
+<%- include('../partials/admin-foot') %>

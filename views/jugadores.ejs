@@ -1,14 +1,27 @@
-<% var pageTitle = 'Jugadores' %>
+<% var pageTitle = 'Plantel' %>
 <%- include('partials/header') %>
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><div><span class="kicker">La plantilla</span><h2>Jugadores</h2></div></div>
+    <div class="section-head"><div><span class="kicker">El equipo</span><h2>Plantel</h2></div></div>
     <% if (!players.length) { %>
       <div class="empty-state">Aún no hay jugadores cargados.</div>
     <% } else { %>
     <div class="grid players">
       <% players.forEach(function(pl){ %><%- include('partials/player-card', { pl: pl }) %><% }) %>
     </div>
+    <% } %>
+
+    <% if (staff && staff.length) { %>
+      <div class="section-head" style="margin-top:44px"><div><span class="kicker">Banca</span><h2>Cuerpo técnico</h2></div></div>
+      <div class="grid players">
+        <% staff.forEach(function(pl){ %>
+          <a class="player" href="/jugadores/<%= pl.id %>">
+            <% if (pl.photo) { %><div class="ph-photo" style="background-image:url(<%= pl.photo %>)"></div>
+            <% } else { %><div class="ph-empty"><svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg></div><% } %>
+            <div class="meta"><b><%= pl.name %></b><% if (pl.staff_role || pl.position) { %><span><%= pl.staff_role || pl.position %></span><% } %></div>
+          </a>
+        <% }) %>
+      </div>
     <% } %>
   </div>
 </section>

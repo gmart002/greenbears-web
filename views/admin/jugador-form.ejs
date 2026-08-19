@@ -33,9 +33,16 @@
   </div>
   <div class="row2">
     <div class="field"><label>Orden</label><input type="number" name="sort" value="<%= player ? player.sort : 0 %>"><div class="hint">Menor = aparece primero.</div></div>
-    <div class="field check" style="align-self:end;margin-bottom:22px">
+    <div class="field"><label>Rol (cuerpo técnico)</label><input type="text" name="staff_role" placeholder="Entrenador, Asistente…" value="<%= player ? player.staff_role : '' %>"><div class="hint">Solo si es cuerpo técnico.</div></div>
+  </div>
+  <div class="row2">
+    <div class="field check" style="align-self:center;margin-bottom:8px">
       <input type="checkbox" id="act" name="active" value="1" <%= (!player || player.active) ? 'checked':'' %>>
-      <label for="act" style="margin:0">Activo en la plantilla</label>
+      <label for="act" style="margin:0">Activo</label>
+    </div>
+    <div class="field check" style="align-self:center;margin-bottom:8px">
+      <input type="checkbox" id="stf" name="staff" value="1" <%= (player && player.staff) ? 'checked':'' %>>
+      <label for="stf" style="margin:0">Es cuerpo técnico (no jugador)</label>
     </div>
   </div>
   <div class="form-actions">

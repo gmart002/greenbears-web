@@ -1,8 +1,8 @@
-<% var pageTitle = 'Calendario' %>
+<% var pageTitle = 'Partidos' %>
 <%- include('partials/header') %>
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><div><span class="kicker">Agenda</span><h2>Calendario</h2></div></div>
+    <div class="section-head"><div><span class="kicker">Agenda</span><h2>Partidos</h2></div></div>
 
     <h3 style="margin-bottom:10px">Próximos partidos</h3>
     <% if (!upcoming.length) { %>
@@ -13,9 +13,13 @@
       <div class="match-row">
         <div>
           <div class="match-teams" style="font-size:1.1rem">Green Bears <span class="muted">vs</span> <%= m.opponent %></div>
-          <div class="muted" style="font-size:.9rem"><%= fmtDateTime(m.date) %><% if (m.location) { %> · <%= m.location %><% } %></div>
+          <div class="muted" style="font-size:.9rem"><%= fmtDateTime(m.date) %><% if (m.location) { %> · <%= m.location %><% } %><% if (m.tournament) { %> · <%= m.tournament %><% } %></div>
         </div>
-        <span class="badge <%= m.home ? 'home' : '' %>"><%= m.home ? 'Local' : 'Visita' %></span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <span class="badge <%= m.home ? 'home' : '' %>"><%= m.home ? 'Local' : 'Visita' %></span>
+          <span class="badge <%= m.confirmed ? 'ok' : 'pend' %>"><%= m.confirmed ? 'Confirmado' : 'Pendiente' %></span>
+          <a class="btn ghost sm" href="/calendario/<%= m.id %>.ics">+ Calendario</a>
+        </div>
       </div>
       <% }) %>
     </div>
@@ -30,7 +34,7 @@
       <div class="match-row">
         <div>
           <div class="match-teams" style="font-size:1.1rem">Green Bears <span class="muted">vs</span> <%= m.opponent %></div>
-          <div class="muted" style="font-size:.9rem"><%= fmtDate(m.date) %><% if (m.location) { %> · <%= m.location %><% } %></div>
+          <div class="muted" style="font-size:.9rem"><%= fmtDate(m.date) %><% if (m.location) { %> · <%= m.location %><% } %><% if (m.tournament) { %> · <%= m.tournament %><% } %></div>
         </div>
         <div class="score"><span class="<%= win ? 'win' : 'loss' %>"><%= m.our_score %></span> <span class="muted">–</span> <%= m.opp_score %></div>
       </div>

@@ -1,8 +1,8 @@
-<% var pageTitle = 'Noticias' %>
+<% var pageTitle = s.actualidad_label || 'Actualidad' %>
 <%- include('partials/header') %>
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><div><span class="kicker">Al día</span><h2>Noticias</h2></div></div>
+    <div class="section-head"><div><span class="kicker">Al día</span><h2><%= s.actualidad_label || 'Actualidad' %></h2></div></div>
     <% if (!posts.length) { %>
       <div class="empty-state">Aún no hay noticias publicadas.</div>
     <% } else { %>
