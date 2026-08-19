@@ -115,8 +115,8 @@ p{margin:0 0 1rem}
 .player{position:relative;background:var(--dark);border-radius:var(--r);overflow:hidden;color:#fff;aspect-ratio:3/4;display:block}
 .player .ph-photo{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
 .player .ph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#2e3d34;background:linear-gradient(160deg,#16211a,#0c110e);overflow:hidden}
-/* Logo del club difuminado cuando el jugador no tiene foto */
-.player .ph-logo{position:absolute;inset:0;background-position:center;background-repeat:no-repeat;background-size:66%;filter:blur(3px);opacity:.2}
+/* Logo del club difuminado cuando el jugador no tiene foto (tarjetas y ficha individual) */
+.ph-logo{position:absolute;inset:0;background-position:center;background-repeat:no-repeat;background-size:66%;filter:blur(3px);opacity:.2}
 .player .ph-empty svg{width:46%;opacity:.5}
 .player .num{position:absolute;top:10px;left:12px;font-family:"Barlow Condensed";font-weight:800;font-size:2.2rem;line-height:1;color:#fff;text-shadow:0 2px 8px #000}
 .player .meta{position:absolute;left:0;right:0;bottom:0;padding:34px 14px 14px;background:linear-gradient(transparent,rgba(6,10,8,.92))}

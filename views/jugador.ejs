@@ -4,6 +4,10 @@
   <div class="photo">
     <% if (player.photo) { %>
       <div class="ph-photo" style="position:absolute;inset:0;background:url(<%= player.photo %>) center/cover"></div>
+    <% } else if (s.logo_image) { %>
+      <div class="ph-empty" style="position:absolute;inset:0;overflow:hidden;color:#2e3d34">
+        <span class="ph-logo" style="background-image:url(<%= s.logo_image %>)"></span>
+      </div>
     <% } else { %>
       <div class="ph-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#2e3d34">
         <svg viewBox="0 0 48 48" width="46%"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg>
