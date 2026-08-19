@@ -218,7 +218,7 @@ module.exports = function (checkCsrf) {
   router.get('/ajustes', (req, res) => res.render('admin/ajustes'));
   const ajustesUpload = upload.fields([{ name: 'hero', maxCount: 1 }, { name: 'logo', maxCount: 1 }]);
   router.post('/ajustes', ajustesUpload, checkCsrf, (req, res) => {
-    const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary', 'actualidad_label'];
+    const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary', 'actualidad_label', 'instagram_embed'];
     for (const k of keys) if (k in req.body) setSetting(k, req.body[k]);
     const f = req.files || {};
     if (f.hero && f.hero[0]) setSetting('hero_image', uploadedUrl(f.hero[0]));

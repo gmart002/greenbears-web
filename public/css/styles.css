@@ -158,6 +158,26 @@ p{margin:0 0 1rem}
 .foot-social{display:flex;flex-wrap:wrap;gap:16px}
 .foot-legal{border-top:1px solid rgba(255,255,255,.1);padding:16px 20px 30px;color:#8fa197;font-size:.85rem}
 
+/* El Club (landing) */
+.club-band{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center}
+.club-band .lead{font-size:1.12rem;color:var(--muted);margin:6px 0 20px;max-width:56ch}
+.club-media img{width:100%;border-radius:var(--r);box-shadow:var(--shadow);max-height:340px;object-fit:cover}
+@media (max-width:760px){ .club-band{grid-template-columns:1fr} }
+
+/* Banda de contacto (CTA) */
+.cta-band{background:var(--dark);color:#fff;position:relative;overflow:hidden}
+.cta-band::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 130% at 90% 10%,color-mix(in srgb,var(--primary) 40%,transparent),transparent 60%)}
+.cta-inner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap;padding:52px 20px}
+.cta-inner h2{color:#fff;margin:0 0 6px}
+.cta-inner p{color:#cfe0d6;margin:0}
+.cta-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn.ghost.inv{color:#fff;border-color:rgba(255,255,255,.5)}
+.btn.ghost.inv:hover{background:#fff;color:var(--dark)}
+
+/* Instagram embed */
+.ig-embed{display:flex;justify-content:center}
+.ig-embed iframe{max-width:100%}
+
 /* Galería */
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
 .gitem{position:relative;display:block;border-radius:var(--r-s);overflow:hidden;background:var(--paper2);aspect-ratio:4/3;box-shadow:var(--shadow)}

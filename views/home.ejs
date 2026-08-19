@@ -1,5 +1,6 @@
 <%- include('partials/header') %>
 
+<!-- HERO -->
 <section class="hero <%= s.hero_image ? 'has-img' : '' %>" <%= s.hero_image ? 'style=--hero:url(' + s.hero_image + ')' : '' %>>
   <div class="hero-inner">
     <div class="hero-text">
@@ -7,16 +8,15 @@
       <h1><%= s.site_title %></h1>
       <p><%= s.about %></p>
       <div class="actions">
-        <a class="btn primary" href="/pizarra">Abrir la Pizarra</a>
-        <a class="btn light" href="/jugadores">Ver el equipo</a>
+        <a class="btn primary" href="/calendario">Ver calendario</a>
+        <a class="btn light" href="/jugadores">Conoce al equipo</a>
       </div>
     </div>
-    <% if (s.logo_image) { %>
-      <div class="hero-logo"><img src="<%= s.logo_image %>" alt="<%= s.site_title %>"></div>
-    <% } %>
+    <% if (s.logo_image) { %><div class="hero-logo"><img src="<%= s.logo_image %>" alt="<%= s.site_title %>"></div><% } %>
   </div>
 </section>
 
+<!-- PARTIDOS destacados -->
 <% if (nextMatch || lastResults.length) { %>
 <section class="section">
   <div class="wrap">
@@ -27,18 +27,17 @@
         <div class="match-teams"><span>Green Bears</span> <span class="muted">vs</span> <span><%= nextMatch.opponent %></span></div>
         <p class="muted" style="margin:10px 0 0"><%= fmtDateTime(nextMatch.date) %><% if (nextMatch.location) { %> · <%= nextMatch.location %><% } %>
           <span class="badge <%= nextMatch.home ? 'home' : '' %>"><%= nextMatch.home ? 'Local' : 'Visita' %></span></p>
+        <div style="margin-top:14px"><a class="btn ghost sm" href="/calendario/<%= nextMatch.id %>.ics">+ Agregar al calendario</a></div>
       </div>
       <% } %>
       <% if (lastResults.length) { %>
       <div class="matchcard">
         <div class="section-head" style="margin-bottom:6px"><span class="kicker">Últimos resultados</span></div>
         <% lastResults.forEach(function(m){ var win = m.our_score > m.opp_score; %>
-          <div class="match-row">
-            <div class="match-teams" style="font-size:1rem">vs <%= m.opponent %></div>
-            <div class="score"><span class="<%= win ? 'win' : 'loss' %>"><%= m.our_score %></span> <span class="muted">–</span> <%= m.opp_score %></div>
-          </div>
+          <div class="match-row"><div class="match-teams" style="font-size:1rem">vs <%= m.opponent %></div>
+            <div class="score"><span class="<%= win ? 'win' : 'loss' %>"><%= m.our_score %></span> <span class="muted">–</span> <%= m.opp_score %></div></div>
         <% }) %>
-        <a class="more" href="/calendario">Ver calendario completo →</a>
+        <a class="more" href="/calendario">Ver todos los partidos →</a>
       </div>
       <% } %>
     </div>
@@ -46,48 +45,85 @@
 </section>
 <% } %>
 
+<!-- EL CLUB -->
 <section class="section alt">
   <div class="wrap">
-    <div class="section-head">
-      <div><span class="kicker">Al día</span><h2><%= s.actualidad_label || 'Actualidad' %></h2></div>
-      <a class="btn ghost sm" href="/noticias">Ver todas</a>
+    <div class="club-band">
+      <div>
+        <span class="kicker">Quiénes somos</span>
+        <h2>El Club</h2>
+        <p class="lead"><%= s.about %></p>
+        <a class="btn ghost" href="/el-club">Conoce el club</a>
+      </div>
+      <% if (s.club_photo || s.logo_image) { %>
+        <div class="club-media"><img src="<%= s.club_photo || s.logo_image %>" alt="<%= s.site_title %>"></div>
+      <% } %>
     </div>
-    <% if (!posts.length) { %>
-      <div class="empty-state">Aún no hay noticias publicadas.</div>
+  </div>
+</section>
+
+<!-- PLANTEL -->
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">El equipo</span><h2>Plantel</h2></div><a class="btn ghost sm" href="/jugadores">Ver plantel</a></div>
+    <% if (!players.length) { %><div class="empty-state">Aún no hay jugadores cargados.</div>
+    <% } else { %><div class="grid players"><% players.forEach(function(pl){ %><%- include('partials/player-card', { pl: pl }) %><% }) %></div><% } %>
+  </div>
+</section>
+
+<!-- ACTUALIDAD -->
+<section class="section alt">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Al día</span><h2><%= s.actualidad_label || 'Actualidad' %></h2></div><a class="btn ghost sm" href="/noticias">Ver todas</a></div>
+    <% if (!posts.length) { %><div class="empty-state">Aún no hay publicaciones.</div>
     <% } else { %>
     <div class="grid cards">
       <% posts.forEach(function(p){ %>
       <a class="card" href="/noticias/<%= p.slug %>">
-        <% if (p.cover) { %><div class="thumb" style="background-image:url(<%= p.cover %>)"></div>
-        <% } else { %><div class="thumb ph">Green Bears</div><% } %>
-        <div class="body">
-          <span class="date"><%= fmtDate(p.created_at) %></span>
-          <h3><%= p.title %></h3>
-          <% if (p.excerpt) { %><p><%= p.excerpt %></p><% } %>
-          <span class="more">Leer más →</span>
-        </div>
+        <% if (p.cover) { %><div class="thumb" style="background-image:url(<%= p.cover %>)"></div><% } else { %><div class="thumb ph">Green Bears</div><% } %>
+        <div class="body"><span class="date"><%= fmtDate(p.created_at) %></span><h3><%= p.title %></h3><% if (p.excerpt) { %><p><%= p.excerpt %></p><% } %><span class="more">Leer más →</span></div>
       </a>
       <% }) %>
-    </div>
-    <% } %>
+    </div><% } %>
   </div>
 </section>
 
+<!-- GALERÍA -->
+<% if (gallery && gallery.length) { %>
 <section class="section">
   <div class="wrap">
-    <div class="section-head">
-      <div><span class="kicker">La plantilla</span><h2>Jugadores</h2></div>
-      <a class="btn ghost sm" href="/jugadores">Ver todos</a>
-    </div>
-    <% if (!players.length) { %>
-      <div class="empty-state">Aún no hay jugadores cargados.</div>
-    <% } else { %>
-    <div class="grid players">
-      <% players.forEach(function(pl){ %>
-        <%- include('partials/player-card', { pl: pl }) %>
+    <div class="section-head"><div><span class="kicker">Momentos</span><h2>Galería</h2></div><a class="btn ghost sm" href="/galeria">Ver galería</a></div>
+    <div class="gallery-grid">
+      <% gallery.forEach(function(it){ %>
+        <a class="gitem" href="/galeria"><img src="<%= it.image %>" alt="<%= it.title %>" loading="lazy"><% if (it.title) { %><span class="cap"><%= it.title %></span><% } %></a>
       <% }) %>
     </div>
-    <% } %>
+  </div>
+</section>
+<% } %>
+
+<!-- INSTAGRAM (se llena con el código del feed en Ajustes) -->
+<% if (s.instagram_embed) { %>
+<section class="section alt">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Síguenos</span><h2>Instagram</h2></div>
+      <% if (s.instagram) { %><a class="btn ghost sm" href="<%= s.instagram %>" target="_blank" rel="noopener">Ver perfil</a><% } %></div>
+    <div class="ig-embed"><%- s.instagram_embed %></div>
+  </div>
+</section>
+<% } %>
+
+<!-- ÚNETE / CONTACTO -->
+<section class="cta-band">
+  <div class="wrap cta-inner">
+    <div>
+      <h2>¿Quieres sumarte a los Green Bears?</h2>
+      <p>Jugadores, amistosos, patrocinadores. Escríbenos y conversemos.</p>
+    </div>
+    <div class="cta-actions">
+      <a class="btn light" href="/contacto">Únete / Contacto</a>
+      <% if (s.whatsapp) { %><a class="btn ghost inv" href="<%= s.whatsapp %>" target="_blank" rel="noopener">WhatsApp</a><% } %>
+    </div>
   </div>
 </section>
 

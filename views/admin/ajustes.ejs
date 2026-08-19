@@ -18,6 +18,11 @@
   </div>
   <div class="field"><label>WhatsApp (URL o https://wa.me/569…)</label><input type="text" name="whatsapp" value="<%= s.whatsapp %>"></div>
   <div class="field">
+    <label>Feed de Instagram (código para insertar)</label>
+    <textarea name="instagram_embed" placeholder="Pega aquí el código del widget de Instagram (Behold, LightWidget, etc.)"><%= s.instagram_embed %></textarea>
+    <div class="hint">Se muestra en la portada como “Síguenos en Instagram”. Déjalo vacío para ocultarlo.</div>
+  </div>
+  <div class="field">
     <label>Logo / escudo del club</label>
     <input type="file" name="logo" accept="image/*">
     <% if (s.logo_image) { %><input type="hidden" name="logo_image" value="<%= s.logo_image %>"><img class="cur-img" src="<%= s.logo_image %>" alt=""><% } %>

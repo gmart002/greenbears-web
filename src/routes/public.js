@@ -33,10 +33,11 @@ router.use((req, res, next) => { res.locals.fmtDate = fmtDate; res.locals.fmtDat
 // ---------- Inicio ----------
 router.get('/', (req, res) => {
   const posts = db.prepare('SELECT * FROM posts WHERE published = 1 ORDER BY created_at DESC LIMIT 3').all();
-  const players = db.prepare('SELECT * FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name LIMIT 8').all();
+  const players = db.prepare('SELECT * FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name LIMIT 6').all();
   const nextMatch = db.prepare("SELECT * FROM matches WHERE status = 'upcoming' ORDER BY date ASC LIMIT 1").get();
   const lastResults = db.prepare("SELECT * FROM matches WHERE status = 'played' ORDER BY date DESC LIMIT 3").all();
-  res.render('home', { posts, players, nextMatch, lastResults });
+  const gallery = db.prepare("SELECT * FROM gallery WHERE image != '' ORDER BY season DESC, sort, id DESC LIMIT 6").all();
+  res.render('home', { posts, players, nextMatch, lastResults, gallery });
 });
 
 // ---------- Actualidad (noticias) ----------

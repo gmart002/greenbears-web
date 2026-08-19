@@ -15,15 +15,20 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
 // Seguridad de cabeceras. CSP: recursos propios + Google Fonts + iframe de la pizarra.
+// Hosts de widgets de Instagram permitidos (Behold, LightWidget, SnapWidget, Elfsight, IG nativo).
+const IG = ['https://www.instagram.com', 'https://cdn.lightwidget.com', 'https://lightwidget.com',
+  'https://snapwidget.com', 'https://widget.behold.so', 'https://behold.so', 'https://w.behold.so',
+  'https://apps.elfsight.com', 'https://static.elfsight.com', 'https://core.service.elfsight.com'];
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc: ["'self'", ...IG],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', ...IG],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:'],
-      frameSrc: ["'self'", PIZARRA_URL],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https:'],
+      frameSrc: ["'self'", PIZARRA_URL, ...IG],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]

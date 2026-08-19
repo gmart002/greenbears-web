@@ -105,7 +105,8 @@ const DEFAULTS = {
   club_achievements: '',
   club_tournaments: '',
   club_photo: '',
-  actualidad_label: 'Actualidad'
+  actualidad_label: 'Actualidad',
+  instagram_embed: ''
 };
 const getSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
 const setSettingStmt = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
