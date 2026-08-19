@@ -19,9 +19,13 @@
 <header class="site-head">
   <div class="wrap head-inner">
     <a class="brand" href="/">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg>
-      </span>
+      <% if (s.logo_image) { %>
+        <img class="brand-logo" src="<%= s.logo_image %>" alt="<%= s.site_title %>">
+      <% } else { %>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg>
+        </span>
+      <% } %>
       <span class="brand-txt"><b><%= s.site_title %></b><small><%= s.tagline %></small></span>
     </a>
     <input type="checkbox" id="navToggle" class="nav-toggle" hidden>
@@ -31,7 +35,7 @@
       <a href="/noticias" class="<%= path.startsWith('/noticias') ? 'on' : '' %>">Noticias</a>
       <a href="/jugadores" class="<%= path.startsWith('/jugadores') ? 'on' : '' %>">Jugadores</a>
       <a href="/calendario" class="<%= path.startsWith('/calendario') ? 'on' : '' %>">Calendario</a>
-      <a href="<%= pizarraUrl %>" target="_blank" rel="noopener" class="cta">Pizarra</a>
+      <a href="/pizarra" class="cta <%= path.startsWith('/pizarra') ? 'on' : '' %>">Pizarra</a>
     </nav>
   </div>
 </header>

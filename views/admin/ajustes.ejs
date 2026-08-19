@@ -17,6 +17,12 @@
   </div>
   <div class="field"><label>WhatsApp (URL o https://wa.me/569…)</label><input type="text" name="whatsapp" value="<%= s.whatsapp %>"></div>
   <div class="field">
+    <label>Logo / escudo del club</label>
+    <input type="file" name="logo" accept="image/*">
+    <% if (s.logo_image) { %><input type="hidden" name="logo_image" value="<%= s.logo_image %>"><img class="cur-img" src="<%= s.logo_image %>" alt=""><% } %>
+    <div class="hint">Aparece en el encabezado y el pie. Ideal PNG con fondo transparente.</div>
+  </div>
+  <div class="field">
     <label>Imagen del hero (portada)</label>
     <input type="file" name="hero" accept="image/*">
     <% if (s.hero_image) { %><input type="hidden" name="hero_image" value="<%= s.hero_image %>"><img class="cur-img" src="<%= s.hero_image %>" alt=""><% } %>

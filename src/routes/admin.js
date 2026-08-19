@@ -154,11 +154,15 @@ module.exports = function (checkCsrf) {
 
   // ---- Ajustes del sitio ----
   router.get('/ajustes', (req, res) => res.render('admin/ajustes'));
-  router.post('/ajustes', upload.single('hero'), checkCsrf, (req, res) => {
+  const ajustesUpload = upload.fields([{ name: 'hero', maxCount: 1 }, { name: 'logo', maxCount: 1 }]);
+  router.post('/ajustes', ajustesUpload, checkCsrf, (req, res) => {
     const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary'];
     for (const k of keys) if (k in req.body) setSetting(k, req.body[k]);
-    if (req.file) setSetting('hero_image', uploadedUrl(req.file));
+    const f = req.files || {};
+    if (f.hero && f.hero[0]) setSetting('hero_image', uploadedUrl(f.hero[0]));
     else if (req.body.hero_image !== undefined) setSetting('hero_image', req.body.hero_image);
+    if (f.logo && f.logo[0]) setSetting('logo_image', uploadedUrl(f.logo[0]));
+    else if (req.body.logo_image !== undefined) setSetting('logo_image', req.body.logo_image);
     res.redirect('/admin/ajustes');
   });
 

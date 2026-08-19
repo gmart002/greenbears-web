@@ -63,7 +63,8 @@ const DEFAULTS = {
   facebook: '',
   whatsapp: '',
   primary: '#1f9b57',
-  hero_image: ''
+  hero_image: '',
+  logo_image: ''
 };
 const getSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
 const setSettingStmt = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
