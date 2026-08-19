@@ -90,7 +90,7 @@ addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador
 
 // ---------- Ajustes por defecto ----------
 const DEFAULTS = {
-  site_title: 'Green Bears Rancagua',
+  site_title: 'Green Bears',
   tagline: 'Club de Básquetbol · Rancagua',
   about: 'Green Bears es un club de básquetbol de Rancagua. Formamos jugadores dentro y fuera de la cancha, con trabajo, disciplina y comunidad.',
   email: '',

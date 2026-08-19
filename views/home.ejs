@@ -108,6 +108,7 @@
     <div class="section-head"><div><span class="kicker">Síguenos</span><h2>Instagram</h2></div>
       <% if (s.instagram) { %><a class="btn ghost sm" href="<%= s.instagram %>" target="_blank" rel="noopener">Ver perfil</a><% } %></div>
     <div class="ig-embed"><%- s.instagram_embed %></div>
+    <% if (/behold/i.test(s.instagram_embed)) { %><script type="module" src="https://w.behold.so/widget.js"></script><% } %>
   </div>
 </section>
 <% } %>
