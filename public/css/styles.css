@@ -233,3 +233,15 @@ p{margin:0 0 1rem}
 
 /* Contador de visitas en el pie */
 .foot-visits{white-space:nowrap}
+
+/* Highlights (videos cortos de jugadas) */
+.hl-grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.hl-card{margin:0;background:var(--dark);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.hl-media{display:block;width:100%;aspect-ratio:16/9;background:#000;border:0}
+video.hl-media{object-fit:cover}
+.hl-frame{position:relative}
+.hl-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.hl-link{display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;position:relative}
+.hl-link img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+.hl-link span{position:relative;font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.hl-card figcaption{padding:11px 14px;color:#fff;font-weight:600;font-size:.95rem}

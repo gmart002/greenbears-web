@@ -5,7 +5,8 @@ const express = require('express');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits } = require('../db');
+const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
+  listUsers, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin } = require('../db');
 
 const now = () => new Date().toISOString();
 
@@ -23,6 +24,17 @@ const upload = multer({
   fileFilter: (req, file, cb) => cb(null, /^image\/(png|jpe?g|webp|gif|avif)$/.test(file.mimetype))
 });
 const uploadedUrl = (file) => file ? '/uploads/' + file.filename : '';
+
+// Subida para Highlights: acepta un video (o imagen) + una miniatura. Límite mayor.
+const uploadHL = multer({
+  storage,
+  limits: { fileSize: 80 * 1024 * 1024 },   // 80 MB por video
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'video') return cb(null, /^video\/(mp4|webm|quicktime|ogg)$/.test(file.mimetype));
+    return cb(null, /^image\/(png|jpe?g|webp|gif|avif)$/.test(file.mimetype));   // poster
+  }
+}).fields([{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }]);
+const fileField = (req, name) => (req.files && req.files[name] && req.files[name][0]) || null;
 
 // ---- Autenticación ----
 function passwordOk(input) {
@@ -49,15 +61,29 @@ module.exports = function (checkCsrf) {
     res.render('admin/login', { error: null });
   });
   router.post('/login', loginLimiter, checkCsrf, (req, res) => {
-    if (passwordOk(req.body.password || '')) {
+    const username = String(req.body.username || '').trim();
+    const password = String(req.body.password || '');
+    // 1) usuario de la base de datos; 2) respaldo: superadmin del .env
+    let u = verifyLogin(username, password);
+    if (!u && username.toLowerCase() === (process.env.ADMIN_USER || 'admin').toLowerCase() && passwordOk(password)) {
+      u = { id: 0, username: username.toLowerCase(), role: 'super' };
+    }
+    if (u) {
       req.session.admin = true;
+      req.session.uid = u.id;
+      req.session.uname = u.username;
+      req.session.role = u.role;
       return res.redirect('/admin/panel');
     }
-    res.status(401).render('admin/login', { error: 'Clave incorrecta.' });
+    res.status(401).render('admin/login', { error: 'Usuario o clave incorrectos.' });
   });
   router.post('/logout', checkCsrf, (req, res) => { req.session = null; res.redirect('/admin/login'); });
 
   router.use(requireAdmin);
+  function requireSuper(req, res, next) {
+    if (req.session && req.session.role === 'super') return next();
+    return res.status(403).send('Solo el superadministrador puede hacer esto.');
+  }
 
   // ---- Panel ----
   router.get('/panel', (req, res) => {
@@ -67,11 +93,69 @@ module.exports = function (checkCsrf) {
     const gallery = db.prepare('SELECT * FROM gallery ORDER BY season DESC, sort, id DESC').all();
     const sponsors = db.prepare('SELECT * FROM sponsors ORDER BY sort, name').all();
     const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
-    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, visits: visitStats() });
+    const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC').all();
+    const users = req.session.role === 'super' ? listUsers() : [];
+    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, highlights, users, visits: visitStats() });
   });
 
   // Reiniciar el contador de visitas
   router.post('/visitas/reiniciar', checkCsrf, (req, res) => { resetVisits(); res.redirect('/admin/panel'); });
+
+  // ---- Highlights (videos de jugadas) ----
+  router.get('/highlights/nuevo', (req, res) => res.render('admin/highlight-form', { item: null }));
+  router.get('/highlights/:id/editar', (req, res, next) => {
+    const item = db.prepare('SELECT * FROM highlights WHERE id = ?').get(req.params.id);
+    if (!item) return next();
+    res.render('admin/highlight-form', { item });
+  });
+  router.post('/highlights/:id?', uploadHL, checkCsrf, (req, res) => {
+    const b = req.body;
+    const video = uploadedUrl(fileField(req, 'video')) || b.video || '';
+    const poster = uploadedUrl(fileField(req, 'poster')) || b.poster || '';
+    const sort = parseInt(b.sort, 10) || 0;
+    const id = req.params.id ? Number(req.params.id) : 0;
+    if (!video && !b.video_url) return res.status(400).send('Sube un video o pega un enlace de YouTube.');
+    if (id) {
+      db.prepare('UPDATE highlights SET title=?, video=?, video_url=?, poster=?, sort=? WHERE id=?')
+        .run(b.title || '', video, b.video_url || '', poster, sort, id);
+    } else {
+      db.prepare('INSERT INTO highlights (title, video, video_url, poster, sort, created_at) VALUES (?,?,?,?,?,?)')
+        .run(b.title || '', video, b.video_url || '', poster, sort, now());
+    }
+    res.redirect('/admin/panel#highlights');
+  });
+  router.post('/highlights/:id/eliminar', checkCsrf, (req, res) => {
+    db.prepare('DELETE FROM highlights WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#highlights');
+  });
+
+  // ---- Usuarios (solo superadmin) ----
+  router.post('/usuarios', requireSuper, checkCsrf, (req, res) => {
+    try { createUser(req.body.username, req.body.password, req.body.role); }
+    catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#usuarios">volver</a>'); }
+    res.redirect('/admin/panel#usuarios');
+  });
+  router.post('/usuarios/:id/clave', requireSuper, checkCsrf, (req, res) => {
+    try { setUserPassword(Number(req.params.id), req.body.password); }
+    catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#usuarios">volver</a>'); }
+    res.redirect('/admin/panel#usuarios');
+  });
+  router.post('/usuarios/:id/estado', requireSuper, checkCsrf, (req, res) => {
+    const id = Number(req.params.id);
+    const target = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    // No desactivar al último superadmin ni a uno mismo
+    if (target && target.role === 'super' && !Number(req.body.active) && countSupers() <= 1)
+      return res.status(400).send('No puedes desactivar al último superadmin.');
+    if (id === req.session.uid) return res.status(400).send('No puedes desactivar tu propia cuenta.');
+    setUserActive(id, Number(req.body.active));
+    res.redirect('/admin/panel#usuarios');
+  });
+  router.post('/usuarios/:id/eliminar', requireSuper, checkCsrf, (req, res) => {
+    const id = Number(req.params.id);
+    const target = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    if (id === req.session.uid) return res.status(400).send('No puedes eliminar tu propia cuenta.');
+    if (target && target.role === 'super' && countSupers() <= 1) return res.status(400).send('No puedes eliminar al último superadmin.');
+    deleteUser(id); res.redirect('/admin/panel#usuarios');
+  });
 
   // ---- Noticias ----
   router.get('/noticias/nueva', (req, res) => res.render('admin/noticia-form', { post: null }));
@@ -217,10 +301,10 @@ module.exports = function (checkCsrf) {
     db.prepare('DELETE FROM messages WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#mensajes');
   });
 
-  // ---- Ajustes del sitio ----
-  router.get('/ajustes', (req, res) => res.render('admin/ajustes'));
+  // ---- Ajustes del sitio (solo superadmin) ----
+  router.get('/ajustes', requireSuper, (req, res) => res.render('admin/ajustes'));
   const ajustesUpload = upload.fields([{ name: 'hero', maxCount: 1 }, { name: 'logo', maxCount: 1 }]);
-  router.post('/ajustes', ajustesUpload, checkCsrf, (req, res) => {
+  router.post('/ajustes', requireSuper, ajustesUpload, checkCsrf, (req, res) => {
     const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary', 'actualidad_label', 'instagram_embed'];
     for (const k of keys) if (k in req.body) setSetting(k, req.body[k]);
     // Casillas (si no viene marcada, no se envía → guardamos '0')

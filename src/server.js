@@ -18,6 +18,8 @@ app.set('views', path.join(__dirname, '..', 'views'));
 const IG = ['https://www.instagram.com', 'https://cdn.lightwidget.com', 'https://lightwidget.com',
   'https://snapwidget.com', 'https://widget.behold.so', 'https://behold.so', 'https://w.behold.so',
   'https://apps.elfsight.com', 'https://static.elfsight.com', 'https://core.service.elfsight.com'];
+// Reproductores de video permitidos para los Highlights (YouTube, Vimeo).
+const VID = ['https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://player.vimeo.com'];
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -27,7 +29,7 @@ app.use(helmet({
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'", 'https:'],
-      frameSrc: ["'self'", ...IG],
+      frameSrc: ["'self'", ...IG, ...VID],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"]
@@ -85,6 +87,10 @@ app.use((req, res, next) => {
   res.locals.s = settings();
   res.locals.path = req.path;
   res.locals.isAdmin = !!(req.session && req.session.admin);
+  res.locals.role = (req.session && req.session.role) || '';
+  res.locals.uname = (req.session && req.session.uname) || '';
+  res.locals.uid = (req.session && req.session.uid) || 0;
+  res.locals.isSuper = !!(req.session && req.session.role === 'super');
   res.locals.year = new Date().getFullYear();
   res.locals.visitsTotal = visitsTotal();
   next();

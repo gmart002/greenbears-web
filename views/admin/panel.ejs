@@ -117,6 +117,28 @@
     </table>
   </section>
 
+  <!-- Highlights -->
+  <section class="panel-sec" id="highlights">
+    <header><h2>Highlights</h2><a class="btn primary sm" href="/admin/highlights/nuevo">+ Agregar highlight</a></header>
+    <table class="tbl">
+      <thead><tr><th>Título</th><th class="hide-sm">Tipo</th><th class="hide-sm">Orden</th><th></th></tr></thead>
+      <tbody>
+        <% if (!highlights.length) { %><tr class="empty-row"><td colspan="4">Sin highlights todavía.</td></tr><% } %>
+        <% highlights.forEach(function(h){ %>
+        <tr>
+          <td><b><%= h.title || '(sin título)' %></b></td>
+          <td class="hide-sm"><span class="pill on"><%= h.video ? 'Video subido' : (h.video_url ? 'Enlace' : '—') %></span></td>
+          <td class="hide-sm muted"><%= h.sort %></td>
+          <td><div class="actions">
+            <a class="btn ghost sm" href="/admin/highlights/<%= h.id %>/editar">Editar</a>
+            <form method="post" action="/admin/highlights/<%= h.id %>/eliminar" onsubmit="return confirm('¿Eliminar este highlight?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
   <!-- Patrocinadores -->
   <section class="panel-sec" id="patrocinadores">
     <header><h2>Patrocinadores</h2></header>
@@ -164,6 +186,44 @@
       </tbody>
     </table>
   </section>
+
+  <!-- Usuarios (solo superadmin) -->
+  <% if (isSuper) { %>
+  <section class="panel-sec" id="usuarios">
+    <header><h2>Usuarios</h2><span class="muted sm">Tú eres el superadmin. Crea editores para que gestionen contenido.</span></header>
+    <table class="tbl">
+      <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <% users.forEach(function(u){ %>
+        <tr>
+          <td><b><%= u.username %></b><% if (u.id === uid) { %> <span class="muted sm">(tú)</span><% } %></td>
+          <td><span class="pill <%= u.role === 'super' ? 'on' : 'off' %>"><%= u.role === 'super' ? 'Superadmin' : 'Editor' %></span></td>
+          <td><span class="pill <%= u.active ? 'on' : 'off' %>"><%= u.active ? 'Activo' : 'Inactivo' %></span></td>
+          <td><div class="actions">
+            <form method="post" action="/admin/usuarios/<%= u.id %>/clave" onsubmit="this.password.value=prompt('Nueva clave para <%= u.username %> (mín. 6):')||''; return !!this.password.value">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="password"><button class="btn ghost sm">Cambiar clave</button>
+            </form>
+            <% if (u.id !== uid) { %>
+              <form method="post" action="/admin/usuarios/<%= u.id %>/estado"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="active" value="<%= u.active ? 0 : 1 %>"><button class="btn ghost sm"><%= u.active ? 'Desactivar' : 'Activar' %></button></form>
+              <form method="post" action="/admin/usuarios/<%= u.id %>/eliminar" onsubmit="return confirm('¿Eliminar a <%= u.username %>?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+            <% } %>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <form method="post" action="/admin/usuarios" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:14px 20px;border-top:1px solid var(--line)">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field" style="margin:0"><label>Usuario</label><input type="text" name="username" placeholder="ej: entrenador" autocapitalize="none" required></div>
+      <div class="field" style="margin:0"><label>Clave (mín. 6)</label><input type="text" name="password" required></div>
+      <div class="field" style="margin:0"><label>Rol</label>
+        <select name="role"><option value="editor">Editor (gestiona contenido)</option><option value="super">Superadmin (todo)</option></select>
+      </div>
+      <button class="btn primary sm">Crear usuario</button>
+    </form>
+    <div class="muted sm" style="padding:0 20px 16px">Los <b>editores</b> pueden gestionar noticias, jugadores, partidos, galería, highlights y mensajes. La configuración del sitio y los usuarios son solo para <b>superadmin</b>.</div>
+  </section>
+  <% } %>
 
 </div>
 <%- include('../partials/admin-foot') %>

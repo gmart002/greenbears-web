@@ -75,6 +75,31 @@
   </div>
 </section>
 
+<!-- HIGHLIGHTS -->
+<% if (typeof highlights !== 'undefined' && highlights.length) { %>
+<section class="section alt" id="highlights">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Jugadas</span><h2>Highlights</h2></div></div>
+    <div class="hl-grid">
+      <% highlights.forEach(function(h){ var emb = videoEmbed(h.video_url); %>
+        <figure class="hl-card">
+          <% if (h.video) { %>
+            <video class="hl-media" controls preload="metadata" playsinline <% if (h.poster) { %>poster="<%= h.poster %>"<% } %>>
+              <source src="<%= h.video %>">
+            </video>
+          <% } else if (emb) { %>
+            <div class="hl-media hl-frame"><iframe src="<%= emb %>" title="<%= h.title || 'Highlight' %>" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+          <% } else if (h.video_url) { %>
+            <a class="hl-media hl-link" href="<%= h.video_url %>" target="_blank" rel="noopener"><% if (h.poster) { %><img src="<%= h.poster %>" alt=""><% } %><span>▶ Ver video</span></a>
+          <% } %>
+          <% if (h.title) { %><figcaption><%= h.title %></figcaption><% } %>
+        </figure>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <!-- INSTAGRAM (se llena con el código del feed en Ajustes) -->
 <% if (s.instagram_embed) { %>
 <section class="section alt">

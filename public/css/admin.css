@@ -61,3 +61,6 @@ body.admin{background:var(--paper2)}
 .check-line{display:flex;align-items:center;gap:9px;font-weight:500}
 .check-line input{width:20px;height:20px;accent-color:var(--primary)}
 @media (max-width:720px){ .visits-sec .stat-row{grid-template-columns:repeat(2,1fr)} }
+
+/* Usuario actual en el menú del panel */
+.adm-user{font-size:.8rem;color:var(--muted);font-weight:600;padding:0 6px;white-space:nowrap}

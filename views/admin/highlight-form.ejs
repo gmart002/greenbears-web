@@ -1,0 +1,29 @@
+<% var pageTitle = item ? 'Editar highlight' : 'Nuevo highlight' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel#highlights">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/highlights<%= item ? '/' + item.id : '' %>" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1><%= item ? 'Editar highlight' : 'Nuevo highlight' %></h1>
+  <div class="field"><label>Título (opcional)</label><input type="text" name="title" placeholder="Ej: Contragolpe vs. Rival" value="<%= item ? item.title : '' %>"></div>
+  <div class="field">
+    <label>Subir video (MP4 · máx. 80 MB)</label>
+    <input type="file" name="video" accept="video/*">
+    <% if (item && item.video) { %><input type="hidden" name="video" value="<%= item.video %>"><video src="<%= item.video %>" controls style="max-height:180px;border-radius:10px;margin-top:8px"></video><% } %>
+    <div class="hint">Ideal para tus propias grabaciones. Clips cortos (10–40 s) para que carguen rápido.</div>
+  </div>
+  <div class="field">
+    <label>…o enlace de YouTube / Vimeo</label>
+    <input type="text" name="video_url" placeholder="https://youtu.be/…" value="<%= item ? item.video_url : '' %>">
+    <div class="hint">Si subes un archivo, ese tiene prioridad. Sirven links normales, Shorts o Vimeo.</div>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Miniatura (opcional)</label>
+      <input type="file" name="poster" accept="image/*">
+      <% if (item && item.poster) { %><input type="hidden" name="poster" value="<%= item.poster %>"><img class="cur-img" src="<%= item.poster %>" alt=""><% } %>
+    </div>
+    <div class="field"><label>Orden</label><input type="number" name="sort" value="<%= item ? item.sort : 0 %>"><div class="hint">Menor número aparece primero.</div></div>
+  </div>
+  <div class="form-actions"><button class="btn primary">Guardar</button><a class="btn ghost" href="/admin/panel#highlights">Cancelar</a></div>
+</form>
+<%- include('../partials/admin-foot') %>

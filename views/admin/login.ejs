@@ -17,8 +17,12 @@
     <form method="post" action="/admin/login">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <div class="field">
+        <label for="us">Usuario</label>
+        <input type="text" id="us" name="username" autocomplete="username" autocapitalize="none" autofocus required>
+      </div>
+      <div class="field">
         <label for="pw">Clave</label>
-        <input type="password" id="pw" name="password" autofocus required>
+        <input type="password" id="pw" name="password" autocomplete="current-password" required>
       </div>
       <button class="btn primary" style="width:100%;justify-content:center">Ingresar</button>
     </form>

@@ -2,6 +2,7 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -81,6 +82,23 @@ CREATE TABLE IF NOT EXISTS visits (
   visits  INTEGER NOT NULL DEFAULT 0,  -- visitantes únicos por día (por sesión)
   views   INTEGER NOT NULL DEFAULT 0   -- páginas vistas
 );
+CREATE TABLE IF NOT EXISTS highlights (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  title       TEXT DEFAULT '',
+  video       TEXT DEFAULT '',    -- archivo subido (/uploads/..)
+  video_url   TEXT DEFAULT '',    -- enlace externo (YouTube, etc.)
+  poster      TEXT DEFAULT '',    -- miniatura (imagen)
+  sort        INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS users (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  username    TEXT NOT NULL UNIQUE,
+  pass_hash   TEXT NOT NULL,
+  role        TEXT NOT NULL DEFAULT 'editor',  -- 'super' | 'editor'
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL
+);
 `);
 
 // Migraciones incrementales (agregar columnas nuevas sin perder datos)
@@ -125,6 +143,40 @@ function settings() {
   const o = { ...DEFAULTS };
   for (const r of rows) o[r.key] = r.value;
   return o;
+}
+
+// ---------- Usuarios ----------
+// Crea el superadmin la primera vez, usando la clave del .env (ADMIN_PASSWORD / _HASH).
+(function seedSuperadmin() {
+  const n = db.prepare('SELECT COUNT(*) AS c FROM users').get().c;
+  if (n > 0) return;
+  const uname = (process.env.ADMIN_USER || 'admin').trim().toLowerCase();
+  const hash = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'greenbears', 10);
+  db.prepare('INSERT INTO users (username, pass_hash, role, active, created_at) VALUES (?,?,?,1,?)')
+    .run(uname, hash, 'super', new Date().toISOString());
+})();
+
+function listUsers() { return db.prepare('SELECT id, username, role, active, created_at FROM users ORDER BY role, username').all(); }
+function findUser(username) { return db.prepare('SELECT * FROM users WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase()); }
+function createUser(username, password, role) {
+  const u = String(username || '').trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,32}$/.test(u)) throw new Error('Usuario inválido (3-32, letras/números/._-).');
+  if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
+  db.prepare('INSERT INTO users (username, pass_hash, role, active, created_at) VALUES (?,?,?,1,?)')
+    .run(u, bcrypt.hashSync(String(password), 10), role === 'super' ? 'super' : 'editor', new Date().toISOString());
+}
+function setUserPassword(id, password) {
+  if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
+  db.prepare('UPDATE users SET pass_hash = ? WHERE id = ?').run(bcrypt.hashSync(String(password), 10), id);
+}
+function setUserActive(id, active) { db.prepare('UPDATE users SET active = ? WHERE id = ?').run(active ? 1 : 0, id); }
+function deleteUser(id) { db.prepare('DELETE FROM users WHERE id = ?').run(id); }
+function countSupers() { return db.prepare("SELECT COUNT(*) AS c FROM users WHERE role='super' AND active=1").get().c; }
+function verifyLogin(username, password) {
+  const u = findUser(username);
+  if (!u) return null;
+  try { if (!bcrypt.compareSync(String(password || ''), u.pass_hash)) return null; } catch (e) { return null; }
+  return { id: u.id, username: u.username, role: u.role };
 }
 function setSetting(key, value) { setSettingStmt.run(key, String(value == null ? '' : value)); }
 
@@ -171,4 +223,8 @@ function visitStats() {
   };
 }
 
-module.exports = { db, settings, setSetting, slugify, uniqueSlug, DATA_DIR, recordVisit, visitStats, visitsTotal, resetVisits };
+module.exports = {
+  db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
+  recordVisit, visitStats, visitsTotal, resetVisits,
+  listUsers, findUser, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin
+};

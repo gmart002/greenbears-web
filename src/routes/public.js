@@ -28,7 +28,14 @@ function fmtDateTime(iso) {
   const d = new Date(iso); if (isNaN(d)) return iso;
   return d.toLocaleString('es-CL', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-router.use((req, res, next) => { res.locals.fmtDate = fmtDate; res.locals.fmtDateTime = fmtDateTime; next(); });
+function videoEmbed(url) {
+  if (!url) return '';
+  let m;
+  if ((m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/))) return 'https://www.youtube-nocookie.com/embed/' + m[1];
+  if ((m = String(url).match(/vimeo\.com\/(?:video\/)?(\d+)/))) return 'https://player.vimeo.com/video/' + m[1];
+  return '';
+}
+router.use((req, res, next) => { res.locals.fmtDate = fmtDate; res.locals.fmtDateTime = fmtDateTime; res.locals.videoEmbed = videoEmbed; next(); });
 
 // ---------- Inicio ----------
 router.get('/', (req, res) => {
@@ -37,7 +44,8 @@ router.get('/', (req, res) => {
   const nextMatch = db.prepare("SELECT * FROM matches WHERE status = 'upcoming' ORDER BY date ASC LIMIT 1").get();
   const lastResults = db.prepare("SELECT * FROM matches WHERE status = 'played' ORDER BY date DESC LIMIT 3").all();
   const gallery = db.prepare("SELECT * FROM gallery WHERE image != '' ORDER BY season DESC, sort, id DESC LIMIT 6").all();
-  res.render('home', { posts, players, nextMatch, lastResults, gallery });
+  const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC LIMIT 8').all();
+  res.render('home', { posts, players, nextMatch, lastResults, gallery, highlights });
 });
 
 // ---------- Actualidad (noticias) ----------
