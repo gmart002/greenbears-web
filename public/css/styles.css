@@ -67,8 +67,10 @@ p{margin:0 0 1rem}
 .hero-text{flex:1 1 440px;min-width:0}
 .hero-logo{flex:0 0 auto;display:flex;justify-content:center}
 /* El escudo (círculo oscuro) se funde con el fondo del hero. */
-.hero-logo img{width:clamp(170px,26vw,300px);height:auto;
-  filter:drop-shadow(0 14px 36px rgba(0,0,0,.55));animation:heroLogoIn .7s ease both}
+.hero-logo img{width:clamp(170px,26vw,300px);height:auto;opacity:.72;
+  filter:drop-shadow(0 14px 36px rgba(0,0,0,.5));animation:heroLogoIn .7s ease both;
+  -webkit-mask-image:radial-gradient(circle at 50% 45%,#000 62%,transparent 92%);
+  mask-image:radial-gradient(circle at 50% 45%,#000 62%,transparent 92%)}
 @keyframes heroLogoIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.hero-logo img{animation:none}}
 @media (max-width:760px){

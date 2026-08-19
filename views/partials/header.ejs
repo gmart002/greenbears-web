@@ -12,7 +12,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/css/styles.css">
-  <link rel="icon" href="/img/favicon.svg">
+  <% if (s.logo_image) { %>
+    <link rel="icon" href="<%= s.logo_image %>">
+    <link rel="apple-touch-icon" href="<%= s.logo_image %>">
+  <% } else { %>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <% } %>
   <style>:root{ --primary: <%= /^#[0-9a-fA-F]{3,8}$/.test(s.primary) ? s.primary : '#1f9b57' %>; }</style>
 </head>
 <body>
