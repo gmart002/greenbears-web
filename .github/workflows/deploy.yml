@@ -40,9 +40,16 @@ jobs:
           port: ${{ secrets.SSH_PORT || '22' }}
           script: |
             set -e
-            cd ~/greenbears-web
+            cd ~/greenbears-web || { echo "Falta clonar ~/greenbears-web una vez (ver README)"; exit 1; }
             git pull origin main
+            [ -f .env ] || { echo "Falta ~/greenbears-web/.env con ADMIN_PASSWORD y SESSION_SECRET (créalo una vez)"; exit 1; }
             docker compose --env-file .env up -d --build --force-recreate
-            # Asegura que Caddy siga en la red aislada (idempotente; no falla si ya está).
+            # Conecta Caddy a la red aislada para poder enrutar (idempotente).
             docker network connect greenbears_edge grap-caddy 2>/dev/null || true
+            # Agrega el dominio al Caddyfile de GrapHCM solo si falta (no pisa lo existente).
+            CADDY="$HOME/graphcm/deploy/caddy/Caddyfile"
+            if [ -f "$CADDY" ] && ! grep -q 'greenbears.cl' "$CADDY"; then
+              printf '\ngreenbears.cl {\n\tencode zstd gzip\n\treverse_proxy grap-greenbears:3000\n}\nwww.greenbears.cl {\n\tredir https://greenbears.cl{uri} permanent\n}\n' >> "$CADDY"
+              docker compose -f "$HOME/graphcm/docker-compose.unified.yml" --env-file "$HOME/graphcm/deploy/.env" up -d --force-recreate caddy
+            fi
             docker image prune -f
