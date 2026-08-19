@@ -2,13 +2,18 @@
 
 <section class="hero <%= s.hero_image ? 'has-img' : '' %>" <%= s.hero_image ? 'style=--hero:url(' + s.hero_image + ')' : '' %>>
   <div class="hero-inner">
-    <div class="eyebrow"><%= s.tagline %></div>
-    <h1><%= s.site_title %></h1>
-    <p><%= s.about %></p>
-    <div class="actions">
-      <a class="btn primary" href="/pizarra">Abrir la Pizarra</a>
-      <a class="btn light" href="/jugadores">Ver el equipo</a>
+    <div class="hero-text">
+      <div class="eyebrow"><%= s.tagline %></div>
+      <h1><%= s.site_title %></h1>
+      <p><%= s.about %></p>
+      <div class="actions">
+        <a class="btn primary" href="/pizarra">Abrir la Pizarra</a>
+        <a class="btn light" href="/jugadores">Ver el equipo</a>
+      </div>
     </div>
+    <% if (s.logo_image) { %>
+      <div class="hero-logo"><img src="<%= s.logo_image %>" alt="<%= s.site_title %>"></div>
+    <% } %>
   </div>
 </section>
 

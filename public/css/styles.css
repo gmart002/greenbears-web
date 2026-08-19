@@ -43,7 +43,8 @@ p{margin:0 0 1rem}
 .brand-mark{width:38px;height:38px;flex:none;color:var(--primary);display:inline-flex}
 .brand-mark svg{width:100%;height:100%}
 .brand-mark.sm{width:30px;height:30px}
-.brand-logo{width:42px;height:42px;object-fit:contain;flex:none}
+.brand-logo{width:54px;height:54px;object-fit:contain;flex:none}
+.site-head .brand-txt b{font-size:1.5rem}
 .brand-txt b{font-family:"Barlow Condensed";font-weight:800;font-size:1.35rem;text-transform:uppercase;display:block;line-height:1}
 .brand-txt small{color:var(--muted);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
 .site-nav{display:flex;align-items:center;gap:6px}
@@ -61,7 +62,21 @@ p{margin:0 0 1rem}
 .hero::before{content:"";position:absolute;inset:0;background:
   radial-gradient(120% 100% at 85% -10%, color-mix(in srgb,var(--primary) 45%,transparent), transparent 60%);opacity:.9}
 .hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) center/cover;opacity:.28;mix-blend-mode:luminosity}
-.hero-inner{position:relative;padding:78px 20px 84px;max-width:var(--wrap);margin:0 auto}
+.hero-inner{position:relative;padding:70px 20px 78px;max-width:var(--wrap);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:48px;flex-wrap:wrap}
+.hero-text{flex:1 1 440px;min-width:0}
+.hero-logo{flex:0 0 auto;display:flex;justify-content:center}
+/* El escudo (círculo oscuro) se funde con el fondo del hero. */
+.hero-logo img{width:clamp(170px,26vw,300px);height:auto;
+  filter:drop-shadow(0 14px 36px rgba(0,0,0,.55));animation:heroLogoIn .7s ease both}
+@keyframes heroLogoIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.hero-logo img{animation:none}}
+@media (max-width:760px){
+  .hero-inner{flex-direction:column-reverse;text-align:center;gap:26px}
+  .hero-text .actions{justify-content:center}
+  .hero h1{margin-inline:auto}
+  .hero-logo img{width:clamp(150px,50vw,220px)}
+}
 .hero .eyebrow{font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.22em;color:var(--primary);font-size:.9rem;margin-bottom:12px}
 .hero h1{color:#fff;max-width:14ch}
 .hero p{color:#cfe0d6;font-size:1.15rem;max-width:52ch;margin-top:6px}
