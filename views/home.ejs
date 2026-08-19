@@ -56,7 +56,7 @@
         <a class="btn ghost" href="/el-club">Conoce el club</a>
       </div>
       <% if (s.club_photo || s.logo_image) { %>
-        <div class="club-media"><img src="<%= s.club_photo || s.logo_image %>" alt="<%= s.site_title %>"></div>
+        <div class="club-media<%= s.club_photo ? '' : ' is-logo' %>"><img src="<%= s.club_photo || s.logo_image %>" alt="<%= s.site_title %>"></div>
       <% } %>
     </div>
   </div>
