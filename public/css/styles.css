@@ -62,10 +62,13 @@ p{margin:0 0 1rem}
 .hero{position:relative;background:var(--dark);color:#fff;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background:
   radial-gradient(120% 100% at 85% -10%, color-mix(in srgb,var(--primary) 45%,transparent), transparent 60%);opacity:.9}
-.hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) center 38%/cover;opacity:.28;mix-blend-mode:luminosity}
+.hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) 0% 24%/135% auto;background-repeat:no-repeat;opacity:.3;mix-blend-mode:luminosity}
 .hero-inner{position:relative;padding:118px 20px 126px;min-height:620px;max-width:var(--wrap);margin:0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:48px;flex-wrap:wrap}
-@media (max-width:760px){ .hero-inner{padding:64px 20px 72px;min-height:0} }
+@media (max-width:760px){
+  .hero.has-img::after{background:var(--hero) center 30%/cover;background-repeat:no-repeat}
+  .hero-inner{padding:64px 20px 72px;min-height:0}
+}
 .hero-text{flex:1 1 440px;min-width:0}
 .hero-logo{flex:0 0 auto;display:flex;justify-content:center}
 /* El escudo (círculo oscuro) se funde con el fondo del hero. */
