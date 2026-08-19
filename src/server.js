@@ -63,23 +63,23 @@ function checkCsrf(req, res, next) {
   next();
 }
 
-// Contador de visitas: cuenta páginas públicas (no assets, admin, uploads ni pizarra).
-// "visita" = 1 por sesión y por día; "vista" = cada página cargada.
-const SKIP_VISIT = /^\/(admin|uploads|css|js|img|pizarra|favicon)/;
-// Bots y vistas previas de redes (WhatsApp/Instagram/Facebook/buscadores/monitores):
-// no guardan cookies y falsearían el conteo, así que no los contamos.
+// Contador de visitas por "beacon" de JavaScript: la página, ya cargada en un
+// navegador real, avisa a /api/hit. Los bots y las vistas previas de redes
+// (WhatsApp/Instagram/Facebook/buscadores) NO ejecutan JavaScript, así que no
+// llaman a este endpoint y quedan fuera del conteo. "visita" = 1 por sesión y
+// por día; "vista" = cada carga de página.
 const BOT_UA = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|bingpreview|embedly|quora|reddit|twitter|discord|applebot|yandex|baidu|duckduck|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|gptbot|headless|lighthouse|preview|monitor|uptime|pingdom|python-requests|curl|wget|axios|okhttp|go-http-client|libwww|scrapy|phantom/i;
-app.use((req, res, next) => {
+app.post('/api/hit', (req, res) => {
   const ua = req.get('user-agent') || '';
-  if (req.method === 'GET' && ua && !BOT_UA.test(ua) && !SKIP_VISIT.test(req.path) && !req.path.includes('.')) {
+  if (ua && !BOT_UA.test(ua)) {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const unique = req.session.vday !== today;
       if (unique) req.session.vday = today;
       recordVisit(unique);
-    } catch (e) { /* nunca romper la página por el contador */ }
+    } catch (e) { /* nunca romper por el contador */ }
   }
-  next();
+  res.status(204).end();
 });
 
 // Variables disponibles en todas las vistas.
