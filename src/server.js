@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const express = require('express');
 const helmet = require('helmet');
 const cookieSession = require('cookie-session');
-const { settings, DATA_DIR } = require('./db');
+const { settings, DATA_DIR, recordVisit, visitsTotal } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +62,21 @@ function checkCsrf(req, res, next) {
   next();
 }
 
+// Contador de visitas: cuenta páginas públicas (no assets, admin, uploads ni pizarra).
+// "visita" = 1 por sesión y por día; "vista" = cada página cargada.
+const SKIP_VISIT = /^\/(admin|uploads|css|js|img|pizarra|favicon)/;
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !SKIP_VISIT.test(req.path) && !req.path.includes('.')) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const unique = req.session.vday !== today;
+      if (unique) req.session.vday = today;
+      recordVisit(unique);
+    } catch (e) { /* nunca romper la página por el contador */ }
+  }
+  next();
+});
+
 // Variables disponibles en todas las vistas.
 app.use((req, res, next) => {
   res.locals.s = settings();
@@ -69,6 +84,7 @@ app.use((req, res, next) => {
   res.locals.isAdmin = !!(req.session && req.session.admin);
   res.locals.pizarraUrl = PIZARRA_URL;
   res.locals.year = new Date().getFullYear();
+  res.locals.visitsTotal = visitsTotal();
   next();
 });
 

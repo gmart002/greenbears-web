@@ -230,3 +230,6 @@ p{margin:0 0 1rem}
   .player-detail{grid-template-columns:1fr}
   .player-detail .photo{max-width:340px}
 }
+
+/* Contador de visitas en el pie */
+.foot-visits{white-space:nowrap}

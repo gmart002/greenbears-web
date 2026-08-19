@@ -76,6 +76,11 @@ CREATE TABLE IF NOT EXISTS messages (
   read        INTEGER NOT NULL DEFAULT 0,
   created_at  TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS visits (
+  day     TEXT PRIMARY KEY,        -- YYYY-MM-DD
+  visits  INTEGER NOT NULL DEFAULT 0,  -- visitantes únicos por día (por sesión)
+  views   INTEGER NOT NULL DEFAULT 0   -- páginas vistas
+);
 `);
 
 // Migraciones incrementales (agregar columnas nuevas sin perder datos)
@@ -106,7 +111,8 @@ const DEFAULTS = {
   club_tournaments: '',
   club_photo: '',
   actualidad_label: 'Actualidad',
-  instagram_embed: ''
+  instagram_embed: '',
+  show_visits: '1'   // mostrar el contador de visitas en el pie ('1' sí, '0' no)
 };
 const getSetting = db.prepare('SELECT value FROM settings WHERE key = ?');
 const setSettingStmt = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
@@ -135,4 +141,33 @@ function uniqueSlug(base, excludeId) {
   return slug;
 }
 
-module.exports = { db, settings, setSetting, slugify, uniqueSlug, DATA_DIR };
+// ---------- Contador de visitas ----------
+const dayKey = (d) => (d || new Date()).toISOString().slice(0, 10);
+function daysAgoKey(n) { const d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); }
+
+const _recordVisit = db.prepare(`
+  INSERT INTO visits (day, visits, views) VALUES (@day, @u, 1)
+  ON CONFLICT(day) DO UPDATE SET visits = visits + @u, views = views + 1`);
+function recordVisit(unique) { _recordVisit.run({ day: dayKey(), u: unique ? 1 : 0 }); }
+
+const _totals = db.prepare('SELECT COALESCE(SUM(visits),0) AS visits, COALESCE(SUM(views),0) AS views FROM visits');
+const _oneDay = db.prepare('SELECT visits, views FROM visits WHERE day = ?');
+const _sumSince = db.prepare('SELECT COALESCE(SUM(visits),0) AS v FROM visits WHERE day >= ?');
+const _recentDays = db.prepare('SELECT day, visits, views FROM visits ORDER BY day DESC LIMIT 14');
+
+function visitsTotal() { return _totals.get().visits; }
+function visitStats() {
+  const totals = _totals.get();
+  const today = _oneDay.get(dayKey()) || { visits: 0, views: 0 };
+  return {
+    totalVisits: totals.visits,
+    totalViews: totals.views,
+    todayVisits: today.visits,
+    todayViews: today.views,
+    week: _sumSince.get(daysAgoKey(6)).v,
+    month: _sumSince.get(daysAgoKey(29)).v,
+    days: _recentDays.all()
+  };
+}
+
+module.exports = { db, settings, setSetting, slugify, uniqueSlug, DATA_DIR, recordVisit, visitStats, visitsTotal };

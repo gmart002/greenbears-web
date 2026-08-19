@@ -23,7 +23,7 @@
       <% if (s.email) { %><a href="mailto:<%= s.email %>"><%= s.email %></a><% } %>
     </div>
   </div>
-  <div class="wrap foot-legal">© <%= year %> <%= s.site_title %> · Rancagua, Chile</div>
+  <div class="wrap foot-legal">© <%= year %> <%= s.site_title %> · Rancagua, Chile<% if (s.show_visits !== '0' && typeof visitsTotal !== 'undefined') { %> · <span class="foot-visits">👣 <%= visitsTotal.toLocaleString('es-CL') %> visitas</span><% } %></div>
 </footer>
 </body>
 </html>

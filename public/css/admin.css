@@ -47,3 +47,17 @@ body.admin{background:var(--paper2)}
 .cur-img{max-height:90px;border-radius:8px;margin-top:8px;border:1px solid var(--line)}
 .link-back{font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;color:var(--primary-d);display:inline-block;margin-bottom:12px}
 @media (max-width:640px){ .row2{grid-template-columns:1fr} .tbl .hide-sm{display:none} }
+
+/* ---- Contador de visitas (panel) ---- */
+.visits-sec .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:18px 20px}
+.visits-sec .stat{background:#f6faf8;border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center}
+.visits-sec .stat b{display:block;font-family:"Barlow Condensed";font-weight:800;font-size:1.9rem;line-height:1;color:var(--primary)}
+.visits-sec .stat span{display:block;margin-top:5px;font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.visits-sec .spark{display:flex;align-items:flex-end;gap:5px;height:64px;padding:0 20px}
+.visits-sec .spark-bar{flex:1;min-width:6px;background:linear-gradient(var(--primary),#7fd0a5);border-radius:4px 4px 0 0;opacity:.9}
+.visits-sec .muted.sm{padding:0 20px 16px}
+.visits-sec > header .muted.sm{padding:0}
+.sm{font-size:.82rem}
+.check-line{display:flex;align-items:center;gap:9px;font-weight:500}
+.check-line input{width:20px;height:20px;accent-color:var(--primary)}
+@media (max-width:720px){ .visits-sec .stat-row{grid-template-columns:repeat(2,1fr)} }

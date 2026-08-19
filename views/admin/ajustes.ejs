@@ -23,6 +23,10 @@
     <div class="hint">Se muestra en la portada como “Síguenos en Instagram”. Déjalo vacío para ocultarlo.</div>
   </div>
   <div class="field">
+    <label class="check-line"><input type="checkbox" name="show_visits" value="1" <%= s.show_visits !== '0' ? 'checked' : '' %>> Mostrar contador de visitas en el pie del sitio</label>
+    <div class="hint">El conteo es privado y siempre funciona (lo ves en el panel). Esta opción solo decide si el número aparece también en la portada.</div>
+  </div>
+  <div class="field">
     <label>Logo / escudo del club</label>
     <input type="file" name="logo" accept="image/*">
     <% if (s.logo_image) { %><input type="hidden" name="logo_image" value="<%= s.logo_image %>"><img class="cur-img" src="<%= s.logo_image %>" alt=""><% } %>

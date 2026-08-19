@@ -5,7 +5,7 @@ const express = require('express');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { db, setSetting, uniqueSlug, DATA_DIR } = require('../db');
+const { db, setSetting, uniqueSlug, DATA_DIR, visitStats } = require('../db');
 
 const now = () => new Date().toISOString();
 
@@ -67,7 +67,7 @@ module.exports = function (checkCsrf) {
     const gallery = db.prepare('SELECT * FROM gallery ORDER BY season DESC, sort, id DESC').all();
     const sponsors = db.prepare('SELECT * FROM sponsors ORDER BY sort, name').all();
     const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
-    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages });
+    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, visits: visitStats() });
   });
 
   // ---- Noticias ----
@@ -220,6 +220,8 @@ module.exports = function (checkCsrf) {
   router.post('/ajustes', ajustesUpload, checkCsrf, (req, res) => {
     const keys = ['site_title', 'tagline', 'about', 'email', 'instagram', 'facebook', 'whatsapp', 'primary', 'actualidad_label', 'instagram_embed'];
     for (const k of keys) if (k in req.body) setSetting(k, req.body[k]);
+    // Casillas (si no viene marcada, no se envía → guardamos '0')
+    setSetting('show_visits', req.body.show_visits ? '1' : '0');
     const f = req.files || {};
     if (f.hero && f.hero[0]) setSetting('hero_image', uploadedUrl(f.hero[0]));
     else if (req.body.hero_image !== undefined) setSetting('hero_image', req.body.hero_image);

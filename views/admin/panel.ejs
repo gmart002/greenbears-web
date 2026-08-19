@@ -3,6 +3,26 @@
 
 <div class="panel-grid">
 
+  <!-- Visitas -->
+  <section class="panel-sec visits-sec">
+    <header><h2>Visitas</h2><span class="muted sm">Contador propio · sin rastreadores externos</span></header>
+    <div class="stat-row">
+      <div class="stat"><b><%= visits.totalVisits.toLocaleString('es-CL') %></b><span>Visitas totales</span></div>
+      <div class="stat"><b><%= visits.todayVisits.toLocaleString('es-CL') %></b><span>Hoy</span></div>
+      <div class="stat"><b><%= visits.week.toLocaleString('es-CL') %></b><span>Últimos 7 días</span></div>
+      <div class="stat"><b><%= visits.month.toLocaleString('es-CL') %></b><span>Últimos 30 días</span></div>
+      <div class="stat"><b><%= visits.totalViews.toLocaleString('es-CL') %></b><span>Páginas vistas</span></div>
+    </div>
+    <% if (visits.days.length) { var vmax = Math.max(1, ...visits.days.map(function(d){return d.visits;})); %>
+    <div class="spark" aria-label="Visitas de los últimos 14 días">
+      <% visits.days.slice().reverse().forEach(function(d){ %>
+        <span class="spark-bar" style="height:<%= Math.round(4 + (d.visits / vmax) * 52) %>px" title="<%= d.day %>: <%= d.visits %> visitas · <%= d.views %> vistas"></span>
+      <% }) %>
+    </div>
+    <div class="muted sm" style="margin-top:6px">Últimos 14 días · una “visita” cuenta una vez por persona al día.</div>
+    <% } else { %><div class="muted sm">Aún no hay visitas registradas.</div><% } %>
+  </section>
+
   <!-- Noticias -->
   <section class="panel-sec">
     <header><h2>Noticias</h2><a class="btn primary sm" href="/admin/noticias/nueva">+ Nueva noticia</a></header>
