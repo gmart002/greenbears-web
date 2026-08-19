@@ -1,0 +1,27 @@
+<% var pageTitle = 'Ajustes' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/ajustes" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1>Ajustes del sitio</h1>
+  <div class="field"><label>Nombre del club</label><input type="text" name="site_title" value="<%= s.site_title %>"></div>
+  <div class="field"><label>Lema</label><input type="text" name="tagline" value="<%= s.tagline %>"></div>
+  <div class="field"><label>Descripción / “Nosotros”</label><textarea name="about"><%= s.about %></textarea></div>
+  <div class="row2">
+    <div class="field"><label>Color principal</label><input type="text" name="primary" value="<%= s.primary %>" placeholder="#1f9b57"><div class="hint">Código hex, ej. #1f9b57.</div></div>
+    <div class="field"><label>Correo de contacto</label><input type="email" name="email" value="<%= s.email %>"></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Instagram (URL)</label><input type="text" name="instagram" value="<%= s.instagram %>"></div>
+    <div class="field"><label>Facebook (URL)</label><input type="text" name="facebook" value="<%= s.facebook %>"></div>
+  </div>
+  <div class="field"><label>WhatsApp (URL o https://wa.me/569…)</label><input type="text" name="whatsapp" value="<%= s.whatsapp %>"></div>
+  <div class="field">
+    <label>Imagen del hero (portada)</label>
+    <input type="file" name="hero" accept="image/*">
+    <% if (s.hero_image) { %><input type="hidden" name="hero_image" value="<%= s.hero_image %>"><img class="cur-img" src="<%= s.hero_image %>" alt=""><% } %>
+    <div class="hint">Foto de fondo de la portada. Horizontal, buena calidad.</div>
+  </div>
+  <div class="form-actions"><button class="btn primary">Guardar cambios</button></div>
+</form>
+<%- include('../partials/admin-foot') %>

@@ -1,0 +1,12 @@
+<a class="player" href="/jugadores/<%= pl.id %>">
+  <% if (pl.photo) { %>
+    <div class="ph-photo" style="background-image:url(<%= pl.photo %>)"></div>
+  <% } else { %>
+    <div class="ph-empty"><svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg></div>
+  <% } %>
+  <% if (pl.number) { %><span class="num"><%= pl.number %></span><% } %>
+  <div class="meta">
+    <b><%= pl.name %></b>
+    <% if (pl.position) { %><span><%= pl.position %></span><% } %>
+  </div>
+</a>

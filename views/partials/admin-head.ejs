@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Panel' %> · <%= s.site_title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>:root{ --primary: <%= /^#[0-9a-fA-F]{3,8}$/.test(s.primary) ? s.primary : '#1f9b57' %>; }</style>
+</head>
+<body class="admin">
+<header class="adm-head">
+  <div class="wrap adm-head-inner">
+    <a class="brand" href="/admin/panel">
+      <span class="brand-mark"><svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg></span>
+      <span class="brand-txt"><b>Panel</b><small><%= s.site_title %></small></span>
+    </a>
+    <nav class="adm-nav">
+      <a href="/admin/panel">Contenido</a>
+      <a href="/admin/ajustes">Ajustes</a>
+      <a href="/" target="_blank">Ver sitio ↗</a>
+      <form method="post" action="/admin/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm">Salir</button></form>
+    </nav>
+  </div>
+</header>
+<main class="adm-main"><div class="wrap">

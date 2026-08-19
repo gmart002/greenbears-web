@@ -1,0 +1,74 @@
+<% var pageTitle = 'Contenido' %>
+<%- include('../partials/admin-head') %>
+
+<div class="panel-grid">
+
+  <!-- Noticias -->
+  <section class="panel-sec">
+    <header><h2>Noticias</h2><a class="btn primary sm" href="/admin/noticias/nueva">+ Nueva noticia</a></header>
+    <table class="tbl">
+      <thead><tr><th>Título</th><th class="hide-sm">Fecha</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <% if (!posts.length) { %><tr class="empty-row"><td colspan="4">Sin noticias todavía.</td></tr><% } %>
+        <% posts.forEach(function(p){ %>
+        <tr>
+          <td><b><%= p.title %></b></td>
+          <td class="hide-sm muted"><%= new Date(p.created_at).toLocaleDateString('es-CL') %></td>
+          <td><span class="pill <%= p.published ? 'on':'off' %>"><%= p.published ? 'Publicada':'Borrador' %></span></td>
+          <td><div class="actions">
+            <a class="btn ghost sm" href="/admin/noticias/<%= p.id %>/editar">Editar</a>
+            <form method="post" action="/admin/noticias/<%= p.id %>/eliminar" onsubmit="return confirm('¿Eliminar esta noticia?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Jugadores -->
+  <section class="panel-sec">
+    <header><h2>Jugadores</h2><a class="btn primary sm" href="/admin/jugadores/nuevo">+ Nuevo jugador</a></header>
+    <table class="tbl">
+      <thead><tr><th></th><th>Nombre</th><th class="hide-sm">Posición</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <% if (!players.length) { %><tr class="empty-row"><td colspan="5">Sin jugadores todavía.</td></tr><% } %>
+        <% players.forEach(function(pl){ %>
+        <tr>
+          <td><% if (pl.photo) { %><img class="thumb-sm" src="<%= pl.photo %>" alt=""><% } else { %><div class="thumb-sm"></div><% } %></td>
+          <td><b><% if (pl.number) { %>#<%= pl.number %> <% } %><%= pl.name %></b></td>
+          <td class="hide-sm muted"><%= pl.position %></td>
+          <td><span class="pill <%= pl.active ? 'on':'off' %>"><%= pl.active ? 'Activo':'Inactivo' %></span></td>
+          <td><div class="actions">
+            <a class="btn ghost sm" href="/admin/jugadores/<%= pl.id %>/editar">Editar</a>
+            <form method="post" action="/admin/jugadores/<%= pl.id %>/eliminar" onsubmit="return confirm('¿Eliminar a este jugador?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Partidos -->
+  <section class="panel-sec">
+    <header><h2>Partidos</h2><a class="btn primary sm" href="/admin/partidos/nuevo">+ Nuevo partido</a></header>
+    <table class="tbl">
+      <thead><tr><th>Rival</th><th class="hide-sm">Fecha</th><th>Marcador</th><th></th></tr></thead>
+      <tbody>
+        <% if (!matches.length) { %><tr class="empty-row"><td colspan="4">Sin partidos todavía.</td></tr><% } %>
+        <% matches.forEach(function(m){ %>
+        <tr>
+          <td><b><%= m.opponent %></b> <span class="pill <%= m.status==='played'?'on':'off' %>"><%= m.status==='played'?'Jugado':'Próximo' %></span></td>
+          <td class="hide-sm muted"><%= new Date(m.date).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) %></td>
+          <td><% if (m.status==='played') { %><b><%= m.our_score %> – <%= m.opp_score %></b><% } else { %><span class="muted">—</span><% } %></td>
+          <td><div class="actions">
+            <a class="btn ghost sm" href="/admin/partidos/<%= m.id %>/editar">Editar</a>
+            <form method="post" action="/admin/partidos/<%= m.id %>/eliminar" onsubmit="return confirm('¿Eliminar este partido?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+<%- include('../partials/admin-foot') %>

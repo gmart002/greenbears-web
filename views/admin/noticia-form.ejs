@@ -1,0 +1,34 @@
+<% var pageTitle = post ? 'Editar noticia' : 'Nueva noticia' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/noticias<%= post ? '/' + post.id : '' %>" enctype="multipart/form-data">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1><%= post ? 'Editar noticia' : 'Nueva noticia' %></h1>
+  <div class="field">
+    <label>Título</label>
+    <input type="text" name="title" required value="<%= post ? post.title : '' %>">
+  </div>
+  <div class="field">
+    <label>Resumen (aparece en las tarjetas)</label>
+    <input type="text" name="excerpt" maxlength="200" value="<%= post ? post.excerpt : '' %>">
+  </div>
+  <div class="field">
+    <label>Contenido</label>
+    <textarea name="body" placeholder="Escribe la nota. Puedes usar **negrita**, *cursiva*, listas, y dejar líneas en blanco para separar párrafos."><%= post ? post.body : '' %></textarea>
+    <div class="hint">Formato Markdown: **negrita**, *cursiva*, ## Subtítulo, - listas.</div>
+  </div>
+  <div class="field">
+    <label>Imagen de portada</label>
+    <input type="file" name="image" accept="image/*">
+    <% if (post && post.cover) { %><input type="hidden" name="cover" value="<%= post.cover %>"><img class="cur-img" src="<%= post.cover %>" alt=""><div class="hint">Sube una nueva para reemplazarla.</div><% } %>
+  </div>
+  <div class="field check">
+    <input type="checkbox" id="pub" name="published" value="1" <%= (!post || post.published) ? 'checked' : '' %>>
+    <label for="pub" style="margin:0">Publicada (visible en el sitio)</label>
+  </div>
+  <div class="form-actions">
+    <button class="btn primary">Guardar</button>
+    <a class="btn ghost" href="/admin/panel">Cancelar</a>
+  </div>
+</form>
+<%- include('../partials/admin-foot') %>

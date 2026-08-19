@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle + ' · ' + s.site_title : s.site_title %></title>
+  <meta name="description" content="<%= s.tagline %>">
+  <meta property="og:title" content="<%= s.site_title %>">
+  <meta property="og:description" content="<%= s.tagline %>">
+  <% if (s.hero_image) { %><meta property="og:image" content="<%= s.hero_image %>"><% } %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="/img/favicon.svg">
+  <style>:root{ --primary: <%= /^#[0-9a-fA-F]{3,8}$/.test(s.primary) ? s.primary : '#1f9b57' %>; }</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap head-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg>
+      </span>
+      <span class="brand-txt"><b><%= s.site_title %></b><small><%= s.tagline %></small></span>
+    </a>
+    <input type="checkbox" id="navToggle" class="nav-toggle" hidden>
+    <label for="navToggle" class="nav-burger" aria-label="Menú"><span></span><span></span><span></span></label>
+    <nav class="site-nav">
+      <a href="/" class="<%= path === '/' ? 'on' : '' %>">Inicio</a>
+      <a href="/noticias" class="<%= path.startsWith('/noticias') ? 'on' : '' %>">Noticias</a>
+      <a href="/jugadores" class="<%= path.startsWith('/jugadores') ? 'on' : '' %>">Jugadores</a>
+      <a href="/calendario" class="<%= path.startsWith('/calendario') ? 'on' : '' %>">Calendario</a>
+      <a href="/pizarra" class="cta <%= path.startsWith('/pizarra') ? 'on' : '' %>">Pizarra</a>
+    </nav>
+  </div>
+</header>
+<main class="site-main">

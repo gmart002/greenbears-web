@@ -1,0 +1,16 @@
+<% var pageTitle = 'Nosotros' %>
+<%- include('partials/header') %>
+<article class="article">
+  <span class="kicker" style="color:var(--primary-d);font-family:'Barlow Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.16em">El club</span>
+  <h1 style="font-size:clamp(2rem,5vw,3rem)">Nosotros</h1>
+  <div class="content"><p><%= s.about %></p></div>
+  <% if (s.email || s.instagram || s.whatsapp) { %>
+    <h3 style="margin-top:2rem">Contacto</h3>
+    <ul>
+      <% if (s.email) { %><li>Correo: <a href="mailto:<%= s.email %>"><%= s.email %></a></li><% } %>
+      <% if (s.instagram) { %><li>Instagram: <a href="<%= s.instagram %>" target="_blank" rel="noopener"><%= s.instagram %></a></li><% } %>
+      <% if (s.whatsapp) { %><li>WhatsApp: <a href="<%= s.whatsapp %>" target="_blank" rel="noopener"><%= s.whatsapp %></a></li><% } %>
+    </ul>
+  <% } %>
+</article>
+<%- include('partials/footer') %>

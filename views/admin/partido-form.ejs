@@ -1,0 +1,34 @@
+<% var pageTitle = match ? 'Editar partido' : 'Nuevo partido' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/partidos<%= match ? '/' + match.id : '' %>">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1><%= match ? 'Editar partido' : 'Nuevo partido' %></h1>
+  <div class="row2">
+    <div class="field"><label>Rival</label><input type="text" name="opponent" required value="<%= match ? match.opponent : '' %>"></div>
+    <div class="field"><label>Fecha y hora</label><input type="datetime-local" name="date" required value="<%= match ? (match.date||'').slice(0,16) : '' %>"></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Lugar</label><input type="text" name="location" placeholder="Gimnasio…" value="<%= match ? match.location : '' %>"></div>
+    <div class="field"><label>Condición</label>
+      <select name="home"><option value="1" <%= (!match||match.home)?'selected':'' %>>Local</option><option value="" <%= (match&&!match.home)?'selected':'' %>>Visita</option></select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Estado</label>
+    <select name="status" id="status" onchange="document.getElementById('scores').style.display=this.value==='played'?'grid':'none'">
+      <option value="upcoming" <%= (!match||match.status!=='played')?'selected':'' %>>Próximo</option>
+      <option value="played" <%= (match&&match.status==='played')?'selected':'' %>>Jugado</option>
+    </select>
+  </div>
+  <div class="row2" id="scores" style="display:<%= (match&&match.status==='played')?'grid':'none' %>">
+    <div class="field"><label>Green Bears</label><input type="number" name="our_score" value="<%= match&&match.our_score!=null ? match.our_score : '' %>"></div>
+    <div class="field"><label>Rival</label><input type="number" name="opp_score" value="<%= match&&match.opp_score!=null ? match.opp_score : '' %>"></div>
+  </div>
+  <div class="field"><label>Notas (opcional)</label><input type="text" name="notes" value="<%= match ? match.notes : '' %>"></div>
+  <div class="form-actions">
+    <button class="btn primary">Guardar</button>
+    <a class="btn ghost" href="/admin/panel">Cancelar</a>
+  </div>
+</form>
+<%- include('../partials/admin-foot') %>

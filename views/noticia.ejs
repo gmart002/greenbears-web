@@ -1,0 +1,10 @@
+<% var pageTitle = post.title %>
+<%- include('partials/header') %>
+<article class="article">
+  <a class="more" href="/noticias" style="text-transform:uppercase;font-family:'Barlow Condensed';font-weight:700">← Noticias</a>
+  <span class="date" style="display:block;margin:14px 0 4px;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:.85rem"><%= fmtDate(post.created_at) %></span>
+  <h1 style="font-size:clamp(2rem,5vw,3rem)"><%= post.title %></h1>
+  <% if (post.cover) { %><img class="cover" src="<%= post.cover %>" alt="<%= post.title %>"><% } %>
+  <div class="content"><%- bodyHtml %></div>
+</article>
+<%- include('partials/footer') %>

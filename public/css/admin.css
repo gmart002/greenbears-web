@@ -1,0 +1,49 @@
+/* ===== Panel admin ===== */
+body.admin{background:var(--paper2)}
+.adm-head{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.adm-head-inner{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:62px}
+.adm-head .brand{color:#fff}.adm-head .brand-mark{color:var(--primary);width:34px;height:34px}
+.adm-head .brand-txt b{font-size:1.2rem}.adm-head .brand-txt small{color:#9fb3a7}
+.adm-nav{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.adm-nav a{color:#dfe8e3;font-weight:600}
+.adm-nav .btn.ghost{color:#fff;border-color:rgba(255,255,255,.4)}
+.adm-nav .btn.ghost:hover{background:#fff;color:var(--dark)}
+.adm-main{padding:30px 0 70px}
+
+.login-wrap{max-width:400px;margin:8vh auto;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:32px;box-shadow:var(--shadow)}
+.login-wrap h1{font-size:1.8rem}
+.login-brand{width:56px;height:56px;color:var(--primary);margin:0 auto 10px}
+
+.panel-grid{display:flex;flex-direction:column;gap:30px}
+.panel-sec{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.panel-sec > header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);background:#fbfdfc}
+.panel-sec > header h2{margin:0;font-size:1.3rem}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{padding:11px 20px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl th{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);font-weight:700}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .thumb-sm{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--paper2)}
+.tbl .actions{display:flex;gap:8px;justify-content:flex-end}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+.pill.on{background:color-mix(in srgb,var(--primary) 16%,#fff);color:var(--primary-d)}
+.pill.off{background:#f0e2e1;color:#b0413b}
+.empty-row td{color:var(--faint);font-style:italic;text-align:center;padding:26px}
+
+/* Formularios */
+.form-card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:26px;box-shadow:var(--shadow);max-width:760px}
+.form-card h1{font-size:1.9rem;margin-bottom:18px}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:600;font-size:.9rem;margin-bottom:5px}
+.field .hint{color:var(--faint);font-size:.82rem;margin-top:3px}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=datetime-local],.field input[type=date],
+.field textarea,.field select{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:var(--r-s);font:inherit;background:#fff;color:var(--ink)}
+.field textarea{min-height:150px;resize:vertical;font-family:"Barlow",sans-serif}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--primary)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.check{display:flex;align-items:center;gap:9px}
+.check input{width:20px;height:20px;accent-color:var(--primary)}
+.form-actions{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}
+.cur-img{max-height:90px;border-radius:8px;margin-top:8px;border:1px solid var(--line)}
+.link-back{font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;color:var(--primary-d);display:inline-block;margin-bottom:12px}
+@media (max-width:640px){ .row2{grid-template-columns:1fr} .tbl .hide-sm{display:none} }

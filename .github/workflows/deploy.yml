@@ -1,0 +1,48 @@
+name: Deploy greenbears.cl (VPS)
+
+# Cada push a main entra por SSH al VPS, actualiza el repo y reconstruye SOLO
+# el contenedor de la web (grap-greenbears). No toca GrapHCM.
+#
+# Requiere 3 secrets en este repo (Settings → Secrets and variables → Actions):
+#   SSH_HOST, SSH_USER, SSH_KEY   (opcional: SSH_PORT)
+# La ruta de Caddy y la conexión de red se hacen UNA vez a mano (ver README).
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar configuración
+        id: check
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          if [ -z "$SSH_HOST" ]; then
+            echo "::notice::SSH_HOST no configurado — se salta el deploy. Agrega SSH_HOST, SSH_USER y SSH_KEY."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy por SSH
+        if: steps.check.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            set -e
+            cd ~/greenbears-web
+            git pull origin main
+            docker compose --env-file .env up -d --build --force-recreate
+            # Asegura que Caddy siga en la red aislada (idempotente; no falla si ya está).
+            docker network connect greenbears_edge grap-caddy 2>/dev/null || true
+            docker image prune -f

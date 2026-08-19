@@ -1,0 +1,26 @@
+</main>
+<footer class="site-foot">
+  <div class="wrap foot-inner">
+    <div class="foot-brand">
+      <span class="brand-mark sm" aria-hidden="true"><svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg></span>
+      <div><b><%= s.site_title %></b><br><small><%= s.tagline %></small></div>
+    </div>
+    <nav class="foot-links">
+      <a href="/nosotros">Nosotros</a>
+      <a href="/noticias">Noticias</a>
+      <a href="/jugadores">Jugadores</a>
+      <a href="/calendario">Calendario</a>
+      <a href="/pizarra">Pizarra</a>
+      <a href="/admin">Administrar</a>
+    </nav>
+    <div class="foot-social">
+      <% if (s.instagram) { %><a href="<%= s.instagram %>" target="_blank" rel="noopener">Instagram</a><% } %>
+      <% if (s.facebook) { %><a href="<%= s.facebook %>" target="_blank" rel="noopener">Facebook</a><% } %>
+      <% if (s.whatsapp) { %><a href="<%= s.whatsapp %>" target="_blank" rel="noopener">WhatsApp</a><% } %>
+      <% if (s.email) { %><a href="mailto:<%= s.email %>"><%= s.email %></a><% } %>
+    </div>
+  </div>
+  <div class="wrap foot-legal">© <%= year %> <%= s.site_title %> · Rancagua, Chile</div>
+</footer>
+</body>
+</html>

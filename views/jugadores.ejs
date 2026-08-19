@@ -1,0 +1,15 @@
+<% var pageTitle = 'Jugadores' %>
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">La plantilla</span><h2>Jugadores</h2></div></div>
+    <% if (!players.length) { %>
+      <div class="empty-state">Aún no hay jugadores cargados.</div>
+    <% } else { %>
+    <div class="grid players">
+      <% players.forEach(function(pl){ %><%- include('partials/player-card', { pl: pl }) %><% }) %>
+    </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

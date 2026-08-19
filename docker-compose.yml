@@ -1,0 +1,46 @@
+# Green Bears web — stack independiente y aislado.
+# - Red Docker propia (greenbears_edge): NO comparte red con GrapHCM/Postgres.
+#   Caddy se conecta a esta red en el deploy para poder enrutar greenbears.cl.
+# - Límites de CPU/RAM y contenedor sin privilegios ni capacidades.
+# - Datos (SQLite + imágenes) en un volumen propio.
+services:
+  greenbears:
+    build: .
+    image: greenbears-web:latest
+    container_name: grap-greenbears
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATA_DIR: /data
+      PORT: "3000"
+      PIZARRA_URL: ${PIZARRA_URL:-https://pizarra.grapmining.com}
+    volumes:
+      - gb_data:/data
+    networks:
+      - greenbears_edge
+    expose:
+      - "3000"
+    # --- Blindaje ---
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  greenbears_edge:
+    name: greenbears_edge
+
+volumes:
+  gb_data:
+    name: greenbears_data

@@ -1,0 +1,42 @@
+<% var pageTitle = 'Calendario' %>
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Agenda</span><h2>Calendario</h2></div></div>
+
+    <h3 style="margin-bottom:10px">Próximos partidos</h3>
+    <% if (!upcoming.length) { %>
+      <div class="empty-state" style="margin-bottom:34px">No hay partidos programados.</div>
+    <% } else { %>
+    <div class="matchcard" style="margin-bottom:34px">
+      <% upcoming.forEach(function(m){ %>
+      <div class="match-row">
+        <div>
+          <div class="match-teams" style="font-size:1.1rem">Green Bears <span class="muted">vs</span> <%= m.opponent %></div>
+          <div class="muted" style="font-size:.9rem"><%= fmtDateTime(m.date) %><% if (m.location) { %> · <%= m.location %><% } %></div>
+        </div>
+        <span class="badge <%= m.home ? 'home' : '' %>"><%= m.home ? 'Local' : 'Visita' %></span>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <h3 style="margin-bottom:10px">Resultados</h3>
+    <% if (!played.length) { %>
+      <div class="empty-state">Aún no hay resultados.</div>
+    <% } else { %>
+    <div class="matchcard">
+      <% played.forEach(function(m){ var win = m.our_score > m.opp_score; %>
+      <div class="match-row">
+        <div>
+          <div class="match-teams" style="font-size:1.1rem">Green Bears <span class="muted">vs</span> <%= m.opponent %></div>
+          <div class="muted" style="font-size:.9rem"><%= fmtDate(m.date) %><% if (m.location) { %> · <%= m.location %><% } %></div>
+        </div>
+        <div class="score"><span class="<%= win ? 'win' : 'loss' %>"><%= m.our_score %></span> <span class="muted">–</span> <%= m.opp_score %></div>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>
