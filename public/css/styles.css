@@ -43,7 +43,7 @@ p{margin:0 0 1rem}
 .brand-mark{width:38px;height:38px;flex:none;color:var(--primary);display:inline-flex}
 .brand-mark svg{width:100%;height:100%}
 .brand-mark.sm{width:30px;height:30px}
-.brand-logo{width:52px;height:52px;object-fit:contain;flex:none}
+.brand-logo{width:68px;height:68px;object-fit:contain;flex:none}
 .brand-txt b,.brand-txt small{white-space:nowrap}
 @media (min-width:1161px){ .site-head .brand-txt small{display:none} }
 .brand-txt b{font-family:"Barlow Condensed";font-weight:800;font-size:1.35rem;text-transform:uppercase;display:block;line-height:1}
@@ -62,9 +62,10 @@ p{margin:0 0 1rem}
 .hero{position:relative;background:var(--dark);color:#fff;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background:
   radial-gradient(120% 100% at 85% -10%, color-mix(in srgb,var(--primary) 45%,transparent), transparent 60%);opacity:.9}
-.hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) center 22%/cover;opacity:.28;mix-blend-mode:luminosity}
-.hero-inner{position:relative;padding:70px 20px 78px;max-width:var(--wrap);margin:0 auto;
+.hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) center 38%/cover;opacity:.28;mix-blend-mode:luminosity}
+.hero-inner{position:relative;padding:118px 20px 126px;min-height:620px;max-width:var(--wrap);margin:0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:48px;flex-wrap:wrap}
+@media (max-width:760px){ .hero-inner{padding:64px 20px 72px;min-height:0} }
 .hero-text{flex:1 1 440px;min-width:0}
 .hero-logo{flex:0 0 auto;display:flex;justify-content:center}
 /* El escudo (círculo oscuro) se funde con el fondo del hero. */
