@@ -64,7 +64,8 @@ router.get('/calendario', (req, res) => {
   res.render('calendario', { upcoming, played });
 });
 
-router.get('/pizarra', (req, res) => res.render('pizarra'));
+// La pizarra vive en su propio dominio (con login). Redirigimos al abrirla.
+router.get('/pizarra', (req, res) => res.redirect(res.locals.pizarraUrl || process.env.PIZARRA_URL || 'https://pizarra.grapmining.com'));
 
 router.get('/nosotros', (req, res) => res.render('nosotros'));
 
