@@ -101,6 +101,16 @@ module.exports = function (checkCsrf) {
   // Reiniciar el contador de visitas
   router.post('/visitas/reiniciar', checkCsrf, (req, res) => { resetVisits(); res.redirect('/admin/panel'); });
 
+  // Descargar el detalle día por día (CSV para Excel)
+  router.get('/visitas.csv', (req, res) => {
+    const rows = db.prepare('SELECT day, visits, views FROM visits ORDER BY day').all();
+    let csv = 'Fecha,Visitas,Paginas vistas\n';
+    for (const r of rows) csv += `${r.day},${r.visits},${r.views}\n`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="visitas-greenbears.csv"');
+    res.send('﻿' + csv);   // BOM para que Excel lea bien los acentos
+  });
+
   // ---- Highlights (videos de jugadas) ----
   router.get('/highlights/nuevo', (req, res) => res.render('admin/highlight-form', { item: null }));
   router.get('/highlights/:id/editar', (req, res, next) => {

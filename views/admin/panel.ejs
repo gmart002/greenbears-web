@@ -6,9 +6,12 @@
   <!-- Visitas -->
   <section class="panel-sec visits-sec">
     <header><h2>Visitas</h2>
-      <form method="post" action="/admin/visitas/reiniciar" onsubmit="return confirm('¿Reiniciar el contador de visitas a cero? Esto borra el historial.')">
-        <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm">Reiniciar</button>
-      </form>
+      <div class="actions">
+        <a class="btn ghost sm" href="/admin/visitas.csv">Descargar detalle (CSV)</a>
+        <form method="post" action="/admin/visitas/reiniciar" onsubmit="return confirm('¿Reiniciar el contador de visitas a cero? Esto borra el historial.')">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm">Reiniciar</button>
+        </form>
+      </div>
     </header>
     <div class="stat-row">
       <div class="stat"><b><%= visits.totalVisits.toLocaleString('es-CL') %></b><span>Visitas totales</span></div>
@@ -24,6 +27,14 @@
       <% }) %>
     </div>
     <div class="muted sm" style="margin-top:6px">Últimos 14 días · una “visita” cuenta una vez por persona al día.</div>
+    <table class="tbl" style="margin-top:14px">
+      <thead><tr><th>Fecha</th><th>Visitas</th><th>Páginas vistas</th></tr></thead>
+      <tbody>
+        <% visits.days.forEach(function(d){ %>
+        <tr><td><%= d.day %></td><td><b><%= d.visits %></b></td><td class="muted"><%= d.views %></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
     <% } else { %><div class="muted sm">Aún no hay visitas registradas.</div><% } %>
   </section>
 
