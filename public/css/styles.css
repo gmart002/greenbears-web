@@ -63,7 +63,7 @@ p{margin:0 0 1rem}
 .hero::before{content:"";position:absolute;inset:0;background:
   radial-gradient(120% 100% at 85% -10%, color-mix(in srgb,var(--primary) 45%,transparent), transparent 60%);opacity:.9}
 .hero.has-img::after{content:"";position:absolute;inset:0;background:var(--hero) 0% 24%/135% auto;background-repeat:no-repeat;opacity:.3;mix-blend-mode:luminosity}
-.hero-inner{position:relative;padding:118px 20px 126px;min-height:620px;max-width:var(--wrap);margin:0 auto;
+.hero-inner{position:relative;padding:142px 20px 151px;min-height:744px;max-width:var(--wrap);margin:0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:48px;flex-wrap:wrap}
 @media (max-width:760px){
   .hero.has-img::after{background:var(--hero) center 30%/cover;background-repeat:no-repeat}
