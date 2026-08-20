@@ -194,8 +194,10 @@ function uniqueSlug(base, excludeId) {
 }
 
 // ---------- Contador de visitas ----------
-const dayKey = (d) => (d || new Date()).toISOString().slice(0, 10);
-function daysAgoKey(n) { const d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); }
+// Día calendario en hora de Chile (no UTC), para que no "salte" al día siguiente por la tarde.
+const _chileFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' });
+const dayKey = (d) => _chileFmt.format(d || new Date());
+function daysAgoKey(n) { return dayKey(new Date(Date.now() - n * 86400000)); }
 
 const _recordVisit = db.prepare(`
   INSERT INTO visits (day, visits, views) VALUES (@day, @u, 1)
@@ -225,6 +227,6 @@ function visitStats() {
 
 module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
-  recordVisit, visitStats, visitsTotal, resetVisits,
+  recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
   listUsers, findUser, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin
 };

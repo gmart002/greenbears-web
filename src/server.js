@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const express = require('express');
 const helmet = require('helmet');
 const cookieSession = require('cookie-session');
-const { settings, DATA_DIR, recordVisit, visitsTotal } = require('./db');
+const { settings, DATA_DIR, recordVisit, visitsTotal, dayKey } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,7 +73,7 @@ app.post('/api/hit', (req, res) => {
   const ua = req.get('user-agent') || '';
   if (ua && !BOT_UA.test(ua)) {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = dayKey();
       const unique = req.session.vday !== today;
       if (unique) req.session.vday = today;
       recordVisit(unique);
