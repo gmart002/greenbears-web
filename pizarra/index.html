@@ -377,6 +377,7 @@
     <div class="seg" id="modeSeg">
       <button data-mode="edit" class="on">Editar</button>
       <button data-mode="present">Presentar</button>
+      <button data-mode="quick">Rápido</button>
       <button data-mode="stats">Estadísticas</button>
     </div>
 
@@ -572,6 +573,7 @@
     return libraryPlays();
   }
   function save(){
+    if(mode==='quick') return;   // el modo rápido es efímero, no se guarda
     try{ localStorage.setItem(LS_KEY, JSON.stringify(book)); }catch(e){}
   }
   // Completa la biblioteca en dispositivos que guardaron una versión vieja:
@@ -586,8 +588,13 @@
     if(added) save();
     return added;
   }
-  function play(){ return book.find(p=>p.id===curId); }
-  function frame(){ return play().frames[curFrame]; }
+  // ---------- Modo rápido (pizarra en vivo, no se guarda) ----------
+  let quick=null;
+  function newQuick(){ return { id:'__quick', name:'Rápido', court:'half',
+    tokens:baseTokens(), frames:[{pos:{}, arrows:[]}],
+    seq:['a1','a2','a3','a4','a5','ball','b1','b2','b3','b4','b5'] }; }
+  function play(){ if(mode==='quick'){ if(!quick) quick=newQuick(); return quick; } return book.find(p=>p.id===curId); }
+  function frame(){ return mode==='quick' ? play().frames[0] : play().frames[curFrame]; }
 
 
   // ---------- jugada base ----------
@@ -1215,12 +1222,20 @@
     return {x,y, fx:x/vb.width, fy:y/vb.height};
   }
 
+  function quickPlaceNext(sp){
+    const pos=frame().pos, seq=play().seq||[];
+    const next=seq.find(id=>!pos[id]);
+    if(!next){ toast('Ya están las 11 fichas — arrástralas'); return; }
+    pos[next]={x:clamp(sp.fx),y:clamp(sp.fy)};
+    render();
+  }
   court.addEventListener('pointerdown',e=>{
-    if(mode!=='edit') return;
+    if(mode!=='edit' && mode!=='quick') return;
     court.setPointerCapture(e.pointerId);
     const g=e.target.closest('.token');
     if(tool==='move'){
       if(g){ drag={id:g.dataset.id}; }
+      else if(mode==='quick'){ quickPlaceNext(svgPoint(e)); }
       return;
     }
     if(tool==='erase'){
@@ -1232,7 +1247,7 @@
   });
 
   court.addEventListener('pointermove',e=>{
-    if(mode!=='edit') return;
+    if(mode!=='edit' && mode!=='quick') return;
     const sp=svgPoint(e);
     if(drag){
       frame().pos[drag.id]={x:clamp(sp.fx),y:clamp(sp.fy)};
@@ -1434,18 +1449,30 @@
     if(curFrame>=p.frames.length) curFrame=p.frames.length-1;
     save(); render(); buildSteps(); buildScrub();
   }
+  let quickBar=null;
+  function ensureQuickBar(){
+    if(quickBar) return quickBar;
+    quickBar=document.createElement('div'); quickBar.id='quickBar';
+    quickBar.style.cssText='position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:30;display:none;gap:10px;align-items:center;background:rgba(16,22,19,.93);color:#eaf2ec;border:1px solid #2b3a31;border-radius:999px;padding:6px 8px 6px 15px;font:600 .82rem system-ui,-apple-system,sans-serif;box-shadow:0 8px 20px -8px #000;max-width:94%';
+    quickBar.innerHTML='<span>Toca la cancha para agregar fichas · arrástralas para mover</span><button id="qClear" style="background:#e0453f;border:0;color:#fff;font-weight:700;border-radius:999px;padding:6px 13px;cursor:pointer;white-space:nowrap">Limpiar</button>';
+    $('#stage').appendChild(quickBar);
+    quickBar.querySelector('#qClear').onclick=function(){ quick=newQuick(); render(); toast('Cancha limpia'); };
+    return quickBar;
+  }
   function setMode(m){
     mode=m; stopAnim();
     document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
-    const edit=m==='edit', present=m==='present', stats=m==='stats';
-    $('#rail').classList.toggle('hidden',!edit);
+    const edit=m==='edit', present=m==='present', stats=m==='stats', quickM=m==='quick';
+    $('#rail').classList.toggle('hidden',!(edit||quickM));
     $('#side').classList.toggle('hidden',!edit);
     $('#stage').classList.toggle('hidden',stats);
     $('#statsView').classList.toggle('hidden',!stats);
     $('#playbar').classList.toggle('hidden',!present);
     $('#noteOverlay').classList.toggle('show',present);
+    document.querySelector('.play-select').classList.toggle('hidden',quickM);
+    ensureQuickBar().style.display = quickM ? 'flex' : 'none';
     if(stats){ renderStats(); return; }
-    if(edit){ tool='move'; buildRail(); render(); }
+    if(edit||quickM){ tool='move'; buildRail(); buildCourt(); render(); }
     else { curFrame=0; render(); buildScrub(); updateScrub(); showNote(0,true); }
   }
 
