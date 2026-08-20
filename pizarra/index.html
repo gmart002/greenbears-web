@@ -1582,6 +1582,37 @@
     saveRoster(); renderStats();
   }
 
+  // ---- Convocatoria (presentes del partido) y parches ----
+  function isPresent(id){ return !game.present || game.present.indexOf(id)>=0; }
+  function presentRoster(){ return roster.filter(p=>isPresent(p.id)); }
+  function ensurePresent(id){ if(!game.present) game.present=roster.map(x=>x.id); if(game.present.indexOf(id)<0) game.present.push(id); }
+  function addParche(){
+    promptName('Parche (jugador puntual)','',name=>{
+      let num=(window.prompt('Número (opcional):','')||'').trim().slice(0,3);
+      const id=uid(); roster.push({id, name:name.slice(0,24), num, tmp:true});
+      ensurePresent(id); saveRoster(); saveGame(); renderStats();
+    });
+  }
+  function openConvocatoria(){
+    if(!game.present) game.present=roster.map(x=>x.id);
+    let ov=document.getElementById('convOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='convOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(8,12,10,.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif';
+    const rows=roster.length? roster.map(p=>'<label style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid #1e2a22;cursor:pointer"><input type="checkbox" data-id="'+p.id+'" '+(isPresent(p.id)?'checked':'')+' style="width:20px;height:20px;accent-color:#1f9b57"><b style="min-width:26px;text-align:center;color:#9fd6b6">'+(p.num||'–')+'</b><span style="flex:1">'+escapeHtml(p.name)+(p.tmp?' <span style="color:#f0982a;font-size:.72rem">parche</span>':'')+'</span></label>').join('') : '<div style="color:#8aa;padding:10px">Sin jugadores en el plantel.</div>';
+    ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:440px;width:100%;color:#eaf2ec;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+      +'<div style="padding:14px 18px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.1rem">Convocatoria</b><span id="convCount" style="color:#8aa;font-size:.85rem"></span></div>'
+      +'<div style="padding:2px 14px;overflow:auto">'+rows+'</div>'
+      +'<div style="padding:12px 14px;border-top:1px solid #26332b;display:flex;gap:8px;justify-content:space-between"><button id="convParche" style="background:#0c120f;border:1px solid #33443a;color:#eaf2ec;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600">＋ Parche</button><button id="convClose" style="background:#1f9b57;border:0;color:#fff;font-weight:700;border-radius:10px;padding:9px 18px;cursor:pointer">Listo</button></div></div>';
+    document.body.appendChild(ov);
+    const upd=function(){ ov.querySelector('#convCount').textContent=ov.querySelectorAll('input:checked').length+' presentes'; };
+    [].forEach.call(ov.querySelectorAll('input'),function(ch){ ch.onchange=function(){ var id=ch.getAttribute('data-id');
+      if(ch.checked){ if(game.present.indexOf(id)<0) game.present.push(id); } else { game.present=game.present.filter(function(x){return x!==id;}); if(selPlayer===id) selPlayer=null; }
+      saveGame(); upd(); }; });
+    ov.querySelector('#convParche').onclick=function(){ ov.remove(); addParche(); };
+    ov.querySelector('#convClose').onclick=function(){ ov.remove(); renderStats(); };
+    upd();
+  }
+
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const c=cnt(selPlayer);
@@ -1606,15 +1637,15 @@
 
   function renderRosterBar(){
     const bar=document.getElementById('rosterBar'); bar.innerHTML='';
-    roster.forEach(p=>{
+    presentRoster().forEach(p=>{
       const el=document.createElement('button');
       el.className='pchip'+(selPlayer===p.id?' on':'');
-      el.innerHTML=`<span class="num">${p.num||'–'}</span>${escapeHtml(p.name)}<span class="del" title="Quitar">×</span>`;
+      el.innerHTML=`<span class="num">${p.num||'–'}</span>${escapeHtml(p.name)}${p.tmp?'<span class="del" title="Quitar" style="color:#f0982a">×</span>':'<span class="del" title="Quitar">×</span>'}`;
       el.onclick=(e)=>{ if(e.target.classList.contains('del')){ delPlayer(p.id); return; } selPlayer=(selPlayer===p.id?null:p.id); renderRosterBar(); renderSheet(); updatePadHint(); };
       bar.appendChild(el);
     });
-    const add=document.createElement('button'); add.className='pchip add'; add.innerHTML='＋ Jugador'; add.onclick=addPlayer;
-    bar.appendChild(add);
+    const conv=document.createElement('button'); conv.className='pchip add'; conv.innerHTML='✔ Convocatoria'; conv.onclick=openConvocatoria; bar.appendChild(conv);
+    const add=document.createElement('button'); add.className='pchip add'; add.innerHTML='＋ Jugador'; add.onclick=addPlayer; bar.appendChild(add);
   }
   function updatePadHint(){
     const p=roster.find(x=>x.id===selPlayer);
@@ -1635,16 +1666,18 @@
   function renderSheet(){
     const t=document.getElementById('statSheet');
     let h='<thead><tr><th>Jugador</th>'+COLS.slice(1).map(c=>'<th>'+c[1]+'</th>').join('')+'<th>PTS</th></tr></thead><tbody>';
-    if(!roster.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Agrega jugadores para llevar la estadística del partido.</td></tr>'; }
+    const pres=presentRoster();
+    if(!roster.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Agrega jugadores o usa la Convocatoria para llevar la estadística.</td></tr>'; }
+    else if(!pres.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Nadie convocado. Abre “Convocatoria” y marca los presentes.</td></tr>'; }
     const tot=emptyCnt();
-    roster.forEach(p=>{
+    pres.forEach(p=>{
       const c=cnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
       h+=`<tr class="${selPlayer===p.id?'sel':''}"><td><span class="pnum">${p.num||'–'}</span><span class="pname">${escapeHtml(p.name)}</span></td>`+
         `<td>${c.m2}/${c.a2}</td><td>${c.m3}/${c.a3}</td><td>${c.mft}/${c.aft}</td>`+
         `<td>${c.reb}</td><td>${c.ast}</td><td>${c.stl}</td><td>${c.blk}</td><td>${c.tov}</td><td>${c.pf}</td>`+
         `<td class="pts">${ptsOf(c)}</td></tr>`;
     });
-    if(roster.length){
+    if(pres.length){
       h+=`<tr class="tot"><td>TOTAL</td>`+
         `<td>${tot.m2}/${tot.a2}</td><td>${tot.m3}/${tot.a3}</td><td>${tot.mft}/${tot.aft}</td>`+
         `<td>${tot.reb}</td><td>${tot.ast}</td><td>${tot.stl}</td><td>${tot.blk}</td><td>${tot.tov}</td><td>${tot.pf}</td>`+
@@ -1661,7 +1694,7 @@
 
   function exportStatsCSV(){
     const head=['Jugador','Número','2P_anotados','2P_intentados','3P_anotados','3P_intentados','TL_anotados','TL_intentados','Rebotes','Asistencias','Robos','Tapas','Pérdidas','Faltas','Puntos'];
-    const rows=roster.map(p=>{ const c=cnt(p.id); return [p.name,p.num||'',c.m2,c.a2,c.m3,c.a3,c.mft,c.aft,c.reb,c.ast,c.stl,c.blk,c.tov,c.pf,ptsOf(c)]; });
+    const rows=presentRoster().map(p=>{ const c=cnt(p.id); return [p.name,p.num||'',c.m2,c.a2,c.m3,c.a3,c.mft,c.aft,c.reb,c.ast,c.stl,c.blk,c.tov,c.pf,ptsOf(c)]; });
     const esc=v=>{ v=String(v); return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
     let csv=head.join(';')+'\n'+rows.map(r=>r.map(esc).join(';')).join('\n');
     csv+=`\n\nGreen Bears;${usScore()};;Rival (${(game.rival||'')});${game.themPts||0}`;
