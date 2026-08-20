@@ -327,6 +327,7 @@
     var o=overlay();
     o.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:460px;width:100%;color:#eaf2ec;box-shadow:0 30px 60px -20px #000;overflow:hidden">'
       +'<div style="padding:16px 20px;border-bottom:1px solid #26332b;display:flex;align-items:center;justify-content:space-between"><b style="font-size:1.15rem">Elige tu equipo</b>'+(canClose?'<button id="pzX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button>':'')+'</div>'
+      +(!canClose?'<div style="padding:2px 20px 12px;color:#f0982a;font-size:.82rem;font-weight:600">Debes elegir o crear un equipo para continuar.</div>':'')
       +'<div id="pzList" style="padding:12px 16px;max-height:52vh;overflow:auto">Cargando…</div>'
       +'<form id="pzNew" style="display:flex;gap:8px;padding:14px 16px;border-top:1px solid #26332b;flex-wrap:wrap"><input id="pzName" placeholder="Nombre del equipo nuevo" maxlength="40" style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;border:1px solid #33443a;background:#0b100d;color:#eaf2ec"><button style="padding:10px 16px;border-radius:10px;border:0;background:#1f9b57;color:#fff;font-weight:700;cursor:pointer">Crear</button></form>'
       +'<div style="padding:0 16px 14px;text-align:center"><a href="/pizarra/logout" style="color:#7c8;font-size:.85rem">Cerrar sesión</a></div></div>';
@@ -349,7 +350,7 @@
     d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9200;background:#f0982a;color:#221a08;font:600 .8rem system-ui,sans-serif;text-align:center;padding:6px 10px';
     document.body.appendChild(d); document.body.style.paddingTop='28px'; }
 
-  function init(){ if(!cur) showPicker(false); else { floatBtn(); if(readonly) roBanner(); } }
+  function init(){ if(!cur||!cur.id){ readonly=false; showPicker(false); } else { floatBtn(); if(readonly) roBanner(); } }
   if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
 })();
 </script>
