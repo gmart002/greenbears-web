@@ -216,7 +216,7 @@
   .chip.pt:active{background:var(--panel2)}
 
   .stats-body{flex:1;display:flex;min-height:0}
-  .tracker{width:340px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px;overflow-y:auto}
+  .tracker{flex:1 1 50%;min-width:0;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px;overflow-y:auto}
   .period-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
   .pbtn2{font-family:inherit;font-weight:700;font-size:14px;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;position:relative}
   .pbtn2.on{background:var(--team-green);border-color:var(--team-green);color:#fff}
@@ -255,7 +255,7 @@
   .undo{background:var(--panel);border:1px solid var(--line2);border-radius:10px;min-height:44px;font-weight:700;color:var(--ink)}
   .undo:disabled{opacity:.4}
 
-  .sheet-wrap{flex:1;min-width:0;overflow:auto;padding:14px}
+  .sheet-wrap{flex:1 1 50%;min-width:0;overflow:auto;padding:14px}
   table.sheet{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
   table.sheet th,table.sheet td{padding:8px 9px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
   table.sheet th{position:sticky;top:0;background:var(--bg2);color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;z-index:1}
