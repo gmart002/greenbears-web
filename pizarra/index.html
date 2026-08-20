@@ -233,8 +233,10 @@
   .pbox:hover{border-color:var(--line2)}
   .pbox:active{transform:scale(.97)}
   .pbox .pb-num{font-family:"Barlow Condensed";font-weight:700;font-size:32px;color:var(--amber);line-height:.9}
-  .pbox .pb-name{font-weight:600;font-size:14.5px;color:var(--ink);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .pbox .pb-name em{color:#f0982a;font-style:normal;font-size:11px}
+  .pbox .pb-name{display:flex;flex-direction:column;gap:1px;max-width:100%;min-width:0}
+  .pbox .pb-name .l1{font-weight:700;font-size:14px;color:var(--ink);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .pbox .pb-name .l2{font-weight:500;font-size:12.5px;color:var(--muted);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .pbox .pb-name em{color:#f0982a;font-style:normal;font-size:10px}
   .pbox .pb-pts{position:absolute;top:11px;right:13px;font-family:"Barlow Condensed";font-weight:800;font-size:26px;color:var(--team-green);line-height:1;text-align:right}
   .pbox .pb-pts small{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.05em}
   .roster-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
@@ -1978,6 +1980,14 @@
     document.getElementById('scoreThem').textContent=game.themPts||0;
   }
 
+  // Divide el nombre en dos líneas: nombres arriba, apellidos abajo.
+  // Chile suele usar 2 apellidos; si hay 3+ palabras, las 2 últimas son apellidos.
+  function nameLines(name){
+    const w=(name||'').trim().split(/\s+/).filter(Boolean);
+    if(w.length<=1) return [w.join(' '),''];
+    const cut = w.length>=4 ? w.length-2 : (w.length===3 ? 1 : 1);
+    return [w.slice(0,cut).join(' '), w.slice(cut).join(' ')];
+  }
   function renderRosterBar(){
     const bar=document.getElementById('rosterBar'); bar.innerHTML='';
     const pad=document.getElementById('actionPad'), hint=document.getElementById('padHint');
@@ -1998,7 +2008,9 @@
       presentRoster().forEach(p=>{
         const c=viewCnt(p.id);
         const el=document.createElement('button'); el.className='pbox';
-        el.innerHTML='<span class="pb-num">'+(p.num||'–')+'</span><span class="pb-name">'+escapeHtml(p.name)+(p.tmp?' <em>parche</em>':'')+'</span><span class="pb-pts">'+ptsOf(c)+'<small>PTS</small></span>';
+        const nl=nameLines(p.name);
+        const nameHtml='<span class="l1">'+escapeHtml(nl[0])+'</span>'+(nl[1]?'<span class="l2">'+escapeHtml(nl[1])+(p.tmp?' <em>parche</em>':'')+'</span>':(p.tmp?'<span class="l2"><em>parche</em></span>':''));
+        el.innerHTML='<span class="pb-num">'+(p.num||'–')+'</span><span class="pb-name">'+nameHtml+'</span><span class="pb-pts">'+ptsOf(c)+'<small>PTS</small></span>';
         el.onclick=()=>{ selPlayer=p.id; renderRosterBar(); renderSheet(); updatePadHint(); };
         grid.appendChild(el);
       });
