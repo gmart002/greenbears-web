@@ -6,7 +6,8 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
-  listUsers, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin } = require('../db');
+  listUsers, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin,
+  listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach } = require('../db');
 
 const now = () => new Date().toISOString();
 
@@ -95,7 +96,8 @@ module.exports = function (checkCsrf) {
     const messages = db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
     const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC').all();
     const users = req.session.role === 'super' ? listUsers() : [];
-    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, highlights, users, visits: visitStats() });
+    const coaches = req.session.role === 'super' ? listCoaches() : [];
+    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, highlights, users, coaches, visits: visitStats() });
   });
 
   // Reiniciar el contador de visitas
@@ -165,6 +167,24 @@ module.exports = function (checkCsrf) {
     if (id === req.session.uid) return res.status(400).send('No puedes eliminar tu propia cuenta.');
     if (target && target.role === 'super' && countSupers() <= 1) return res.status(400).send('No puedes eliminar al último superadmin.');
     deleteUser(id); res.redirect('/admin/panel#usuarios');
+  });
+
+  // ---- Coaches de la pizarra (solo superadmin) ----
+  router.post('/coaches', requireSuper, checkCsrf, (req, res) => {
+    try { createCoach(req.body.username, req.body.password, req.body.name); }
+    catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#coaches">volver</a>'); }
+    res.redirect('/admin/panel#coaches');
+  });
+  router.post('/coaches/:id/clave', requireSuper, checkCsrf, (req, res) => {
+    try { setCoachPassword(Number(req.params.id), req.body.password); }
+    catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#coaches">volver</a>'); }
+    res.redirect('/admin/panel#coaches');
+  });
+  router.post('/coaches/:id/estado', requireSuper, checkCsrf, (req, res) => {
+    setCoachActive(Number(req.params.id), Number(req.body.active)); res.redirect('/admin/panel#coaches');
+  });
+  router.post('/coaches/:id/eliminar', requireSuper, checkCsrf, (req, res) => {
+    deleteCoach(Number(req.params.id)); res.redirect('/admin/panel#coaches');
   });
 
   // ---- Noticias ----

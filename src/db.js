@@ -99,6 +99,26 @@ CREATE TABLE IF NOT EXISTS users (
   active      INTEGER NOT NULL DEFAULT 1,
   created_at  TEXT NOT NULL
 );
+-- ---- Pizarra multiusuario ----
+CREATE TABLE IF NOT EXISTS coaches (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  username    TEXT NOT NULL UNIQUE,
+  pass_hash   TEXT NOT NULL,
+  name        TEXT DEFAULT '',
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pz_teams (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  coach_id       INTEGER NOT NULL,
+  name           TEXT NOT NULL,
+  linked_plantel INTEGER NOT NULL DEFAULT 0,   -- 1 = usa el plantel del sitio (Green Bears)
+  payload        TEXT DEFAULT '',              -- JSON: jugadas + roster + ajustes del equipo
+  sort           INTEGER NOT NULL DEFAULT 0,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL,
+  FOREIGN KEY (coach_id) REFERENCES coaches(id) ON DELETE CASCADE
+);
 `);
 
 // Migraciones incrementales (agregar columnas nuevas sin perder datos)
@@ -156,6 +176,20 @@ function settings() {
     .run(uname, hash, 'super', new Date().toISOString());
 })();
 
+// Coach inicial de la pizarra (para no quedar sin acceso). Usa PIZARRA_USER/PIZARRA_PASSWORD.
+(function seedCoach() {
+  const n = db.prepare('SELECT COUNT(*) AS c FROM coaches').get().c;
+  if (n > 0) return;
+  const uname = (process.env.PIZARRA_USER || 'greenbears').trim().toLowerCase();
+  const pass = process.env.PIZARRA_PASSWORD || 'Green2026';
+  const ts = new Date().toISOString();
+  const info = db.prepare('INSERT INTO coaches (username, pass_hash, name, active, created_at) VALUES (?,?,?,1,?)')
+    .run(uname, bcrypt.hashSync(pass, 10), 'Green Bears', ts);
+  // Su primer equipo: Green Bears, enlazado al plantel del sitio.
+  db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, payload, sort, created_at, updated_at) VALUES (?,?,?,?,0,?,?)')
+    .run(info.lastInsertRowid, 'Green Bears', 1, '', ts, ts);
+})();
+
 function listUsers() { return db.prepare('SELECT id, username, role, active, created_at FROM users ORDER BY role, username').all(); }
 function findUser(username) { return db.prepare('SELECT * FROM users WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase()); }
 function createUser(username, password, role) {
@@ -178,6 +212,57 @@ function verifyLogin(username, password) {
   try { if (!bcrypt.compareSync(String(password || ''), u.pass_hash)) return null; } catch (e) { return null; }
   return { id: u.id, username: u.username, role: u.role };
 }
+
+// ---------- Pizarra: coaches y equipos ----------
+function listCoaches() {
+  return db.prepare(`SELECT c.id, c.username, c.name, c.active, c.created_at,
+    (SELECT COUNT(*) FROM pz_teams t WHERE t.coach_id = c.id) AS teams
+    FROM coaches c ORDER BY c.username`).all();
+}
+function createCoach(username, password, name) {
+  const u = String(username || '').trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,32}$/.test(u)) throw new Error('Usuario inválido (3-32, letras/números/._-).');
+  if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
+  db.prepare('INSERT INTO coaches (username, pass_hash, name, active, created_at) VALUES (?,?,?,1,?)')
+    .run(u, bcrypt.hashSync(String(password), 10), String(name || '').trim(), new Date().toISOString());
+}
+function setCoachPassword(id, password) {
+  if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
+  db.prepare('UPDATE coaches SET pass_hash = ? WHERE id = ?').run(bcrypt.hashSync(String(password), 10), id);
+}
+function setCoachActive(id, active) { db.prepare('UPDATE coaches SET active = ? WHERE id = ?').run(active ? 1 : 0, id); }
+function deleteCoach(id) { db.prepare('DELETE FROM coaches WHERE id = ?').run(id); }
+function verifyCoach(username, password) {
+  const c = db.prepare('SELECT * FROM coaches WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase());
+  if (!c) return null;
+  try { if (!bcrypt.compareSync(String(password || ''), c.pass_hash)) return null; } catch (e) { return null; }
+  return { id: c.id, username: c.username, name: c.name };
+}
+
+function teamsForCoach(coachId) {
+  return db.prepare('SELECT id, name, linked_plantel, sort, updated_at FROM pz_teams WHERE coach_id = ? ORDER BY sort, name').all(coachId);
+}
+function createTeam(coachId, name, linkedPlantel) {
+  const nm = String(name || '').trim();
+  if (!nm) throw new Error('El equipo necesita un nombre.');
+  const ts = new Date().toISOString();
+  const info = db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, payload, sort, created_at, updated_at) VALUES (?,?,?,?,0,?,?)')
+    .run(coachId, nm, linkedPlantel ? 1 : 0, '', ts, ts);
+  return info.lastInsertRowid;
+}
+function getTeam(id, coachId) {
+  return db.prepare('SELECT * FROM pz_teams WHERE id = ? AND coach_id = ?').get(id, coachId);
+}
+function renameTeam(id, coachId, name) {
+  db.prepare('UPDATE pz_teams SET name = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
+    .run(String(name || '').trim() || 'Equipo', new Date().toISOString(), id, coachId);
+}
+function saveTeamPayload(id, coachId, payload) {
+  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
+    .run(String(payload == null ? '' : payload), new Date().toISOString(), id, coachId);
+  return info.changes > 0;
+}
+function deleteTeam(id, coachId) { db.prepare('DELETE FROM pz_teams WHERE id = ? AND coach_id = ?').run(id, coachId); }
 function setSetting(key, value) { setSettingStmt.run(key, String(value == null ? '' : value)); }
 
 // ---------- Utilidades ----------
@@ -228,5 +313,7 @@ function visitStats() {
 module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
   recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
-  listUsers, findUser, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin
+  listUsers, findUser, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin,
+  listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach, verifyCoach,
+  teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam
 };

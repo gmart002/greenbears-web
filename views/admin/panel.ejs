@@ -236,5 +236,40 @@
   </section>
   <% } %>
 
+  <!-- Coaches de la pizarra (solo superadmin) -->
+  <% if (isSuper) { %>
+  <section class="panel-sec" id="coaches">
+    <header><h2>Coaches (pizarra)</h2><span class="muted sm">Cuentas para entrar a la pizarra táctica. Cada coach gestiona sus propios equipos y jugadas.</span></header>
+    <table class="tbl">
+      <thead><tr><th>Usuario</th><th class="hide-sm">Nombre</th><th>Equipos</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        <% if (!coaches.length) { %><tr class="empty-row"><td colspan="5">Aún no hay coaches.</td></tr><% } %>
+        <% coaches.forEach(function(c){ %>
+        <tr>
+          <td><b><%= c.username %></b></td>
+          <td class="hide-sm muted"><%= c.name %></td>
+          <td><%= c.teams %></td>
+          <td><span class="pill <%= c.active ? 'on' : 'off' %>"><%= c.active ? 'Activo' : 'Inactivo' %></span></td>
+          <td><div class="actions">
+            <form method="post" action="/admin/coaches/<%= c.id %>/clave" onsubmit="this.password.value=prompt('Nueva clave para <%= c.username %> (mín. 6):')||''; return !!this.password.value">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="password"><button class="btn ghost sm">Cambiar clave</button>
+            </form>
+            <form method="post" action="/admin/coaches/<%= c.id %>/estado"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="active" value="<%= c.active ? 0 : 1 %>"><button class="btn ghost sm"><%= c.active ? 'Desactivar' : 'Activar' %></button></form>
+            <form method="post" action="/admin/coaches/<%= c.id %>/eliminar" onsubmit="return confirm('¿Eliminar al coach <%= c.username %>? Se borran sus equipos y jugadas.')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <form method="post" action="/admin/coaches" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:14px 20px;border-top:1px solid var(--line)">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="field" style="margin:0"><label>Usuario</label><input type="text" name="username" placeholder="ej: coach.mauro" autocapitalize="none" required></div>
+      <div class="field" style="margin:0"><label>Nombre (opcional)</label><input type="text" name="name" placeholder="Mauro Rebolledo"></div>
+      <div class="field" style="margin:0"><label>Clave (mín. 6)</label><input type="text" name="password" required></div>
+      <button class="btn primary sm">Crear coach</button>
+    </form>
+  </section>
+  <% } %>
+
 </div>
 <%- include('../partials/admin-foot') %>
