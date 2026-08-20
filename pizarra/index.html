@@ -478,6 +478,7 @@
             <button class="chip pt" data-them="3">+3</button>
             <button class="chip pt" data-them="1">+1</button>
           </div>
+          <button class="mini" id="btnPlantel">Plantel</button>
           <button class="mini" id="btnStatExport">Exportar CSV</button>
           <button class="mini" id="btnStatFinish">Guardar partido</button>
           <button class="mini warn" id="btnStatReset">Reiniciar</button>
@@ -1681,6 +1682,58 @@
     upd();
   }
 
+  // ---- Plantel del equipo (nombre, número, estatura, fecha de nacimiento) ----
+  function openPlantel(){
+    const ro = !!(window.__pzTeam && window.__pzTeam.owned===0);   // Green Bears compartido = solo lectura
+    let editing=null;
+    let ov=document.getElementById('plantelOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='plantelOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(8,12,10,.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif';
+    document.body.appendChild(ov);
+    const inp='padding:9px 10px;border-radius:9px;border:1px solid #33443a;background:#0b100d;color:#eaf2ec;font:inherit;width:100%';
+    function rows(){
+      if(!roster.length) return '<div style="color:#8aa;padding:12px 4px">Sin jugadores. Agrégalos abajo.</div>';
+      return roster.map(function(p){ return '<div style="display:flex;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1e2a22">'
+        +'<b style="min-width:28px;text-align:center;color:#9fd6b6">'+(p.num||'–')+'</b>'
+        +'<span style="flex:1;min-width:70px">'+escapeHtml(p.name)+(p.tmp?' <span style="color:#f0982a;font-size:.7rem">parche</span>':'')+'</span>'
+        +'<span style="color:#9fb0a5;font-size:.85rem;width:56px;text-align:right">'+escapeHtml(p.height||'')+'</span>'
+        +'<span style="color:#9fb0a5;font-size:.85rem;width:92px;text-align:right">'+escapeHtml(p.birth||'')+'</span>'
+        +(ro?'':'<button data-edit="'+p.id+'" title="Editar" style="background:none;border:0;color:#7ccbe0;cursor:pointer;font-size:1rem;padding:0 6px">✎</button><button data-del="'+p.id+'" title="Quitar" style="background:none;border:0;color:#b55;cursor:pointer;font-size:1.25rem;padding:0 4px">×</button>')
+      +'</div>'; }).join('');
+    }
+    function draw(){
+      ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:600px;width:100%;color:#eaf2ec;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+        +'<div style="padding:14px 18px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.15rem">Plantel del equipo</b><button id="plX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+        +(ro?'<div style="padding:9px 16px;background:#2e2210;color:#f0982a;font-size:.82rem">Green Bears es de solo lectura: su plantel se gestiona desde el sitio / la cuenta greenbears.</div>':'')
+        +'<div id="plList" style="padding:4px 16px;overflow:auto">'+rows()+'</div>'
+        +(ro?'':'<form id="plForm" style="display:grid;grid-template-columns:1fr 90px;gap:8px;padding:14px 16px;border-top:1px solid #26332b">'
+            +'<input id="plName" placeholder="Nombre" maxlength="24" required style="'+inp+'">'
+            +'<input id="plNum" placeholder="N°" maxlength="3" style="'+inp+';text-align:center">'
+            +'<input id="plHeight" placeholder="Estatura (ej: 1.85 m)" style="'+inp+'">'
+            +'<input id="plBirth" type="date" title="Fecha de nacimiento" style="'+inp+'">'
+            +'<button id="plSave" style="grid-column:1 / -1;background:#1f9b57;border:0;color:#fff;font-weight:700;border-radius:10px;padding:10px;cursor:pointer">Agregar jugador</button>'
+          +'</form>')
+        +'</div>';
+      ov.querySelector('#plX').onclick=function(){ ov.remove(); };
+      if(ro) return;
+      ov.querySelector('#plForm').onsubmit=function(e){ e.preventDefault();
+        const name=ov.querySelector('#plName').value.trim(); if(!name) return;
+        const num=ov.querySelector('#plNum').value.trim().slice(0,3);
+        const height=ov.querySelector('#plHeight').value.trim();
+        const birth=ov.querySelector('#plBirth').value;
+        if(editing){ const p=roster.find(x=>x.id===editing); if(p){ p.name=name.slice(0,24); p.num=num; p.height=height; p.birth=birth; } editing=null; }
+        else { roster.push({id:uid(), name:name.slice(0,24), num, height, birth}); }
+        saveRoster(); renderStats(); draw();
+      };
+      [].forEach.call(ov.querySelectorAll('[data-edit]'),function(b){ b.onclick=function(){ const p=roster.find(x=>x.id===b.getAttribute('data-edit')); if(!p)return; editing=p.id;
+        ov.querySelector('#plName').value=p.name||''; ov.querySelector('#plNum').value=p.num||''; ov.querySelector('#plHeight').value=p.height||''; ov.querySelector('#plBirth').value=p.birth||'';
+        ov.querySelector('#plSave').textContent='Guardar cambios'; ov.querySelector('#plName').focus(); }; });
+      [].forEach.call(ov.querySelectorAll('[data-del]'),function(b){ b.onclick=function(){ const p=roster.find(x=>x.id===b.getAttribute('data-del')); if(!p)return;
+        if(confirm('¿Quitar a '+(p.num?('#'+p.num+' '):'')+p.name+' del plantel?')){ roster=roster.filter(x=>x.id!==p.id); if(selPlayer===p.id) selPlayer=null; saveRoster(); renderStats(); draw(); } }; });
+    }
+    draw();
+  }
+
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const c=cnt(selPlayer);
@@ -1815,6 +1868,7 @@
   // ---- Estadísticas ----
   $('#rivalInput').addEventListener('input',()=>{ game.rival=$('#rivalInput').value; document.getElementById('rivalName').textContent=game.rival||'Rival'; saveGame(); });
   $('#btnUndo').onclick=undo;
+  $('#btnPlantel').onclick=openPlantel;
   $('#btnStatExport').onclick=exportStatsCSV;
   $('#btnStatFinish').onclick=finishGame;
   $('#btnStatReset').onclick=resetGame;
