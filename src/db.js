@@ -130,6 +130,9 @@ addColumn('matches', 'tournament', "TEXT DEFAULT ''");
 addColumn('matches', 'confirmed', 'INTEGER NOT NULL DEFAULT 1');
 addColumn('players', 'staff', 'INTEGER NOT NULL DEFAULT 0');   // 0 = jugador, 1 = cuerpo técnico
 addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador, Asistente
+addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/editable por todos los coaches
+// Green Bears (enlazado al plantel) es compartido entre coaches.
+db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
 
 // ---------- Ajustes por defecto ----------
 const DEFAULTS = {
@@ -185,9 +188,9 @@ function settings() {
   const ts = new Date().toISOString();
   const info = db.prepare('INSERT INTO coaches (username, pass_hash, name, active, created_at) VALUES (?,?,?,1,?)')
     .run(uname, bcrypt.hashSync(pass, 10), 'Green Bears', ts);
-  // Su primer equipo: Green Bears, enlazado al plantel del sitio.
-  db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, payload, sort, created_at, updated_at) VALUES (?,?,?,?,0,?,?)')
-    .run(info.lastInsertRowid, 'Green Bears', 1, '', ts, ts);
+  // Su primer equipo: Green Bears, enlazado al plantel del sitio y compartido entre coaches.
+  db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, shared, payload, sort, created_at, updated_at) VALUES (?,?,?,?,?,0,?,?)')
+    .run(info.lastInsertRowid, 'Green Bears', 1, 1, '', ts, ts);
 })();
 
 function listUsers() { return db.prepare('SELECT id, username, role, active, created_at FROM users ORDER BY role, username').all(); }
@@ -240,7 +243,11 @@ function verifyCoach(username, password) {
 }
 
 function teamsForCoach(coachId) {
-  return db.prepare('SELECT id, name, linked_plantel, sort, updated_at FROM pz_teams WHERE coach_id = ? ORDER BY sort, name').all(coachId);
+  // Equipos propios + equipos compartidos (Green Bears) de cualquier coach.
+  return db.prepare(`SELECT id, name, linked_plantel, shared, sort, updated_at,
+      (coach_id = @c) AS owned
+    FROM pz_teams WHERE coach_id = @c OR shared = 1
+    ORDER BY shared DESC, sort, name`).all({ c: coachId });
 }
 function createTeam(coachId, name, linkedPlantel) {
   const nm = String(name || '').trim();
@@ -251,14 +258,16 @@ function createTeam(coachId, name, linkedPlantel) {
   return info.lastInsertRowid;
 }
 function getTeam(id, coachId) {
-  return db.prepare('SELECT * FROM pz_teams WHERE id = ? AND coach_id = ?').get(id, coachId);
+  // Accesible si es propio o compartido.
+  return db.prepare('SELECT * FROM pz_teams WHERE id = ? AND (coach_id = ? OR shared = 1)').get(id, coachId);
 }
 function renameTeam(id, coachId, name) {
   db.prepare('UPDATE pz_teams SET name = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
     .run(String(name || '').trim() || 'Equipo', new Date().toISOString(), id, coachId);
 }
 function saveTeamPayload(id, coachId, payload) {
-  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
+  // Puede guardar el dueño o cualquier coach si el equipo es compartido.
+  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND (coach_id = ? OR shared = 1)')
     .run(String(payload == null ? '' : payload), new Date().toISOString(), id, coachId);
   return info.changes > 0;
 }
