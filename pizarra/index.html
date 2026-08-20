@@ -1812,6 +1812,22 @@
     draw();
   }
 
+  // ¿El partido actual tiene datos (para advertir antes de sobrescribir)?
+  function gameHasData(){ return !!(game && ((game.log&&game.log.length)||game.themPts||usScore())); }
+  // Carga un partido guardado en la vista en vivo (misma tabla + tiros).
+  function loadHistory(g){
+    const rs=(g.roster&&g.roster.length)? g.roster : (g.stats||[]);
+    roster=rs.map(function(p){ return {id:p.id||uid(), name:p.name||'', num:p.num||'', height:p.height||'', birth:p.birth||'', tmp:!!p.tmp}; });
+    const stats={};
+    (g.stats||[]).forEach(function(p,idx){ const id=p.id||(roster[idx]&&roster[idx].id); if(!id) return;
+      const c=emptyCnt(); const src=p.c||{}; for(const k in c) c[k]=src[k]||0; stats[id]=c; });
+    game={ rival:g.rival||'', themPts:g.them||0, stats:stats, log:(g.log||[]).slice(), shots:(g.shots||[]).slice(),
+      themQ:Object.assign({},g.themQ||{}), period:g.period||1, present:roster.map(function(p){return p.id;}) };
+    viewPeriod=0; selPlayer=null;                     // se abre en “Total”
+    saveRoster(); saveGame(); renderStats();
+    toast('Partido cargado: vs '+(g.rival||'Rival'));
+  }
+
   // ---- Historial de partidos guardados ----
   function openHistory(){
     let hist=[]; try{ hist=JSON.parse(localStorage.getItem(HIST_KEY))||[]; }catch(e){}
@@ -1839,6 +1855,7 @@
             +'<b style="flex:1;min-width:60px">vs '+escapeHtml(g.rival||'Rival')+'</b>'
             +'<b style="color:'+(win?'#37b26b':'#e0605a')+';font-variant-numeric:tabular-nums">'+g.us+' – '+g.them+'</b>'
             +'<button data-open="'+i+'" style="background:none;border:1px solid #33443a;color:#cfe0d6;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:.8rem">ver</button>'
+            +'<button data-load="'+i+'" title="Cargar en la vista" style="background:#1f9b57;border:0;color:#fff;border-radius:8px;padding:3px 11px;cursor:pointer;font-size:.8rem;font-weight:700">Cargar</button>'
             +'<button data-del="'+i+'" title="Eliminar" style="background:none;border:0;color:#b55;cursor:pointer;font-size:1.15rem">×</button>'
           +'</div>'
           +'<div id="hg'+i+'" style="display:none;margin-top:8px;overflow:auto"></div>'
@@ -1852,6 +1869,9 @@
       ov.querySelector('#hX').onclick=function(){ ov.remove(); };
       [].forEach.call(ov.querySelectorAll('[data-open]'),function(b){ b.onclick=function(){ const i=b.getAttribute('data-open'); const d=ov.querySelector('#hg'+i);
         if(d.style.display==='none'){ if(!d.innerHTML) d.innerHTML=detail(hist[i]); d.style.display='block'; b.textContent='ocultar'; } else { d.style.display='none'; b.textContent='ver'; } }; });
+      [].forEach.call(ov.querySelectorAll('[data-load]'),function(b){ b.onclick=function(){ const i=+b.getAttribute('data-load');
+        if(gameHasData() && !confirm('Hay un partido en curso. Cargar este reemplazará lo que ves ahora (el guardado no se pierde). ¿Continuar?')) return;
+        ov.remove(); loadHistory(hist[i]); }; });
       [].forEach.call(ov.querySelectorAll('[data-del]'),function(b){ b.onclick=function(){ const i=+b.getAttribute('data-del');
         if(confirm('¿Eliminar este partido del historial?')){ hist.splice(i,1); try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){} draw(); } }; });
     }
@@ -2049,10 +2069,13 @@
     if(!roster.length){ toast('No hay jugadores'); return; }
     if(!confirm('¿Guardar el partido y empezar uno nuevo? (el actual queda respaldado)')) return;
     let hist=[]; try{ hist=JSON.parse(localStorage.getItem(HIST_KEY))||[]; }catch(e){}
+    const pres=presentRoster();
     hist.push({date:new Date().toISOString(), rival:game.rival||'', us:usScore(), them:game.themPts||0,
-      stats:presentRoster().map(p=>({name:p.name,num:p.num,c:cnt(p.id)}))});
+      stats:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp,c:cnt(p.id)})),
+      roster:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp})),
+      log:(game.log||[]).slice(), shots:(game.shots||[]).slice(), themQ:Object.assign({},game.themQ||{}), period:game.period||1});
     try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){}
-    game={rival:'',themPts:0,stats:{},log:[],period:1,themQ:{}}; viewPeriod=1; saveGame(); selPlayer=null; renderStats();
+    game={rival:'',themPts:0,stats:{},log:[],shots:[],period:1,themQ:{}}; viewPeriod=1; saveGame(); selPlayer=null; renderStats();
     toast('Partido guardado. Nuevo partido listo.');
   }
   function resetGame(){
