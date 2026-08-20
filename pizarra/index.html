@@ -275,6 +275,81 @@
   }
 </style>
 
+<script>
+/* ===== Pizarra multiusuario: capa de equipos (sincroniza con el servidor) ===== */
+(function(){
+  var KEYS=['pizarra.basquet.v1','pizarra.logo','pizarra.roster','pizarra.game','pizarra.games'];
+  var TEAM_KEY='pizarra.team';
+  var cur=null; try{cur=JSON.parse(localStorage.getItem(TEAM_KEY)||'null');}catch(e){}
+  var _set=localStorage.setItem.bind(localStorage);
+  var _rm=localStorage.removeItem.bind(localStorage);
+  var timer=null;
+
+  function api(p,opts){ opts=opts||{}; opts.credentials='same-origin';
+    opts.headers=Object.assign({'x-pizarra':'1'},opts.headers||{});
+    if(opts.body) opts.headers['content-type']='application/json';
+    return fetch('/pizarra/api'+p,opts);
+  }
+  function payloadStr(){ var o={}; KEYS.forEach(function(k){var v=localStorage.getItem(k); if(v!=null)o[k]=v;}); return JSON.stringify(o); }
+  function pushNow(){ if(!cur) return Promise.resolve(); return api('/teams/'+cur.id,{method:'PUT',body:JSON.stringify({payload:payloadStr()})}).catch(function(){}); }
+  function schedule(){ if(!cur)return; clearTimeout(timer); timer=setTimeout(pushNow,900); }
+  localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
+  window.addEventListener('pagehide',function(){ pushNow(); });
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function writeTeam(data,plantel){
+    KEYS.forEach(function(k){ try{_rm(k);}catch(e){} });
+    var p={}; try{ p=JSON.parse(data||'{}')||{}; }catch(e){}
+    Object.keys(p).forEach(function(k){ if(KEYS.indexOf(k)>=0) _set(k,p[k]); });
+    if(plantel&&plantel.length){
+      var r=[]; try{ r=JSON.parse(localStorage.getItem('pizarra.roster')||'[]'); }catch(e){}
+      if(!r.length){ _set('pizarra.roster',JSON.stringify(plantel.map(function(pl,i){return {id:'gb'+i,name:pl.name,num:(pl.number||'')};}))); }
+    }
+  }
+
+  var ov;
+  function overlay(){ if(!ov){ ov=document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(8,12,10,.93);display:flex;align-items:center;justify-content:center;padding:18px;font-family:system-ui,-apple-system,Segoe UI,sans-serif';
+    document.body.appendChild(ov);} return ov; }
+  function close(){ if(ov){ ov.remove(); ov=null; } }
+
+  function open(id){
+    pushNow().then(function(){ return api('/teams/'+id).then(function(r){return r.json();}); }).then(function(d){
+      if(!d||d.error){ alert('No se pudo abrir el equipo'); return; }
+      writeTeam(d.payload,d.plantel);
+      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel}));
+      location.reload();
+    });
+  }
+
+  function showPicker(canClose){
+    var o=overlay();
+    o.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:460px;width:100%;color:#eaf2ec;box-shadow:0 30px 60px -20px #000;overflow:hidden">'
+      +'<div style="padding:16px 20px;border-bottom:1px solid #26332b;display:flex;align-items:center;justify-content:space-between"><b style="font-size:1.15rem">Elige tu equipo</b>'+(canClose?'<button id="pzX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button>':'')+'</div>'
+      +'<div id="pzList" style="padding:12px 16px;max-height:52vh;overflow:auto">Cargando…</div>'
+      +'<form id="pzNew" style="display:flex;gap:8px;padding:14px 16px;border-top:1px solid #26332b;flex-wrap:wrap"><input id="pzName" placeholder="Nombre del equipo nuevo" maxlength="40" style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;border:1px solid #33443a;background:#0b100d;color:#eaf2ec"><button style="padding:10px 16px;border-radius:10px;border:0;background:#1f9b57;color:#fff;font-weight:700;cursor:pointer">Crear</button></form>'
+      +'<div style="padding:0 16px 14px;text-align:center"><a href="/pizarra/logout" style="color:#7c8;font-size:.85rem">Cerrar sesión</a></div></div>';
+    if(canClose) o.querySelector('#pzX').onclick=close;
+    o.querySelector('#pzNew').onsubmit=function(e){ e.preventDefault(); var n=o.querySelector('#pzName').value.trim(); if(!n)return;
+      api('/teams',{method:'POST',body:JSON.stringify({name:n})}).then(function(r){return r.json();}).then(function(d){ if(d.id) open(d.id); else alert(d.error||'No se pudo crear'); }); };
+    api('/teams').then(function(r){ if(r.status===401){ location.href='/pizarra/login'; return null; } return r.json(); }).then(function(d){
+      if(!d) return; var L=o.querySelector('#pzList');
+      if(!d.teams||!d.teams.length){ L.innerHTML='<div style="color:#8aa;padding:10px 4px">Aún no tienes equipos. Crea el primero abajo.</div>'; return; }
+      L.innerHTML=d.teams.map(function(t){ return '<div class="pzT" data-id="'+t.id+'" style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;padding:12px 14px;border-radius:12px;border:1px solid #2b3a31;background:#0c120f;cursor:pointer"><span><b>'+esc(t.name)+'</b>'+(t.linked_plantel?' <span style="color:#1f9b57;font-size:.72rem">· plantel del sitio</span>':'')+'</span><span class="pzDel" data-id="'+t.id+'" style="color:#b55;font-size:1.2rem;padding:0 4px 0 10px">&times;</span></div>'; }).join('');
+      [].forEach.call(L.querySelectorAll('.pzT'),function(b){ b.onclick=function(ev){ if(ev.target.classList.contains('pzDel'))return; open(b.getAttribute('data-id')); }; });
+      [].forEach.call(L.querySelectorAll('.pzDel'),function(x){ x.onclick=function(ev){ ev.stopPropagation(); if(confirm('¿Eliminar este equipo y todas sus jugadas?')){ api('/teams/'+x.getAttribute('data-id'),{method:'DELETE'}).then(function(){ showPicker(canClose); }); } }; });
+    }).catch(function(){ o.querySelector('#pzList').innerHTML='<div style="color:#c66;padding:8px 4px">Sin conexión con el servidor.</div>'; });
+  }
+
+  function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo');
+    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:#101613;color:#eaf2ec;border:1px solid #2b3a31;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
+    b.onclick=function(){ showPicker(true); }; document.body.appendChild(b); }
+
+  function init(){ if(!cur) showPicker(false); else floatBtn(); }
+  if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
+
 <div class="app">
   <!-- ===== Top bar ===== -->
   <header class="topbar">

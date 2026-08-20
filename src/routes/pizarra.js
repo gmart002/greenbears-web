@@ -39,6 +39,7 @@ module.exports = function (checkCsrf) {
     res.status(401).render('pizarra-login', { error: 'Usuario o clave incorrectos.' });
   });
   router.post('/logout', checkCsrf, (req, res) => { if (req.session) req.session.coach = null; res.redirect('/pizarra/login'); });
+  router.get('/logout', (req, res) => { if (req.session) req.session.coach = null; res.redirect('/pizarra/login'); });
 
   // Puerta: la app (index) exige sesión de coach.
   function gate(req, res, next) {
