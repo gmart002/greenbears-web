@@ -1648,13 +1648,31 @@
   let viewPeriod=1;                                   // cuarto que se ve/registra (5 = TE, 0 = Total)
   const PERIODS=[[1,'C1'],[2,'C2'],[3,'C3'],[4,'C4'],[5,'TE'],[0,'Total']];
   // Media cancha reutilizable (para el gráfico de tiros y el registro por ubicación).
-  const HALFCOURT='<rect x="0" y="0" width="500" height="470" fill="#e9ede9"/>'
-    +'<g fill="none" stroke="#8a988e" stroke-width="2.5">'
-    +'<rect x="12" y="12" width="476" height="446" rx="3"/>'
+  const HALFCOURT=
+    '<defs>'
+    +'<linearGradient id="hcFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c893"/><stop offset="1" stop-color="#d6ac78"/></linearGradient>'
+    +'<linearGradient id="hcPaint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f9160"/><stop offset="1" stop-color="#2c7548"/></linearGradient>'
+    +'</defs>'
+    +'<rect x="0" y="0" width="500" height="470" fill="url(#hcFloor)"/>'
+    // duelas del piso
+    +'<g stroke="#c49a63" stroke-width="1" opacity=".45">'
+    + Array.from({length:12},function(_,i){var x=(i+1)*38.5; return '<line x1="'+x.toFixed(1)+'" y1="12" x2="'+x.toFixed(1)+'" y2="458"/>';}).join('')
+    +'</g>'
+    // zona pintada + semicírculo de tiro libre
+    +'<rect x="185" y="12" width="130" height="170" fill="url(#hcPaint)"/>'
+    +'<path d="M192 182 A58 58 0 0 0 308 182" fill="url(#hcPaint)" opacity=".55"/>'
+    // líneas de la cancha
+    +'<g fill="none" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">'
+    +'<rect x="12" y="12" width="476" height="446" rx="4"/>'
     +'<rect x="185" y="12" width="130" height="170"/>'
     +'<circle cx="250" cy="182" r="58"/>'
     +'<path d="M40 12 L40 120 A215 215 0 0 0 460 120 L460 12"/>'
-    +'<path d="M215 44 H285"/><circle cx="250" cy="56" r="9"/></g>';
+    +'</g>'
+    // tablero, aro y semicírculo restrictivo
+    +'<line x1="212" y1="34" x2="288" y2="34" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>'
+    +'<path d="M226 48 A28 28 0 0 0 274 48" fill="none" stroke="#ffffff" stroke-width="2.5"/>'
+    +'<line x1="250" y1="34" x2="250" y2="48" stroke="#e8622a" stroke-width="3"/>'
+    +'<circle cx="250" cy="52" r="9" fill="none" stroke="#e8622a" stroke-width="4"/>';
 
   function loadStats(){
     try{ roster=JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(e){ roster=[]; }
