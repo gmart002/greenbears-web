@@ -281,6 +281,7 @@
   var KEYS=['pizarra.basquet.v1','pizarra.logo','pizarra.roster','pizarra.game','pizarra.games'];
   var TEAM_KEY='pizarra.team';
   var cur=null; try{cur=JSON.parse(localStorage.getItem(TEAM_KEY)||'null');}catch(e){}
+  try{ window.__pzTeam = cur; }catch(e){}   // el nombre/equipo actual, para la marca de arriba
   var readonly=!!(cur && cur.owned===0);   // equipo compartido que no es propio: solo lectura
   var _set=localStorage.setItem.bind(localStorage);
   var _rm=localStorage.removeItem.bind(localStorage);
@@ -622,15 +623,23 @@
   function clonePos(pos){ const o={}; for(const k in pos) o[k]={x:pos[k].x,y:pos[k].y}; return o; }
 
   // ---------- Logo del equipo (subido desde el dispositivo) ----------
-  function teamLogo(){ try{ return localStorage.getItem(LOGO_KEY) || 'logo.png'; }catch(e){ return 'logo.png'; } }
+  function teamLogo(){ try{ return localStorage.getItem(LOGO_KEY) || ''; }catch(e){ return ''; } }
   function hasTeamLogo(){ try{ return !!localStorage.getItem(LOGO_KEY); }catch(e){ return false; } }
   function applyBrandLogo(){
+    // Nombre del equipo actual (viene de la capa de equipos) en la marca de arriba.
+    try{
+      const t=window.__pzTeam;
+      const nb=document.querySelector('.brand b'), ns=document.querySelector('.brand small');
+      if(nb) nb.textContent = (t&&t.name) ? t.name : 'Equipo';
+      if(ns) ns.textContent = 'Pizarra táctica';
+    }catch(e){}
     const img=document.getElementById('brandLogo'), paw=document.getElementById('brandPaw');
     if(!img) return;
-    img.style.display='';
+    const src=teamLogo();
+    if(!src){ img.style.display='none'; if(paw) paw.style.display=''; return; }  // sin logo cargado → patita
     img.onload=()=>{ if(paw) paw.style.display='none'; };
     img.onerror=()=>{ img.style.display='none'; if(paw) paw.style.display=''; };
-    img.src=teamLogo();
+    img.style.display=''; img.src=src;
   }
   function pickTeamLogo(){
     const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
@@ -1090,7 +1099,8 @@
     // logo del equipo al centro (marca de agua), recortado en círculo para
     // eliminar el fondo blanco de las esquinas del logo.
     const logoY = type==='full' ? h/2 : h-72, logoR=46;
-    const centerLogo = `<g opacity="0.18" id="gCenterLogo"><image href="${teamLogo()}" x="${w/2-logoR}" y="${logoY-logoR}" width="${logoR*2}" height="${logoR*2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)"/></g>`;
+    const _logo = teamLogo();
+    const centerLogo = _logo ? `<g opacity="0.2" id="gCenterLogo"><image href="${_logo}" x="${w/2-logoR}" y="${logoY-logoR}" width="${logoR*2}" height="${logoR*2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)"/></g>` : '';
 
     court.innerHTML = `
       <defs>
