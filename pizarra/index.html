@@ -221,21 +221,22 @@
   .pbtn2{font-family:inherit;font-weight:700;font-size:14px;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;position:relative}
   .pbtn2.on{background:var(--team-green);border-color:var(--team-green);color:#fff}
   .pbtn2.cur::after{content:"";position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--amber)}
-  .roster-bar{display:flex;flex-wrap:wrap;gap:7px}
+  .roster-bar{display:flex;flex-direction:column;gap:10px}
   .pchip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;min-height:42px;font-weight:600;font-size:14px}
   .pchip .num{font-family:"Barlow Condensed";font-weight:700;color:var(--amber);min-width:16px;text-align:center}
   .pchip.on{border-color:var(--amber);background:var(--panel2);box-shadow:0 0 0 1px var(--amber) inset}
   .pchip.add{color:var(--team-green);border-style:dashed}
   .pchip .del{color:var(--faint);font-size:15px;margin-left:2px;line-height:1}
-  .roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
-  .pbox{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--panel);
-    border:1px solid var(--line);border-radius:12px;padding:9px 10px 8px;cursor:pointer;text-align:left;min-height:74px}
+  .roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+  .pbox{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:13px 14px 12px;cursor:pointer;text-align:left;min-height:104px}
+  .pbox:hover{border-color:var(--line2)}
   .pbox:active{transform:scale(.97)}
-  .pbox .pb-num{font-family:"Barlow Condensed";font-weight:700;font-size:20px;color:var(--amber);line-height:1}
-  .pbox .pb-name{font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .pbox .pb-name em{color:#f0982a;font-style:normal;font-size:10px}
-  .pbox .pb-pts{position:absolute;top:8px;right:9px;font-family:"Barlow Condensed";font-weight:800;font-size:18px;color:var(--team-green);line-height:1}
-  .pbox .pb-pts small{display:block;font-size:8px;color:var(--muted);font-weight:700;letter-spacing:.05em}
+  .pbox .pb-num{font-family:"Barlow Condensed";font-weight:700;font-size:32px;color:var(--amber);line-height:.9}
+  .pbox .pb-name{font-weight:600;font-size:14.5px;color:var(--ink);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .pbox .pb-name em{color:#f0982a;font-style:normal;font-size:11px}
+  .pbox .pb-pts{position:absolute;top:11px;right:13px;font-family:"Barlow Condensed";font-weight:800;font-size:26px;color:var(--team-green);line-height:1;text-align:right}
+  .pbox .pb-pts small{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.05em}
   .roster-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
   .detail-head{display:flex;flex-direction:column;gap:5px;background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:9px 11px}
   .detail-head .back{align-self:flex-start;background:none;border:0;color:var(--team-green);font-weight:700;font-size:13px;cursor:pointer;padding:2px 0}
