@@ -217,6 +217,10 @@
 
   .stats-body{flex:1;display:flex;min-height:0}
   .tracker{width:340px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px;overflow-y:auto}
+  .period-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .pbtn2{font-family:inherit;font-weight:700;font-size:14px;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;position:relative}
+  .pbtn2.on{background:var(--team-green);border-color:var(--team-green);color:#fff}
+  .pbtn2.cur::after{content:"";position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--amber)}
   .roster-bar{display:flex;flex-wrap:wrap;gap:7px}
   .pchip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 11px;min-height:42px;font-weight:600;font-size:14px}
   .pchip .num{font-family:"Barlow Condensed";font-weight:700;color:var(--amber);min-width:16px;text-align:center}
@@ -488,6 +492,7 @@
 
       <div class="stats-body">
         <div class="tracker">
+          <div class="period-bar" id="periodBar"></div>
           <div class="roster-bar" id="rosterBar"></div>
           <div class="pad" id="actionPad"></div>
           <div class="pad-hint" id="padHint">Selecciona un jugador y toca la acción.</div>
@@ -1623,12 +1628,30 @@
   ];
   const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
   let roster=[], game=null, selPlayer=null;
+  let viewPeriod=1;                                   // cuarto que se ve/registra (5 = TE, 0 = Total)
+  const PERIODS=[[1,'C1'],[2,'C2'],[3,'C3'],[4,'C4'],[5,'TE'],[0,'Total']];
 
   function loadStats(){
     try{ roster=JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(e){ roster=[]; }
     try{ game=JSON.parse(localStorage.getItem(GAME_KEY)); }catch(e){ game=null; }
     if(!game||typeof game!=='object') game={rival:'',themPts:0,stats:{},log:[]};
     if(!game.stats) game.stats={}; if(!game.log) game.log=[];
+    if(!game.period) game.period=1;                   // cuarto activo para registrar
+    if(!game.themQ) game.themQ={};                    // puntos del rival por cuarto
+    viewPeriod=game.period;
+  }
+  // Contadores de un jugador en un cuarto (reconstruidos desde el registro)
+  function periodCnt(id,q){
+    const c=emptyCnt();
+    (game.log||[]).forEach(function(e){ if(e.p===id && (e.q||1)===q){ const a=ACTIONS.find(x=>x.id===e.a); if(a) for(const k in a.inc) c[k]+=(a.inc[k]||0); } });
+    return c;
+  }
+  // Contador a mostrar según el cuarto en vista (0 = total del partido)
+  function viewCnt(id){ return (viewPeriod && viewPeriod!==0) ? periodCnt(id,viewPeriod) : cnt(id); }
+  function renderPeriodBar(){
+    const bar=document.getElementById('periodBar'); if(!bar) return;
+    bar.innerHTML=PERIODS.map(function(p){ return '<button class="pbtn2'+(viewPeriod===p[0]?' on':'')+(p[0]===game.period&&p[0]!==0?' cur':'')+'" data-p="'+p[0]+'">'+p[1]+'</button>'; }).join('');
+    [].forEach.call(bar.querySelectorAll('button'),function(b){ b.onclick=function(){ const p=+b.getAttribute('data-p'); viewPeriod=p; if(p!==0){ game.period=p; saveGame(); } renderStats(); }; });
   }
   function saveRoster(){ try{ localStorage.setItem(ROSTER_KEY,JSON.stringify(roster)); }catch(e){} }
   function saveGame(){ try{ localStorage.setItem(GAME_KEY,JSON.stringify(game)); }catch(e){} }
@@ -1785,7 +1808,7 @@
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const c=cnt(selPlayer);
     for(const k in a.inc) c[k]+=a.inc[k];
-    game.log.push({p:selPlayer,a:a.id});
+    game.log.push({p:selPlayer,a:a.id,q:game.period});
     saveGame(); renderSheet(); updateScore(); updateUndo();
     const p=roster.find(x=>x.id===selPlayer);
     toast((p?((p.num?'#'+p.num+' ':'')+p.name):'')+' · '+a.label+(a.small&&a.small.length>3?' '+a.small:''));
@@ -1797,7 +1820,7 @@
     saveGame(); renderSheet(); updateScore(); updateUndo();
   }
   function updateUndo(){ document.getElementById('btnUndo').disabled=!game.log.length; }
-  function themAdd(n){ game.themPts=Math.max(0,(game.themPts||0)+n); saveGame(); updateScore(); }
+  function themAdd(n){ game.themPts=Math.max(0,(game.themPts||0)+n); game.themQ[game.period]=Math.max(0,(game.themQ[game.period]||0)+n); saveGame(); updateScore(); }
   function updateScore(){
     document.getElementById('scoreUs').textContent=usScore();
     document.getElementById('scoreThem').textContent=game.themPts||0;
@@ -1839,7 +1862,7 @@
     else if(!pres.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Nadie convocado. Abre “Convocatoria” y marca los presentes.</td></tr>'; }
     const tot=emptyCnt();
     pres.forEach(p=>{
-      const c=cnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
+      const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
       h+=`<tr class="${selPlayer===p.id?'sel':''}"><td><span class="pnum">${p.num||'–'}</span><span class="pname">${escapeHtml(p.name)}</span></td>`+
         `<td>${c.m2}/${c.a2}</td><td>${c.m3}/${c.a3}</td><td>${c.mft}/${c.aft}</td>`+
         `<td>${c.reb}</td><td>${c.ast}</td><td>${c.stl}</td><td>${c.blk}</td><td>${c.tov}</td><td>${c.pf}</td>`+
@@ -1857,7 +1880,7 @@
   function renderStats(){
     document.getElementById('rivalInput').value=game.rival||'';
     document.getElementById('rivalName').textContent=game.rival||'Rival';
-    renderRosterBar(); renderActionPad(); renderSheet(); updateScore(); updateUndo();
+    renderPeriodBar(); renderRosterBar(); renderActionPad(); renderSheet(); updateScore(); updateUndo();
   }
 
   function exportStatsCSV(){
@@ -1875,12 +1898,12 @@
     hist.push({date:new Date().toISOString(), rival:game.rival||'', us:usScore(), them:game.themPts||0,
       stats:presentRoster().map(p=>({name:p.name,num:p.num,c:cnt(p.id)}))});
     try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){}
-    game={rival:'',themPts:0,stats:{},log:[]}; saveGame(); selPlayer=null; renderStats();
+    game={rival:'',themPts:0,stats:{},log:[],period:1,themQ:{}}; viewPeriod=1; saveGame(); selPlayer=null; renderStats();
     toast('Partido guardado. Nuevo partido listo.');
   }
   function resetGame(){
     if(!confirm('¿Reiniciar el partido actual a cero? (no toca la plantilla)')) return;
-    game={rival:game.rival||'',themPts:0,stats:{},log:[]}; saveGame(); renderStats();
+    game={rival:game.rival||'',themPts:0,stats:{},log:[],period:1,themQ:{}}; viewPeriod=1; saveGame(); renderStats();
   }
 
   // ============================================================
