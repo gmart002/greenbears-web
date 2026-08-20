@@ -239,7 +239,8 @@
   .pbox .pb-pts small{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.05em}
   .roster-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
   .detail-head{display:flex;flex-direction:column;gap:5px;background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:9px 11px}
-  .detail-head .back{align-self:flex-start;background:none;border:0;color:var(--team-green);font-weight:700;font-size:13px;cursor:pointer;padding:2px 0}
+  .detail-head .back{align-self:stretch;background:var(--panel2);border:1px solid var(--line2);color:var(--ink);font-weight:800;font-size:15px;cursor:pointer;padding:10px 12px;border-radius:10px;text-align:center}
+  .detail-head .back:active{transform:scale(.98)}
   .detail-head .who{display:flex;align-items:baseline;gap:8px}
   .detail-head .who .num{font-family:"Barlow Condensed";font-weight:700;font-size:22px;color:var(--amber)}
   .detail-head .who b{font-size:16px}
@@ -320,10 +321,12 @@
   window.addEventListener('pagehide',function(){ pushNow(); });
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function writeTeam(data,plantel){
+  function writeTeam(data,plantel,clubLogo){
     KEYS.forEach(function(k){ try{_rm(k);}catch(e){} });
     var p={}; try{ p=JSON.parse(data||'{}')||{}; }catch(e){}
     Object.keys(p).forEach(function(k){ if(KEYS.indexOf(k)>=0) _set(k,p[k]); });
+    // Equipo enlazado (Green Bears): si no hay logo propio, usar el logo del club del sitio.
+    if(clubLogo && !localStorage.getItem('pizarra.logo')){ _set('pizarra.logo',clubLogo); }
     if(plantel&&plantel.length){
       var r=[]; try{ r=JSON.parse(localStorage.getItem('pizarra.roster')||'[]'); }catch(e){}
       if(!r.length){ _set('pizarra.roster',JSON.stringify(plantel.map(function(pl,i){return {id:'gb'+i,name:pl.name,num:(pl.number||'')};}))); }
@@ -339,7 +342,7 @@
   function open(id){
     pushNow().then(function(){ return api('/teams/'+id).then(function(r){return r.json();}); }).then(function(d){
       if(!d||d.error){ alert('No se pudo abrir el equipo'); return; }
-      writeTeam(d.payload,d.plantel);
+      writeTeam(d.payload,d.plantel,d.clubLogo);
       _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned}));
       location.reload();
     });
@@ -1905,8 +1908,9 @@
     for(const k in a.inc) c[k]+=a.inc[k];
     game.log.push({p:pid,a:a.id,q:game.period});
     if(xy){ game.shots.push({p:pid, type:(SHOT3.indexOf(a.id)>=0?3:2), made:(a.id==='m2'||a.id==='m3'), x:clamp(xy.x), y:clamp(xy.y), q:game.period}); }
-    saveGame(); renderSheet(); renderRosterBar(); updateScore(); updateUndo();
     const p=roster.find(x=>x.id===pid);
+    selPlayer=null;                                   // secuencia lista → volver a la grilla de jugadores
+    saveGame(); renderRosterBar(); renderSheet(); updateScore(); updateUndo();
     toast((p?((p.num?'#'+p.num+' ':'')+p.name):'')+' · '+a.label+(a.small&&a.small.length>3?' '+a.small:''));
   }
   function applyAction(a){
@@ -1958,7 +1962,7 @@
       // --- Detalle del jugador: cabecera + acciones visibles ---
       const p=roster.find(x=>x.id===selPlayer); const c=viewCnt(selPlayer);
       const head=document.createElement('div'); head.className='detail-head';
-      head.innerHTML='<button class="back" title="Volver">‹ Volver</button>'
+      head.innerHTML='<button class="back" title="Volver">‹ Volver a jugadores</button>'
         +'<div class="who"><span class="num">'+(p&&p.num?p.num:'–')+'</span><b>'+escapeHtml(p?p.name:'')+'</b></div>'
         +'<div class="mini">'+ptsOf(c)+' PTS · '+(c.m2+c.m3)+'/'+(c.a2+c.a3)+' T · '+c.reb+' REB · '+c.ast+' AST</div>';
       head.querySelector('.back').onclick=()=>{ selPlayer=null; renderRosterBar(); renderSheet(); };
@@ -2115,6 +2119,15 @@
   applyBrandLogo();
   refreshAll();
   setMode('edit');
+
+  // Equipo enlazado (Green Bears) sin logo local: traer el logo del club del sitio.
+  (function(){ try{ var t=window.__pzTeam;
+    if(t&&t.id&&t.linked&&!teamLogo()){
+      fetch('/pizarra/api/teams/'+t.id,{credentials:'same-origin',headers:{'x-pizarra':'1'}})
+        .then(function(r){return r.json();}).then(function(d){
+          if(d&&d.clubLogo){ try{ localStorage.setItem(LOGO_KEY,d.clubLogo); }catch(e){} applyBrandLogo(); buildCourt(); }
+        }).catch(function(){});
+    } }catch(e){} })();
 
   // ===== PWA: registrar service worker para uso sin conexión =====
   // Solo corre bajo HTTPS o localhost (en el iframe del preview puede no estar

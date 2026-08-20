@@ -2,7 +2,7 @@
 const path = require('path');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { db, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam } = require('../db');
+const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam } = require('../db');
 
 const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
@@ -78,7 +78,10 @@ module.exports = function (checkCsrf) {
     if (!t) return res.status(404).json({ error: 'not-found' });
     const owned = t.coach_id === req.coachId;
     const out = { team: { id: t.id, name: t.name, linked_plantel: t.linked_plantel, shared: t.shared, owned: owned ? 1 : 0, updated_at: t.updated_at }, payload: t.payload || '' };
-    if (t.linked_plantel) out.plantel = sitePlantel();
+    if (t.linked_plantel) {
+      out.plantel = sitePlantel();
+      try { const lg = settings().logo_image; if (lg) out.clubLogo = lg; } catch (e) {}
+    }
     res.json(out);
   });
 
