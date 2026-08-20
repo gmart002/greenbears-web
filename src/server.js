@@ -91,6 +91,9 @@ app.use((req, res, next) => {
   res.locals.uname = (req.session && req.session.uname) || '';
   res.locals.uid = (req.session && req.session.uid) || 0;
   res.locals.isSuper = !!(req.session && req.session.role === 'super');
+  var _perms = (req.session && req.session.perms) || '';
+  res.locals.perms = _perms;
+  res.locals.can = function (mod) { return (req.session && req.session.role === 'super') || _perms.split(',').indexOf(mod) >= 0; };
   res.locals.year = new Date().getFullYear();
   res.locals.visitsTotal = visitsTotal();
   next();

@@ -1,0 +1,16 @@
+<% var pageTitle = 'Permisos' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel#usuarios">← Volver al panel</a>
+<form class="form-card" method="post" action="/admin/usuarios/<%= u.id %>/permisos">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <h1>Permisos de <%= u.username %></h1>
+  <p class="muted">Marca los módulos del panel a los que este editor puede entrar.</p>
+  <div style="display:flex;flex-direction:column;gap:12px;margin:14px 0">
+    <% MODULES.forEach(function(m){ %>
+      <label class="check-line"><input type="checkbox" name="perms" value="<%= m[0] %>" <%= has.indexOf(m[0]) >= 0 ? 'checked' : '' %>> <%= m[1] %></label>
+    <% }) %>
+  </div>
+  <div class="hint">La configuración del sitio (Ajustes), los usuarios y los coaches son siempre exclusivos del superadmin.</div>
+  <div class="form-actions"><button class="btn primary">Guardar permisos</button><a class="btn ghost" href="/admin/panel#usuarios">Cancelar</a></div>
+</form>
+<%- include('../partials/admin-foot') %>

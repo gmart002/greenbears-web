@@ -133,6 +133,11 @@ addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador
 addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/editable por todos los coaches
 // Green Bears (enlazado al plantel) es compartido entre coaches.
 db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
+// Permisos por módulo para usuarios editores (CSV de claves de módulo).
+addColumn('users', 'perms', "TEXT DEFAULT ''");
+const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
+// Editores existentes sin permisos definidos: darles todo el contenido (no romper lo que ya tenían).
+db.prepare("UPDATE users SET perms = ? WHERE role = 'editor' AND (perms = '' OR perms IS NULL)").run(ADMIN_MODULE_KEYS.join(','));
 
 // ---------- Ajustes por defecto ----------
 const DEFAULTS = {
@@ -193,27 +198,33 @@ function settings() {
     .run(info.lastInsertRowid, 'Green Bears', 1, 1, '', ts, ts);
 })();
 
-function listUsers() { return db.prepare('SELECT id, username, role, active, created_at FROM users ORDER BY role, username').all(); }
+function cleanPerms(perms) {
+  const arr = Array.isArray(perms) ? perms : String(perms || '').split(',');
+  return arr.map(s => String(s).trim()).filter(s => ADMIN_MODULE_KEYS.indexOf(s) >= 0).join(',');
+}
+function listUsers() { return db.prepare('SELECT id, username, role, active, perms, created_at FROM users ORDER BY role, username').all(); }
 function findUser(username) { return db.prepare('SELECT * FROM users WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase()); }
-function createUser(username, password, role) {
+function createUser(username, password, role, perms) {
   const u = String(username || '').trim().toLowerCase();
   if (!/^[a-z0-9._-]{3,32}$/.test(u)) throw new Error('Usuario inválido (3-32, letras/números/._-).');
   if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
-  db.prepare('INSERT INTO users (username, pass_hash, role, active, created_at) VALUES (?,?,?,1,?)')
-    .run(u, bcrypt.hashSync(String(password), 10), role === 'super' ? 'super' : 'editor', new Date().toISOString());
+  const r = role === 'super' ? 'super' : 'editor';
+  db.prepare('INSERT INTO users (username, pass_hash, role, active, perms, created_at) VALUES (?,?,?,1,?,?)')
+    .run(u, bcrypt.hashSync(String(password), 10), r, r === 'super' ? '' : cleanPerms(perms), new Date().toISOString());
 }
 function setUserPassword(id, password) {
   if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
   db.prepare('UPDATE users SET pass_hash = ? WHERE id = ?').run(bcrypt.hashSync(String(password), 10), id);
 }
 function setUserActive(id, active) { db.prepare('UPDATE users SET active = ? WHERE id = ?').run(active ? 1 : 0, id); }
+function setUserPerms(id, perms) { db.prepare("UPDATE users SET perms = ? WHERE id = ? AND role = 'editor'").run(cleanPerms(perms), id); }
 function deleteUser(id) { db.prepare('DELETE FROM users WHERE id = ?').run(id); }
 function countSupers() { return db.prepare("SELECT COUNT(*) AS c FROM users WHERE role='super' AND active=1").get().c; }
 function verifyLogin(username, password) {
   const u = findUser(username);
   if (!u) return null;
   try { if (!bcrypt.compareSync(String(password || ''), u.pass_hash)) return null; } catch (e) { return null; }
-  return { id: u.id, username: u.username, role: u.role };
+  return { id: u.id, username: u.username, role: u.role, perms: u.perms || '' };
 }
 
 // ---------- Pizarra: coaches y equipos ----------
@@ -322,7 +333,7 @@ function visitStats() {
 module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
   recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
-  listUsers, findUser, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin,
+  listUsers, findUser, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin, ADMIN_MODULE_KEYS,
   listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach, verifyCoach,
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam
 };

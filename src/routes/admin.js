@@ -6,8 +6,13 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
-  listUsers, createUser, setUserPassword, setUserActive, deleteUser, countSupers, verifyLogin,
+  listUsers, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin,
   listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach } = require('../db');
+
+// Módulos del panel que se pueden otorgar a un editor (clave, etiqueta).
+const MODULES = [['noticias', 'Noticias'], ['jugadores', 'Jugadores'], ['partidos', 'Partidos'],
+  ['galeria', 'Galería'], ['highlights', 'Highlights'], ['patrocinadores', 'Patrocinadores'],
+  ['mensajes', 'Mensajes'], ['club', 'El Club']];
 
 const now = () => new Date().toISOString();
 
@@ -74,6 +79,7 @@ module.exports = function (checkCsrf) {
       req.session.uid = u.id;
       req.session.uname = u.username;
       req.session.role = u.role;
+      req.session.perms = u.perms || '';
       return res.redirect('/admin/panel');
     }
     res.status(401).render('admin/login', { error: 'Usuario o clave incorrectos.' });
@@ -85,6 +91,16 @@ module.exports = function (checkCsrf) {
     if (req.session && req.session.role === 'super') return next();
     return res.status(403).send('Solo el superadministrador puede hacer esto.');
   }
+  function requirePerm(mod) {
+    return function (req, res, next) {
+      if (req.session && req.session.role === 'super') return next();
+      const p = String((req.session && req.session.perms) || '').split(',');
+      if (p.indexOf(mod) >= 0) return next();
+      return res.status(403).send('No tienes permiso para este módulo. <a href="/admin/panel">Volver</a>');
+    };
+  }
+  // Puerta por módulo (los editores solo entran a lo que tienen asignado).
+  MODULES.forEach(function (m) { router.use('/' + m[0], requirePerm(m[0])); });
 
   // ---- Panel ----
   router.get('/panel', (req, res) => {
@@ -97,7 +113,7 @@ module.exports = function (checkCsrf) {
     const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC').all();
     const users = req.session.role === 'super' ? listUsers() : [];
     const coaches = req.session.role === 'super' ? listCoaches() : [];
-    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, highlights, users, coaches, visits: visitStats() });
+    res.render('admin/panel', { posts, players, matches, gallery, sponsors, messages, highlights, users, coaches, visits: visitStats(), MODULES });
   });
 
   // Reiniciar el contador de visitas
@@ -142,8 +158,18 @@ module.exports = function (checkCsrf) {
 
   // ---- Usuarios (solo superadmin) ----
   router.post('/usuarios', requireSuper, checkCsrf, (req, res) => {
-    try { createUser(req.body.username, req.body.password, req.body.role); }
+    try { createUser(req.body.username, req.body.password, req.body.role, [].concat(req.body.perms || [])); }
     catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#usuarios">volver</a>'); }
+    res.redirect('/admin/panel#usuarios');
+  });
+  // Editar permisos por módulo de un editor
+  router.get('/usuarios/:id/permisos', requireSuper, (req, res, next) => {
+    const u = db.prepare('SELECT id, username, role, perms FROM users WHERE id = ?').get(req.params.id);
+    if (!u) return next();
+    res.render('admin/usuario-permisos', { u, MODULES, has: String(u.perms || '').split(',') });
+  });
+  router.post('/usuarios/:id/permisos', requireSuper, checkCsrf, (req, res) => {
+    setUserPerms(Number(req.params.id), [].concat(req.body.perms || []));
     res.redirect('/admin/panel#usuarios');
   });
   router.post('/usuarios/:id/clave', requireSuper, checkCsrf, (req, res) => {

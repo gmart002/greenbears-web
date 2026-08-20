@@ -21,7 +21,7 @@
     </a>
     <nav class="adm-nav">
       <a href="/admin/panel">Contenido</a>
-      <a href="/admin/club">El Club</a>
+      <% if (can('club')) { %><a href="/admin/club">El Club</a><% } %>
       <% if (isSuper) { %><a href="/admin/panel#usuarios">Usuarios</a><a href="/admin/ajustes">Ajustes</a><% } %>
       <a href="/" target="_blank">Ver sitio</a>
       <% if (typeof uname !== 'undefined' && uname) { %><span class="adm-user"><%= uname %> · <%= role === 'super' ? 'Superadmin' : 'Editor' %></span><% } %>

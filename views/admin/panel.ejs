@@ -3,6 +3,7 @@
 
 <div class="panel-grid">
 
+  <% if (isSuper) { %>
   <!-- Visitas -->
   <section class="panel-sec visits-sec">
     <header><h2>Visitas</h2>
@@ -37,7 +38,9 @@
     </table>
     <% } else { %><div class="muted sm">Aún no hay visitas registradas.</div><% } %>
   </section>
+  <% } %>
 
+  <% if (can('noticias')) { %>
   <!-- Noticias -->
   <section class="panel-sec">
     <header><h2>Noticias</h2><a class="btn primary sm" href="/admin/noticias/nueva">+ Nueva noticia</a></header>
@@ -59,7 +62,9 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
+  <% if (can('jugadores')) { %>
   <!-- Jugadores -->
   <section class="panel-sec">
     <header><h2>Jugadores</h2><a class="btn primary sm" href="/admin/jugadores/nuevo">+ Nuevo jugador</a></header>
@@ -82,7 +87,9 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
+  <% if (can('partidos')) { %>
   <!-- Partidos -->
   <section class="panel-sec">
     <header><h2>Partidos</h2><a class="btn primary sm" href="/admin/partidos/nuevo">+ Nuevo partido</a></header>
@@ -104,7 +111,9 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
+  <% if (can('galeria')) { %>
   <!-- Galería -->
   <section class="panel-sec" id="galeria">
     <header><h2>Galería</h2><a class="btn primary sm" href="/admin/galeria/nueva">+ Agregar foto/video</a></header>
@@ -127,7 +136,9 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
+  <% if (can('highlights')) { %>
   <!-- Highlights -->
   <section class="panel-sec" id="highlights">
     <header><h2>Highlights</h2><a class="btn primary sm" href="/admin/highlights/nuevo">+ Agregar highlight</a></header>
@@ -149,7 +160,9 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
+  <% if (can('patrocinadores')) { %>
   <!-- Patrocinadores -->
   <section class="panel-sec" id="patrocinadores">
     <header><h2>Patrocinadores</h2></header>
@@ -175,7 +188,9 @@
       <button class="btn primary sm">Agregar</button>
     </form>
   </section>
+  <% } %>
 
+  <% if (can('mensajes')) { %>
   <!-- Mensajes -->
   <section class="panel-sec" id="mensajes">
     <header><h2>Mensajes de contacto</h2></header>
@@ -197,6 +212,7 @@
       </tbody>
     </table>
   </section>
+  <% } %>
 
   <!-- Usuarios (solo superadmin) -->
   <% if (isSuper) { %>
@@ -208,9 +224,10 @@
         <% users.forEach(function(u){ %>
         <tr>
           <td><b><%= u.username %></b><% if (u.id === uid) { %> <span class="muted sm">(tú)</span><% } %></td>
-          <td><span class="pill <%= u.role === 'super' ? 'on' : 'off' %>"><%= u.role === 'super' ? 'Superadmin' : 'Editor' %></span></td>
+          <td><span class="pill <%= u.role === 'super' ? 'on' : 'off' %>"><%= u.role === 'super' ? 'Superadmin' : 'Editor' %></span><% if (u.role !== 'super') { %><div class="muted sm"><%= String(u.perms||'').split(',').filter(Boolean).length %> módulos</div><% } %></td>
           <td><span class="pill <%= u.active ? 'on' : 'off' %>"><%= u.active ? 'Activo' : 'Inactivo' %></span></td>
           <td><div class="actions">
+            <% if (u.role !== 'super') { %><a class="btn ghost sm" href="/admin/usuarios/<%= u.id %>/permisos">Permisos</a><% } %>
             <form method="post" action="/admin/usuarios/<%= u.id %>/clave" onsubmit="this.password.value=prompt('Nueva clave para <%= u.username %> (mín. 6):')||''; return !!this.password.value">
               <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="password"><button class="btn ghost sm">Cambiar clave</button>
             </form>
@@ -230,9 +247,15 @@
       <div class="field" style="margin:0"><label>Rol</label>
         <select name="role"><option value="editor">Editor (gestiona contenido)</option><option value="super">Superadmin (todo)</option></select>
       </div>
+      <div class="field" style="margin:0;flex-basis:100%"><label>Permisos del editor (módulos)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:4px">
+          <% MODULES.forEach(function(m){ %><label class="check-line" style="font-weight:500"><input type="checkbox" name="perms" value="<%= m[0] %>" checked> <%= m[1] %></label><% }) %>
+        </div>
+        <div class="hint">Aplica solo si el rol es Editor. El Superadmin siempre tiene todo.</div>
+      </div>
       <button class="btn primary sm">Crear usuario</button>
     </form>
-    <div class="muted sm" style="padding:0 20px 16px">Los <b>editores</b> pueden gestionar noticias, jugadores, partidos, galería, highlights y mensajes. La configuración del sitio y los usuarios son solo para <b>superadmin</b>.</div>
+    <div class="muted sm" style="padding:0 20px 16px">Cada <b>editor</b> entra solo a los módulos que le asignes. La configuración del sitio, los usuarios y los coaches son solo para <b>superadmin</b>. Ajusta los módulos de un editor con el botón <b>Permisos</b>.</div>
   </section>
   <% } %>
 
