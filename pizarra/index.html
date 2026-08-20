@@ -1126,9 +1126,12 @@
     }
     // logo del equipo al centro (marca de agua), recortado en círculo para
     // eliminar el fondo blanco de las esquinas del logo.
-    const logoY = type==='full' ? h/2 : h-72, logoR=46;
+    const logoR=46;
+    // Cancha completa: al centro. Media cancha: en una esquina (abajo a la derecha).
+    const logoX = type==='full' ? w/2 : (w-logoR-20);
+    const logoY = type==='full' ? h/2 : (h-logoR-20);
     const _logo = teamLogo();
-    const centerLogo = _logo ? `<g opacity="0.2" id="gCenterLogo"><image href="${_logo}" x="${w/2-logoR}" y="${logoY-logoR}" width="${logoR*2}" height="${logoR*2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)"/></g>` : '';
+    const centerLogo = _logo ? `<g opacity="0.45" id="gCenterLogo"><image href="${_logo}" x="${logoX-logoR}" y="${logoY-logoR}" width="${logoR*2}" height="${logoR*2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)"/></g>` : '';
 
     court.innerHTML = `
       <defs>
@@ -1142,7 +1145,7 @@
           <stop offset="100%" stop-color="#000" stop-opacity="0.12"/>
         </linearGradient>
         <clipPath id="woodClip"><rect x="${woodX}" y="${woodY}" width="${woodW}" height="${woodH}"/></clipPath>
-        <clipPath id="logoClip"><circle cx="${w/2}" cy="${logoY}" r="${logoR-1}"/></clipPath>
+        <clipPath id="logoClip"><circle cx="${logoX}" cy="${logoY}" r="${logoR-1}"/></clipPath>
       </defs>
       <rect x="0" y="0" width="${w}" height="${h}" fill="var(--apron)"/>
       <g clip-path="url(#woodClip)"><g id="gPlanks">${planks}</g>
