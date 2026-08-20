@@ -345,7 +345,7 @@
     pushNow().then(function(){ return api('/teams/'+id).then(function(r){return r.json();}); }).then(function(d){
       if(!d||d.error){ alert('No se pudo abrir el equipo'); return; }
       writeTeam(d.payload,d.plantel,d.clubLogo);
-      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned}));
+      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned,review:d.team.review||0}));
       location.reload();
     });
   }
@@ -364,7 +364,14 @@
     api('/teams').then(function(r){ if(r.status===401){ location.href='/pizarra/login'; return null; } return r.json(); }).then(function(d){
       if(!d) return; var L=o.querySelector('#pzList');
       if(!d.teams||!d.teams.length){ L.innerHTML='<div style="color:#8aa;padding:10px 4px">Aún no tienes equipos. Crea el primero abajo.</div>'; return; }
-      L.innerHTML=d.teams.map(function(t){ var tag=t.shared?' <span style="color:#f0982a;font-size:.72rem">· compartido</span>':(t.linked_plantel?' <span style="color:#1f9b57;font-size:.72rem">· plantel del sitio</span>':''); var del=t.owned?'<span class="pzDel" data-id="'+t.id+'" style="color:#b55;font-size:1.2rem;padding:0 4px 0 10px">&times;</span>':''; return '<div class="pzT" data-id="'+t.id+'" style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;padding:12px 14px;border-radius:12px;border:1px solid #2b3a31;background:#0c120f;cursor:pointer"><span><b>'+esc(t.name)+'</b>'+tag+'</span>'+del+'</div>'; }).join('');
+      var isSuper=!!d.super;
+      if(isSuper){ o.querySelector('#pzNew').style.display='none'; L.insertAdjacentHTML('beforebegin',''); }
+      L.innerHTML=(isSuper?'<div style="color:#7cbfe0;font-size:.8rem;padding:2px 4px 8px">Superadmin: revisa cualquier equipo (solo lectura).</div>':'')
+        +d.teams.map(function(t){
+        var tag=t.shared?' <span style="color:#f0982a;font-size:.72rem">· compartido</span>':(t.linked_plantel?' <span style="color:#1f9b57;font-size:.72rem">· plantel del sitio</span>':'');
+        var own=(isSuper&&t.owner&&!t.owned)?' <span style="color:#9fb0a5;font-size:.72rem">· coach: '+esc(t.ownerName||t.owner)+'</span>':'';
+        var del=t.owned?'<span class="pzDel" data-id="'+t.id+'" style="color:#b55;font-size:1.2rem;padding:0 4px 0 10px">&times;</span>':'';
+        return '<div class="pzT" data-id="'+t.id+'" style="display:flex;align-items:center;justify-content:space-between;margin:6px 0;padding:12px 14px;border-radius:12px;border:1px solid #2b3a31;background:#0c120f;cursor:pointer"><span><b>'+esc(t.name)+'</b>'+tag+own+'</span>'+del+'</div>'; }).join('');
       [].forEach.call(L.querySelectorAll('.pzT'),function(b){ b.onclick=function(ev){ if(ev.target.classList.contains('pzDel'))return; open(b.getAttribute('data-id')); }; });
       [].forEach.call(L.querySelectorAll('.pzDel'),function(x){ x.onclick=function(ev){ ev.stopPropagation(); if(confirm('¿Eliminar este equipo y todas sus jugadas?')){ api('/teams/'+x.getAttribute('data-id'),{method:'DELETE'}).then(function(){ showPicker(canClose); }); } }; });
     }).catch(function(){ o.querySelector('#pzList').innerHTML='<div style="color:#c66;padding:8px 4px">Sin conexión con el servidor.</div>'; });
@@ -373,7 +380,10 @@
   function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo')+(readonly?' · solo lectura':'');
     b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:'+(readonly?'#3a2a12':'#101613')+';color:#eaf2ec;border:1px solid '+(readonly?'#6b4e1e':'#2b3a31')+';border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
     b.onclick=function(){ showPicker(true); }; document.body.appendChild(b); }
-  function roBanner(){ var d=document.createElement('div'); d.textContent='Green Bears · solo lectura — las jugadas solo se editan con la cuenta “greenbears”.';
+  function roBanner(){ var d=document.createElement('div');
+    d.textContent = (cur&&cur.review)
+      ? ('Revisando “'+(cur?cur.name:'')+'” como superadmin · solo lectura — no se guardan cambios.')
+      : 'Green Bears · solo lectura — las jugadas solo se editan con la cuenta “greenbears”.';
     d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9200;background:#f0982a;color:#221a08;font:600 .8rem system-ui,sans-serif;text-align:center;padding:6px 10px';
     document.body.appendChild(d); document.body.style.paddingTop='28px'; }
 

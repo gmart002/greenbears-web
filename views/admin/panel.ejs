@@ -269,7 +269,7 @@
         <% if (!coaches.length) { %><tr class="empty-row"><td colspan="5">Aún no hay coaches.</td></tr><% } %>
         <% coaches.forEach(function(c){ %>
         <tr>
-          <td><b><%= c.username %></b></td>
+          <td><b><%= c.username %></b><% if (c.role === 'super') { %> <span class="pill on" style="font-size:.68rem">SUPER</span><% } %></td>
           <td class="hide-sm muted"><%= c.name %></td>
           <td><%= c.teams %></td>
           <td><span class="pill <%= c.active ? 'on' : 'off' %>"><%= c.active ? 'Activo' : 'Inactivo' %></span></td>
@@ -277,6 +277,7 @@
             <form method="post" action="/admin/coaches/<%= c.id %>/clave" onsubmit="this.password.value=prompt('Nueva clave para <%= c.username %> (mín. 6):')||''; return !!this.password.value">
               <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="password"><button class="btn ghost sm">Cambiar clave</button>
             </form>
+            <form method="post" action="/admin/coaches/<%= c.id %>/rol"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="role" value="<%= c.role === 'super' ? 'coach' : 'super' %>"><button class="btn ghost sm"><%= c.role === 'super' ? 'Quitar super' : 'Hacer super' %></button></form>
             <form method="post" action="/admin/coaches/<%= c.id %>/estado"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="active" value="<%= c.active ? 0 : 1 %>"><button class="btn ghost sm"><%= c.active ? 'Desactivar' : 'Activar' %></button></form>
             <form method="post" action="/admin/coaches/<%= c.id %>/eliminar" onsubmit="return confirm('¿Eliminar al coach <%= c.username %>? Se borran sus equipos y jugadas.')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button></form>
           </div></td>
@@ -289,6 +290,7 @@
       <div class="field" style="margin:0"><label>Usuario</label><input type="text" name="username" placeholder="ej: coach.mauro" autocapitalize="none" required></div>
       <div class="field" style="margin:0"><label>Nombre (opcional)</label><input type="text" name="name" placeholder="Mauro Rebolledo"></div>
       <div class="field" style="margin:0"><label>Clave (mín. 6)</label><input type="text" name="password" required></div>
+      <label class="field" style="margin:0;display:flex;align-items:center;gap:6px;flex-direction:row"><input type="checkbox" name="role" value="super" style="width:auto"> Superadmin</label>
       <button class="btn primary sm">Crear coach</button>
     </form>
   </section>

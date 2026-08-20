@@ -33,7 +33,7 @@ module.exports = function (checkCsrf) {
   router.post('/login', loginLimiter, checkCsrf, (req, res) => {
     const c = verifyCoach(req.body.user || '', req.body.password || '');
     if (c) {
-      req.session.coach = { id: c.id, username: c.username, name: c.name };
+      req.session.coach = { id: c.id, username: c.username, name: c.name, role: c.role || 'coach' };
       return res.redirect('/pizarra');
     }
     res.status(401).render('pizarra-login', { error: 'Usuario o clave incorrectos.' });
@@ -59,12 +59,13 @@ module.exports = function (checkCsrf) {
     if (!(req.session && req.session.coach && req.session.coach.id)) return res.status(401).json({ error: 'no-auth' });
     if (req.method !== 'GET' && req.get('x-pizarra') !== '1') return res.status(403).json({ error: 'bad-origin' });
     req.coachId = req.session.coach.id;
+    req.isSuper = req.session.coach.role === 'super';
     next();
   });
 
-  api.get('/me', (req, res) => res.json({ coach: { username: req.session.coach.username, name: req.session.coach.name } }));
+  api.get('/me', (req, res) => res.json({ coach: { username: req.session.coach.username, name: req.session.coach.name, role: req.session.coach.role || 'coach' } }));
 
-  api.get('/teams', (req, res) => res.json({ teams: teamsForCoach(req.coachId) }));
+  api.get('/teams', (req, res) => res.json({ teams: teamsForCoach(req.coachId, req.isSuper), super: req.isSuper ? 1 : 0 }));
 
   api.post('/teams', (req, res) => {
     try {
@@ -74,10 +75,10 @@ module.exports = function (checkCsrf) {
   });
 
   api.get('/teams/:id', (req, res) => {
-    const t = getTeam(Number(req.params.id), req.coachId);
+    const t = getTeam(Number(req.params.id), req.coachId, req.isSuper);
     if (!t) return res.status(404).json({ error: 'not-found' });
     const owned = t.coach_id === req.coachId;
-    const out = { team: { id: t.id, name: t.name, linked_plantel: t.linked_plantel, shared: t.shared, owned: owned ? 1 : 0, updated_at: t.updated_at }, payload: t.payload || '' };
+    const out = { team: { id: t.id, name: t.name, linked_plantel: t.linked_plantel, shared: t.shared, owned: owned ? 1 : 0, review: (req.isSuper && !owned) ? 1 : 0, updated_at: t.updated_at }, payload: t.payload || '' };
     if (t.linked_plantel) {
       out.plantel = sitePlantel();
       try { const lg = settings().logo_image; if (lg) out.clubLogo = lg; } catch (e) {}

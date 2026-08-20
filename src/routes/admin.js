@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
   listUsers, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin,
-  listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach } = require('../db');
+  listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach } = require('../db');
 
 // Módulos del panel que se pueden otorgar a un editor (clave, etiqueta).
 const MODULES = [['noticias', 'Noticias'], ['jugadores', 'Jugadores'], ['partidos', 'Partidos'],
@@ -197,9 +197,12 @@ module.exports = function (checkCsrf) {
 
   // ---- Coaches de la pizarra (solo superadmin) ----
   router.post('/coaches', requireSuper, checkCsrf, (req, res) => {
-    try { createCoach(req.body.username, req.body.password, req.body.name); }
+    try { createCoach(req.body.username, req.body.password, req.body.name, req.body.role === 'super' ? 'super' : 'coach'); }
     catch (e) { return res.status(400).send(e.message + ' — <a href="/admin/panel#coaches">volver</a>'); }
     res.redirect('/admin/panel#coaches');
+  });
+  router.post('/coaches/:id/rol', requireSuper, checkCsrf, (req, res) => {
+    setCoachRole(Number(req.params.id), req.body.role === 'super' ? 'super' : 'coach'); res.redirect('/admin/panel#coaches');
   });
   router.post('/coaches/:id/clave', requireSuper, checkCsrf, (req, res) => {
     try { setCoachPassword(Number(req.params.id), req.body.password); }

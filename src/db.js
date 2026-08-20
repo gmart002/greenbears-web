@@ -131,6 +131,7 @@ addColumn('matches', 'confirmed', 'INTEGER NOT NULL DEFAULT 1');
 addColumn('players', 'staff', 'INTEGER NOT NULL DEFAULT 0');   // 0 = jugador, 1 = cuerpo técnico
 addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador, Asistente
 addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/editable por todos los coaches
+addColumn('coaches', 'role', "TEXT NOT NULL DEFAULT 'coach'"); // 'super' ve/revisa todos los equipos
 // Green Bears (enlazado al plantel) es compartido entre coaches.
 db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
@@ -198,6 +199,18 @@ function settings() {
     .run(info.lastInsertRowid, 'Green Bears', 1, 1, '', ts, ts);
 })();
 
+// Coach superadmin: puede abrir y revisar los equipos de todos los coaches (solo lectura).
+(function seedSuperCoach() {
+  const n = db.prepare("SELECT COUNT(*) AS c FROM coaches WHERE role = 'super'").get().c;
+  if (n > 0) return;
+  const uname = (process.env.PIZARRA_SUPER_USER || 'superadmin').trim().toLowerCase();
+  const pass = process.env.PIZARRA_SUPER_PASSWORD || 'Super2026';
+  const exists = db.prepare('SELECT id FROM coaches WHERE username = ?').get(uname);
+  if (exists) { db.prepare("UPDATE coaches SET role = 'super' WHERE id = ?").run(exists.id); return; }
+  db.prepare("INSERT INTO coaches (username, pass_hash, name, role, active, created_at) VALUES (?,?,?, 'super', 1, ?)")
+    .run(uname, bcrypt.hashSync(pass, 10), 'Superadmin', new Date().toISOString());
+})();
+
 function cleanPerms(perms) {
   const arr = Array.isArray(perms) ? perms : String(perms || '').split(',');
   return arr.map(s => String(s).trim()).filter(s => ADMIN_MODULE_KEYS.indexOf(s) >= 0).join(',');
@@ -229,17 +242,19 @@ function verifyLogin(username, password) {
 
 // ---------- Pizarra: coaches y equipos ----------
 function listCoaches() {
-  return db.prepare(`SELECT c.id, c.username, c.name, c.active, c.created_at,
+  return db.prepare(`SELECT c.id, c.username, c.name, c.role, c.active, c.created_at,
     (SELECT COUNT(*) FROM pz_teams t WHERE t.coach_id = c.id) AS teams
-    FROM coaches c ORDER BY c.username`).all();
+    FROM coaches c ORDER BY (c.role='super') DESC, c.username`).all();
 }
-function createCoach(username, password, name) {
+function createCoach(username, password, name, role) {
   const u = String(username || '').trim().toLowerCase();
   if (!/^[a-z0-9._-]{3,32}$/.test(u)) throw new Error('Usuario inválido (3-32, letras/números/._-).');
   if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
-  db.prepare('INSERT INTO coaches (username, pass_hash, name, active, created_at) VALUES (?,?,?,1,?)')
-    .run(u, bcrypt.hashSync(String(password), 10), String(name || '').trim(), new Date().toISOString());
+  const r = role === 'super' ? 'super' : 'coach';
+  db.prepare('INSERT INTO coaches (username, pass_hash, name, role, active, created_at) VALUES (?,?,?,?,1,?)')
+    .run(u, bcrypt.hashSync(String(password), 10), String(name || '').trim(), r, new Date().toISOString());
 }
+function setCoachRole(id, role) { db.prepare("UPDATE coaches SET role = ? WHERE id = ?").run(role === 'super' ? 'super' : 'coach', id); }
 function setCoachPassword(id, password) {
   if (String(password || '').length < 6) throw new Error('La clave debe tener al menos 6 caracteres.');
   db.prepare('UPDATE coaches SET pass_hash = ? WHERE id = ?').run(bcrypt.hashSync(String(password), 10), id);
@@ -250,10 +265,17 @@ function verifyCoach(username, password) {
   const c = db.prepare('SELECT * FROM coaches WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase());
   if (!c) return null;
   try { if (!bcrypt.compareSync(String(password || ''), c.pass_hash)) return null; } catch (e) { return null; }
-  return { id: c.id, username: c.username, name: c.name };
+  return { id: c.id, username: c.username, name: c.name, role: c.role || 'coach' };
 }
 
-function teamsForCoach(coachId) {
+function teamsForCoach(coachId, isSuper) {
+  if (isSuper) {
+    // Superadmin: ve TODOS los equipos de todos los coaches (para revisar).
+    return db.prepare(`SELECT t.id, t.name, t.linked_plantel, t.shared, t.sort, t.updated_at,
+        (t.coach_id = @c) AS owned, c.username AS owner, c.name AS ownerName
+      FROM pz_teams t JOIN coaches c ON c.id = t.coach_id
+      ORDER BY (t.coach_id = @c) DESC, c.username, t.shared DESC, t.sort, t.name`).all({ c: coachId });
+  }
   // Equipos propios + equipos compartidos (Green Bears) de cualquier coach.
   return db.prepare(`SELECT id, name, linked_plantel, shared, sort, updated_at,
       (coach_id = @c) AS owned
@@ -268,8 +290,9 @@ function createTeam(coachId, name, linkedPlantel) {
     .run(coachId, nm, linkedPlantel ? 1 : 0, '', ts, ts);
   return info.lastInsertRowid;
 }
-function getTeam(id, coachId) {
-  // Accesible si es propio o compartido.
+function getTeam(id, coachId, isSuper) {
+  // Superadmin puede abrir cualquier equipo; el resto solo propios o compartidos.
+  if (isSuper) return db.prepare('SELECT * FROM pz_teams WHERE id = ?').get(id);
   return db.prepare('SELECT * FROM pz_teams WHERE id = ? AND (coach_id = ? OR shared = 1)').get(id, coachId);
 }
 function renameTeam(id, coachId, name) {
@@ -334,6 +357,6 @@ module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
   recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
   listUsers, findUser, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin, ADMIN_MODULE_KEYS,
-  listCoaches, createCoach, setCoachPassword, setCoachActive, deleteCoach, verifyCoach,
+  listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam
 };
