@@ -227,6 +227,22 @@
   .pchip.on{border-color:var(--amber);background:var(--panel2);box-shadow:0 0 0 1px var(--amber) inset}
   .pchip.add{color:var(--team-green);border-style:dashed}
   .pchip .del{color:var(--faint);font-size:15px;margin-left:2px;line-height:1}
+  .roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .pbox{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:9px 10px 8px;cursor:pointer;text-align:left;min-height:74px}
+  .pbox:active{transform:scale(.97)}
+  .pbox .pb-num{font-family:"Barlow Condensed";font-weight:700;font-size:20px;color:var(--amber);line-height:1}
+  .pbox .pb-name{font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .pbox .pb-name em{color:#f0982a;font-style:normal;font-size:10px}
+  .pbox .pb-pts{position:absolute;top:8px;right:9px;font-family:"Barlow Condensed";font-weight:800;font-size:18px;color:var(--team-green);line-height:1}
+  .pbox .pb-pts small{display:block;font-size:8px;color:var(--muted);font-weight:700;letter-spacing:.05em}
+  .roster-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .detail-head{display:flex;flex-direction:column;gap:5px;background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:9px 11px}
+  .detail-head .back{align-self:flex-start;background:none;border:0;color:var(--team-green);font-weight:700;font-size:13px;cursor:pointer;padding:2px 0}
+  .detail-head .who{display:flex;align-items:baseline;gap:8px}
+  .detail-head .who .num{font-family:"Barlow Condensed";font-weight:700;font-size:22px;color:var(--amber)}
+  .detail-head .who b{font-size:16px}
+  .detail-head .mini{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
   .pad button{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:52px;
     font-weight:700;font-size:13px;color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.05}
@@ -1631,6 +1647,14 @@
   let roster=[], game=null, selPlayer=null;
   let viewPeriod=1;                                   // cuarto que se ve/registra (5 = TE, 0 = Total)
   const PERIODS=[[1,'C1'],[2,'C2'],[3,'C3'],[4,'C4'],[5,'TE'],[0,'Total']];
+  // Media cancha reutilizable (para el gráfico de tiros y el registro por ubicación).
+  const HALFCOURT='<rect x="0" y="0" width="500" height="470" fill="#e9ede9"/>'
+    +'<g fill="none" stroke="#8a988e" stroke-width="2.5">'
+    +'<rect x="12" y="12" width="476" height="446" rx="3"/>'
+    +'<rect x="185" y="12" width="130" height="170"/>'
+    +'<circle cx="250" cy="182" r="58"/>'
+    +'<path d="M40 12 L40 120 A215 215 0 0 0 460 120 L460 12"/>'
+    +'<path d="M215 44 H285"/><circle cx="250" cy="56" r="9"/></g>';
 
   function loadStats(){
     try{ roster=JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(e){ roster=[]; }
@@ -1816,13 +1840,7 @@
     ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif';
     document.body.appendChild(ov);
     let fP='', fQ=0;
-    const COURT='<rect x="0" y="0" width="500" height="470" fill="#e9ede9"/>'
-      +'<g fill="none" stroke="#8a988e" stroke-width="2.5">'
-      +'<rect x="12" y="12" width="476" height="446" rx="3"/>'
-      +'<rect x="185" y="12" width="130" height="170"/>'
-      +'<circle cx="250" cy="182" r="58"/>'
-      +'<path d="M40 12 L40 120 A215 215 0 0 0 460 120 L460 12"/>'
-      +'<path d="M215 44 H285"/><circle cx="250" cy="56" r="9"/></g>';
+    const COURT=HALFCOURT;
     function chipCss(on){ return 'padding:7px 11px;border-radius:9px;border:1px solid '+(on?'#1f9b57':'#33443a')+';background:'+(on?'#1f9b57':'#0b100d')+';color:'+(on?'#fff':'#eaf2ec')+';font-weight:700;cursor:pointer'; }
     function filtered(){ return (game.shots||[]).filter(function(s){ return (!fP||s.p===fP) && (!fQ||(s.q||1)===fQ); }); }
     function markers(){ return filtered().map(function(s){ const x=+(s.x*500).toFixed(1), y=+(s.y*470).toFixed(1);
@@ -1862,14 +1880,44 @@
     draw();
   }
 
+  const SHOT2=['m2','x2'], SHOT3=['m3','x3'];
+  function applyCounter(a,pid,xy){
+    const c=cnt(pid);
+    for(const k in a.inc) c[k]+=a.inc[k];
+    game.log.push({p:pid,a:a.id,q:game.period});
+    if(xy){ game.shots.push({p:pid, type:(SHOT3.indexOf(a.id)>=0?3:2), made:(a.id==='m2'||a.id==='m3'), x:clamp(xy.x), y:clamp(xy.y), q:game.period}); }
+    saveGame(); renderSheet(); renderRosterBar(); updateScore(); updateUndo();
+    const p=roster.find(x=>x.id===pid);
+    toast((p?((p.num?'#'+p.num+' ':'')+p.name):'')+' · '+a.label+(a.small&&a.small.length>3?' '+a.small:''));
+  }
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
-    const c=cnt(selPlayer);
-    for(const k in a.inc) c[k]+=a.inc[k];
-    game.log.push({p:selPlayer,a:a.id,q:game.period});
-    saveGame(); renderSheet(); updateScore(); updateUndo();
-    const p=roster.find(x=>x.id===selPlayer);
-    toast((p?((p.num?'#'+p.num+' ':'')+p.name):'')+' · '+a.label+(a.small&&a.small.length>3?' '+a.small:''));
+    const pid=selPlayer;
+    if(SHOT2.indexOf(a.id)>=0 || SHOT3.indexOf(a.id)>=0){
+      pickShotLocation(a,pid,function(xy){ applyCounter(a,pid,xy); });
+    } else {
+      applyCounter(a,pid,null);
+    }
+  }
+  // Overlay de media cancha para ubicar el lanzamiento (o saltar la ubicación).
+  function pickShotLocation(a,pid,cb){
+    const p=roster.find(x=>x.id===pid);
+    let ov=document.getElementById('shotLocOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='shotLocOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9700;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif';
+    const made=(a.id==='m2'||a.id==='m3'), tipo=(SHOT3.indexOf(a.id)>=0?'3P':'2P');
+    ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:460px;width:100%;color:#eaf2ec;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+      +'<div style="padding:12px 16px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.05rem">'+escapeHtml((p&&p.num?'#'+p.num+' ':'')+(p?p.name:''))+' · '+tipo+' '+(made?'✓':'✕')+'</b><button id="slX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+      +'<div style="padding:8px 14px 2px;color:#9fb0a5;font-size:.85rem">Toca la cancha donde fue el lanzamiento.</div>'
+      +'<div style="padding:6px 12px"><svg id="slCourt" viewBox="0 0 500 470" style="width:100%;height:auto;touch-action:none;border-radius:10px;display:block">'+HALFCOURT+'</svg></div>'
+      +'<div style="padding:8px 14px 14px;display:flex;gap:8px;justify-content:space-between"><button id="slSkip" style="background:#0c120f;border:1px solid #33443a;color:#eaf2ec;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:600">Sin ubicación</button><button id="slCancel" style="background:none;border:1px solid #33443a;color:#8aa;border-radius:10px;padding:9px 14px;cursor:pointer">Cancelar</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#slX').onclick=function(){ ov.remove(); };
+    ov.querySelector('#slCancel').onclick=function(){ ov.remove(); };
+    ov.querySelector('#slSkip').onclick=function(){ ov.remove(); cb(null); };
+    const svg=ov.querySelector('#slCourt');
+    svg.addEventListener('pointerdown',function(e){ const r=svg.getBoundingClientRect();
+      ov.remove(); cb({x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height}); });
   }
   function undo(){
     const last=game.log.pop(); if(!last) return;
@@ -1886,19 +1934,41 @@
 
   function renderRosterBar(){
     const bar=document.getElementById('rosterBar'); bar.innerHTML='';
-    presentRoster().forEach(p=>{
-      const el=document.createElement('button');
-      el.className='pchip'+(selPlayer===p.id?' on':'');
-      el.innerHTML=`<span class="num">${p.num||'–'}</span>${escapeHtml(p.name)}${p.tmp?'<span class="del" title="Quitar" style="color:#f0982a">×</span>':'<span class="del" title="Quitar">×</span>'}`;
-      el.onclick=(e)=>{ if(e.target.classList.contains('del')){ delPlayer(p.id); return; } selPlayer=(selPlayer===p.id?null:p.id); renderRosterBar(); renderSheet(); updatePadHint(); };
-      bar.appendChild(el);
-    });
-    const conv=document.createElement('button'); conv.className='pchip add'; conv.innerHTML='✔ Convocatoria'; conv.onclick=openConvocatoria; bar.appendChild(conv);
-    const add=document.createElement('button'); add.className='pchip add'; add.innerHTML='＋ Jugador'; add.onclick=addPlayer; bar.appendChild(add);
+    const pad=document.getElementById('actionPad'), hint=document.getElementById('padHint');
+    if(selPlayer){
+      // --- Detalle del jugador: cabecera + acciones visibles ---
+      const p=roster.find(x=>x.id===selPlayer); const c=viewCnt(selPlayer);
+      const head=document.createElement('div'); head.className='detail-head';
+      head.innerHTML='<button class="back" title="Volver">‹ Volver</button>'
+        +'<div class="who"><span class="num">'+(p&&p.num?p.num:'–')+'</span><b>'+escapeHtml(p?p.name:'')+'</b></div>'
+        +'<div class="mini">'+ptsOf(c)+' PTS · '+(c.m2+c.m3)+'/'+(c.a2+c.a3)+' T · '+c.reb+' REB · '+c.ast+' AST</div>';
+      head.querySelector('.back').onclick=()=>{ selPlayer=null; renderRosterBar(); renderSheet(); };
+      bar.appendChild(head);
+      if(pad) pad.style.display='';
+      if(hint) hint.style.display='';
+    } else {
+      // --- Cuadros de jugadores (estilo tarjetas) ---
+      const grid=document.createElement('div'); grid.className='roster-grid';
+      presentRoster().forEach(p=>{
+        const c=viewCnt(p.id);
+        const el=document.createElement('button'); el.className='pbox';
+        el.innerHTML='<span class="pb-num">'+(p.num||'–')+'</span><span class="pb-name">'+escapeHtml(p.name)+(p.tmp?' <em>parche</em>':'')+'</span><span class="pb-pts">'+ptsOf(c)+'<small>PTS</small></span>';
+        el.onclick=()=>{ selPlayer=p.id; renderRosterBar(); renderSheet(); updatePadHint(); };
+        grid.appendChild(el);
+      });
+      bar.appendChild(grid);
+      const acts=document.createElement('div'); acts.className='roster-acts';
+      const conv=document.createElement('button'); conv.className='pchip add'; conv.innerHTML='✔ Convocatoria'; conv.onclick=openConvocatoria; acts.appendChild(conv);
+      const add=document.createElement('button'); add.className='pchip add'; add.innerHTML='＋ Jugador'; add.onclick=addPlayer; acts.appendChild(add);
+      bar.appendChild(acts);
+      if(pad) pad.style.display='none';
+      if(hint) hint.style.display='none';
+    }
   }
   function updatePadHint(){
     const p=roster.find(x=>x.id===selPlayer);
-    document.getElementById('padHint').textContent = p? ('Registrando a #'+(p.num||'–')+' '+p.name) : 'Selecciona un jugador y toca la acción.';
+    const hint=document.getElementById('padHint');
+    if(hint) hint.textContent = p? ('Registrando a #'+(p.num||'–')+' '+p.name) : 'Selecciona un jugador y toca la acción.';
     document.querySelectorAll('#actionPad button').forEach(b=>b.disabled=!selPlayer);
   }
   function renderActionPad(){
