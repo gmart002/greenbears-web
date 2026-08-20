@@ -483,6 +483,7 @@
             <button class="chip pt" data-them="1">+1</button>
           </div>
           <button class="mini" id="btnPlantel">Plantel</button>
+          <button class="mini" id="btnShots">Lanzamientos</button>
           <button class="mini" id="btnHistory">Historial</button>
           <button class="mini" id="btnStatExport">Exportar CSV</button>
           <button class="mini" id="btnStatFinish">Guardar partido</button>
@@ -1638,6 +1639,7 @@
     if(!game.stats) game.stats={}; if(!game.log) game.log=[];
     if(!game.period) game.period=1;                   // cuarto activo para registrar
     if(!game.themQ) game.themQ={};                    // puntos del rival por cuarto
+    if(!game.shots) game.shots=[];                    // lanzamientos: {p,type:2|3,made,x,y,q}
     viewPeriod=game.period;
   }
   // Contadores de un jugador en un cuarto (reconstruidos desde el registro)
@@ -1804,6 +1806,59 @@
     draw();
   }
 
+  // ---- Gráfico de lanzamientos (mapa de tiros) ----
+  function openShots(){
+    let ov=document.getElementById('shotsOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='shotsOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif';
+    document.body.appendChild(ov);
+    let fP='', fQ=0;
+    const COURT='<rect x="0" y="0" width="500" height="470" fill="#e9ede9"/>'
+      +'<g fill="none" stroke="#8a988e" stroke-width="2.5">'
+      +'<rect x="12" y="12" width="476" height="446" rx="3"/>'
+      +'<rect x="185" y="12" width="130" height="170"/>'
+      +'<circle cx="250" cy="182" r="58"/>'
+      +'<path d="M40 12 L40 120 A215 215 0 0 0 460 120 L460 12"/>'
+      +'<path d="M215 44 H285"/><circle cx="250" cy="56" r="9"/></g>';
+    function chipCss(on){ return 'padding:7px 11px;border-radius:9px;border:1px solid '+(on?'#1f9b57':'#33443a')+';background:'+(on?'#1f9b57':'#0b100d')+';color:'+(on?'#fff':'#eaf2ec')+';font-weight:700;cursor:pointer'; }
+    function filtered(){ return (game.shots||[]).filter(function(s){ return (!fP||s.p===fP) && (!fQ||(s.q||1)===fQ); }); }
+    function markers(){ return filtered().map(function(s){ const x=+(s.x*500).toFixed(1), y=+(s.y*470).toFixed(1);
+      return s.made ? '<circle cx="'+x+'" cy="'+y+'" r="8" fill="#1f9b57" stroke="#0a3b22" stroke-width="1.5"/>'
+        : '<path d="M'+(x-7)+' '+(y-7)+' l14 14 M'+(x+7)+' '+(y-7)+' l-14 14" stroke="#e0453f" stroke-width="3" stroke-linecap="round"/>'; }).join(''); }
+    function stat(){ const f=filtered(), made=f.filter(s=>s.made).length, att=f.length; return made+'/'+att+' ('+(att?Math.round(made/att*100):0)+'%)'; }
+    function nameOf(pid){ const p=roster.find(x=>x.id===pid); return p?((p.num?'#'+p.num+' ':'')+p.name):''; }
+    function registerShotStat(pid,type,made){ const id=type===3?(made?'m3':'x3'):(made?'m2':'x2'); const a=ACTIONS.find(x=>x.id===id); const c=cnt(pid); if(a) for(const k in a.inc) c[k]+=a.inc[k]; game.log.push({p:pid,a:id,q:game.period}); }
+    function askShot(cx,cy,fx,fy){
+      let pop=document.getElementById('shotPop'); if(pop) pop.remove();
+      pop=document.createElement('div'); pop.id='shotPop';
+      pop.style.cssText='position:fixed;z-index:9700;left:'+Math.min(cx,window.innerWidth-160)+'px;top:'+Math.min(cy,window.innerHeight-110)+'px;background:#101613;border:1px solid #33443a;border-radius:12px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;box-shadow:0 12px 30px -10px #000';
+      const bt=function(l,bg){ return '<button style="background:'+bg+';border:0;color:#fff;font-weight:700;border-radius:8px;padding:10px 12px;cursor:pointer">'+l+'</button>'; };
+      pop.innerHTML=bt('2 ✓','#1f9b57')+bt('3 ✓','#1f9b57')+bt('2 ✕','#e0453f')+bt('3 ✕','#e0453f');
+      document.body.appendChild(pop);
+      const defs=[[2,true],[3,true],[2,false],[3,false]];
+      [].forEach.call(pop.querySelectorAll('button'),function(b,i){ b.onclick=function(){ const d=defs[i];
+        registerShotStat(fP,d[0],d[1]); game.shots.push({p:fP,type:d[0],made:d[1],x:clamp(fx),y:clamp(fy),q:game.period});
+        saveGame(); renderSheet(); updateScore(); updateUndo(); pop.remove(); draw(); }; });
+    }
+    function draw(){
+      ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:520px;width:100%;color:#eaf2ec;max-height:94vh;display:flex;flex-direction:column;overflow:auto;box-shadow:0 30px 60px -20px #000">'
+        +'<div style="padding:12px 16px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.1rem">Lanzamientos</b><button id="sX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+        +'<div style="padding:10px 14px 4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+          +'<select id="sP" style="padding:8px 10px;border-radius:9px;border:1px solid #33443a;background:#0b100d;color:#eaf2ec">'+'<option value="">Todos</option>'+roster.map(function(p){return '<option value="'+p.id+'"'+(fP===p.id?' selected':'')+'>'+escapeHtml((p.num?'#'+p.num+' ':'')+p.name)+'</option>';}).join('')+'</select>'
+          +PERIODS.map(function(p){ return '<button class="sQ" data-q="'+p[0]+'" style="'+chipCss(fQ===p[0])+'">'+(p[0]===0?'Todos':p[1])+'</button>'; }).join('')
+        +'</div>'
+        +'<div style="padding:2px 14px 4px;color:#9fb0a5;font-size:.85rem">'+(fP?escapeHtml(nameOf(fP))+' · ':'')+stat()+' &nbsp;<span style="color:#1f9b57">●</span> anotado &nbsp;<span style="color:#e0453f">✕</span> fallado</div>'
+        +'<div style="padding:4px 12px 6px"><svg id="sCourt" viewBox="0 0 500 470" style="width:100%;height:auto;touch-action:none;border-radius:10px;display:block">'+COURT+'<g>'+markers()+'</g></svg></div>'
+        +'<div style="padding:0 14px 12px;color:#8aa;font-size:.8rem">'+(fP?'Toca la cancha donde fue el tiro y elige 2/3, anotado o fallado.':'Elige un jugador arriba para registrar sus tiros tocando la cancha.')+'</div></div>';
+      ov.querySelector('#sX').onclick=function(){ ov.remove(); renderStats(); };
+      ov.querySelector('#sP').onchange=function(){ fP=this.value; draw(); };
+      [].forEach.call(ov.querySelectorAll('.sQ'),function(b){ b.onclick=function(){ fQ=+b.getAttribute('data-q'); draw(); }; });
+      const svg=ov.querySelector('#sCourt');
+      svg.addEventListener('pointerdown',function(e){ if(!fP){ toast('Elige un jugador primero'); return; } const r=svg.getBoundingClientRect(); askShot(e.clientX,e.clientY,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height); });
+    }
+    draw();
+  }
+
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const c=cnt(selPlayer);
@@ -1939,6 +1994,7 @@
   $('#rivalInput').addEventListener('input',()=>{ game.rival=$('#rivalInput').value; document.getElementById('rivalName').textContent=game.rival||'Rival'; saveGame(); });
   $('#btnUndo').onclick=undo;
   $('#btnPlantel').onclick=openPlantel;
+  $('#btnShots').onclick=openShots;
   $('#btnHistory').onclick=openHistory;
   $('#btnStatExport').onclick=exportStatsCSV;
   $('#btnStatFinish').onclick=finishGame;
