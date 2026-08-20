@@ -1178,14 +1178,17 @@
     const sw = 3.2;
     let path='', head='', extra='';
     const p0=pts[0], p1=pts[pts.length-1];
-    const ang=Math.atan2(p1.y-p0.y, p1.x-p0.x);
+    const pen2=pts[pts.length-2]||p0;                 // penúltimo punto: dirección real de la punta
+    const ang=Math.atan2(p1.y-pen2.y, p1.x-pen2.x);
 
     if(a.type==='pen'){
       path=`M${pts.map(p=>p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' L')}`;
       return `<path d="${path}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>`;
     }
     if(a.type==='dribble'){
-      path=wavy(p0,p1,7,15);
+      path = pts.length>2 ? wavyAlong(pts,7,15) : wavy(p0,p1,7,15);
+    }else if(a.type==='cut'){
+      path = 'M'+pts.map(p=>p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' L');   // corte: sigue el trazo
     }else{
       path=`M${p0.x.toFixed(1)} ${p0.y.toFixed(1)} L${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
     }
@@ -1217,6 +1220,25 @@
       d+=' L'+x.toFixed(1)+' '+y.toFixed(1);
     }
     return d;
+  }
+  // Onda que sigue una polilínea libre (bote con trazo curvo).
+  function wavyAlong(pts,amp,wl){
+    if(pts.length<2) return '';
+    let acc=0; const out=[];
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1], b=pts[i];
+      const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||0.0001;
+      const ux=dx/len, uy=dy/len, nx=-uy, ny=ux;
+      const steps=Math.max(1,Math.round(len/3));
+      for(let s=0;s<steps;s++){
+        const t=s/steps, px=a.x+dx*t, py=a.y+dy*t, dist=acc+len*t;
+        const off=Math.sin(dist/wl*Math.PI*2)*amp;
+        out.push((px+nx*off).toFixed(1)+' '+(py+ny*off).toFixed(1));
+      }
+      acc+=len;
+    }
+    const last=pts[pts.length-1]; out.push(last.x.toFixed(1)+' '+last.y.toFixed(1)); // termina limpio en la punta
+    return 'M'+out.join(' L');
   }
 
   // ============================================================
@@ -1265,7 +1287,8 @@
       return;
     }
     if(drawing){
-      if(drawing.type==='pen'){ drawing.pts.push({x:sp.fx,y:sp.fy}); }
+      // Corte, Bote y Lápiz siguen el trazo libre; Pase y Bloqueo van rectos.
+      if(drawing.type==='pen'||drawing.type==='cut'||drawing.type==='dribble'){ drawing.pts.push({x:sp.fx,y:sp.fy}); }
       else{ drawing.pts[1]={x:sp.fx,y:sp.fy}; }
       // preview
       render(undefined, frame().arrows.concat([drawing]));
