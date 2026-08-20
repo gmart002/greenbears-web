@@ -277,8 +277,8 @@ function renameTeam(id, coachId, name) {
     .run(String(name || '').trim() || 'Equipo', new Date().toISOString(), id, coachId);
 }
 function saveTeamPayload(id, coachId, payload) {
-  // Puede guardar el dueño o cualquier coach si el equipo es compartido.
-  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND (coach_id = ? OR shared = 1)')
+  // Solo el dueño puede guardar (los compartidos son de solo lectura para los demás).
+  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
     .run(String(payload == null ? '' : payload), new Date().toISOString(), id, coachId);
   return info.changes > 0;
 }

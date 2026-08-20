@@ -281,6 +281,7 @@
   var KEYS=['pizarra.basquet.v1','pizarra.logo','pizarra.roster','pizarra.game','pizarra.games'];
   var TEAM_KEY='pizarra.team';
   var cur=null; try{cur=JSON.parse(localStorage.getItem(TEAM_KEY)||'null');}catch(e){}
+  var readonly=!!(cur && cur.owned===0);   // equipo compartido que no es propio: solo lectura
   var _set=localStorage.setItem.bind(localStorage);
   var _rm=localStorage.removeItem.bind(localStorage);
   var timer=null;
@@ -291,8 +292,8 @@
     return fetch('/pizarra/api'+p,opts);
   }
   function payloadStr(){ var o={}; KEYS.forEach(function(k){var v=localStorage.getItem(k); if(v!=null)o[k]=v;}); return JSON.stringify(o); }
-  function pushNow(){ if(!cur) return Promise.resolve(); return api('/teams/'+cur.id,{method:'PUT',body:JSON.stringify({payload:payloadStr()})}).catch(function(){}); }
-  function schedule(){ if(!cur)return; clearTimeout(timer); timer=setTimeout(pushNow,900); }
+  function pushNow(){ if(!cur||readonly) return Promise.resolve(); return api('/teams/'+cur.id,{method:'PUT',body:JSON.stringify({payload:payloadStr()})}).catch(function(){}); }
+  function schedule(){ if(!cur||readonly)return; clearTimeout(timer); timer=setTimeout(pushNow,900); }
   localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
   window.addEventListener('pagehide',function(){ pushNow(); });
 
@@ -317,7 +318,7 @@
     pushNow().then(function(){ return api('/teams/'+id).then(function(r){return r.json();}); }).then(function(d){
       if(!d||d.error){ alert('No se pudo abrir el equipo'); return; }
       writeTeam(d.payload,d.plantel);
-      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel}));
+      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned}));
       location.reload();
     });
   }
@@ -341,11 +342,14 @@
     }).catch(function(){ o.querySelector('#pzList').innerHTML='<div style="color:#c66;padding:8px 4px">Sin conexión con el servidor.</div>'; });
   }
 
-  function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo');
-    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:#101613;color:#eaf2ec;border:1px solid #2b3a31;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
+  function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo')+(readonly?' · solo lectura':'');
+    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:'+(readonly?'#3a2a12':'#101613')+';color:#eaf2ec;border:1px solid '+(readonly?'#6b4e1e':'#2b3a31')+';border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
     b.onclick=function(){ showPicker(true); }; document.body.appendChild(b); }
+  function roBanner(){ var d=document.createElement('div'); d.textContent='Green Bears · solo lectura — las jugadas solo se editan con la cuenta “greenbears”.';
+    d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9200;background:#f0982a;color:#221a08;font:600 .8rem system-ui,sans-serif;text-align:center;padding:6px 10px';
+    document.body.appendChild(d); document.body.style.paddingTop='28px'; }
 
-  function init(){ if(!cur) showPicker(false); else floatBtn(); }
+  function init(){ if(!cur) showPicker(false); else { floatBtn(); if(readonly) roBanner(); } }
   if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
 })();
 </script>

@@ -76,7 +76,8 @@ module.exports = function (checkCsrf) {
   api.get('/teams/:id', (req, res) => {
     const t = getTeam(Number(req.params.id), req.coachId);
     if (!t) return res.status(404).json({ error: 'not-found' });
-    const out = { team: { id: t.id, name: t.name, linked_plantel: t.linked_plantel, updated_at: t.updated_at }, payload: t.payload || '' };
+    const owned = t.coach_id === req.coachId;
+    const out = { team: { id: t.id, name: t.name, linked_plantel: t.linked_plantel, shared: t.shared, owned: owned ? 1 : 0, updated_at: t.updated_at }, payload: t.payload || '' };
     if (t.linked_plantel) out.plantel = sitePlantel();
     res.json(out);
   });
@@ -85,6 +86,7 @@ module.exports = function (checkCsrf) {
     const id = Number(req.params.id);
     const t = getTeam(id, req.coachId);
     if (!t) return res.status(404).json({ error: 'not-found' });
+    if (t.coach_id !== req.coachId) return res.status(403).json({ error: 'readonly' }); // compartido: solo el dueño edita
     if (typeof req.body.name === 'string' && req.body.name.trim()) renameTeam(id, req.coachId, req.body.name);
     if (typeof req.body.payload === 'string') saveTeamPayload(id, req.coachId, req.body.payload);
     const t2 = getTeam(id, req.coachId);
