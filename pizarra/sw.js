@@ -2,7 +2,7 @@
    Deja la app disponible sin conexión: cachea el "app shell" y, en tiempo de
    ejecución, las fuentes de Google y el logo. Navegación: red primero (para
    recibir actualizaciones) con respaldo a caché cuando no hay conexión. */
-const CACHE = 'greenbears-v3';
+const CACHE = 'greenbears-v4';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'
