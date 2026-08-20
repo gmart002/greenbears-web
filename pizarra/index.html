@@ -1732,12 +1732,15 @@
         +'<div style="padding:14px 18px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.15rem">Plantel del equipo</b><button id="plX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
         +(ro?'<div style="padding:9px 16px;background:#2e2210;color:#f0982a;font-size:.82rem">Green Bears es de solo lectura: su plantel se gestiona desde el sitio / la cuenta greenbears.</div>':'')
         +'<div id="plList" style="padding:4px 16px;overflow:auto">'+rows()+'</div>'
-        +(ro?'':'<form id="plForm" style="display:grid;grid-template-columns:1fr 90px;gap:8px;padding:14px 16px;border-top:1px solid #26332b">'
+        +(ro?'':'<form id="plForm" style="display:flex;flex-direction:column;gap:9px;padding:14px 16px;border-top:1px solid #26332b">'
             +'<input id="plName" placeholder="Nombre" maxlength="24" required style="'+inp+'">'
-            +'<input id="plNum" placeholder="N°" maxlength="3" style="'+inp+';text-align:center">'
-            +'<input id="plHeight" placeholder="Estatura (ej: 1.85 m)" style="'+inp+'">'
-            +'<input id="plBirth" type="date" title="Fecha de nacimiento" style="'+inp+'">'
-            +'<button id="plSave" style="grid-column:1 / -1;background:#1f9b57;border:0;color:#fff;font-weight:700;border-radius:10px;padding:10px;cursor:pointer">Agregar jugador</button>'
+            +'<div style="display:flex;gap:8px">'
+              +'<input id="plNum" placeholder="N°" maxlength="3" style="'+inp+';width:74px;flex:none;text-align:center">'
+              +'<input id="plHeight" placeholder="Estatura (ej: 1.85 m)" style="'+inp+';flex:1;min-width:0">'
+            +'</div>'
+            +'<label style="display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#9fb0a5">Fecha de nacimiento'
+              +'<input id="plBirth" type="date" style="'+inp+'"></label>'
+            +'<button id="plSave" style="background:#1f9b57;border:0;color:#fff;font-weight:700;border-radius:10px;padding:11px;cursor:pointer">Agregar jugador</button>'
           +'</form>')
         +'</div>';
       ov.querySelector('#plX').onclick=function(){ ov.remove(); };
