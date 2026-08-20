@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual de la Pizarra</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#f1f5f2; --surface:#ffffff; --surface2:#f6faf7;
+    --ink:#151a17; --muted:#586a5f; --faint:#8a978f; --line:#e1e9e3;
+    --green:#1f9b57; --green-d:#15703f; --amber:#c9730c; --amber-bg:#fbefd9;
+    --court:#0c110e; --court2:#14492e; --wood:#c9a26b;
+    --tip-bg:#e8f6ee; --warn-bg:#fbeede;
+    --shadow:0 12px 34px -16px rgba(12,20,15,.32);
+    --r:14px;
+  }
+  :root:not([data-theme="light"]){}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0c110e; --surface:#141b17; --surface2:#101712;
+      --ink:#e9f1eb; --muted:#9fb0a5; --faint:#6f8175; --line:#243029;
+      --green:#37b877; --green-d:#2a9560; --amber:#f0982a; --amber-bg:#33260f;
+      --court:#070a08; --court2:#123a26; --wood:#7c5a34;
+      --tip-bg:#122a1d; --warn-bg:#2e2210;
+      --shadow:0 16px 40px -18px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c110e; --surface:#141b17; --surface2:#101712;
+    --ink:#e9f1eb; --muted:#9fb0a5; --faint:#6f8175; --line:#243029;
+    --green:#37b877; --green-d:#2a9560; --amber:#f0982a; --amber-bg:#33260f;
+    --court:#070a08; --court2:#123a26; --wood:#7c5a34;
+    --tip-bg:#122a1d; --warn-bg:#2e2210;
+    --shadow:0 16px 40px -18px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @media print{ .toc{box-shadow:none} section.ch{break-inside:avoid} .call,.arrow,.board{break-inside:avoid} }
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;text-underline-offset:2px}
+  .cond{font-family:"Barlow Condensed","Barlow",sans-serif}
+  h1,h2,h3{font-family:"Barlow Condensed","Barlow",sans-serif;line-height:1.05;text-wrap:balance;margin:0}
+  a{color:var(--green-d)}
+  :root[data-theme="dark"] a,:root:not([data-theme="light"]) a{color:var(--green)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) a{color:var(--green)}}
+  .wrap{max-width:860px;margin:0 auto;padding:0 22px}
+
+  /* Hero */
+  .hero{position:relative;background:var(--court);color:#eaf4ec;overflow:hidden;border-bottom:3px solid var(--green)}
+  .hero::before{content:"";position:absolute;inset:0;opacity:.5;
+    background:
+      repeating-linear-gradient(90deg,transparent 0 78px,rgba(255,255,255,.03) 78px 80px),
+      radial-gradient(120% 130% at 88% -20%,rgba(31,155,87,.5),transparent 55%)}
+  .hero-in{position:relative;padding:64px 0 56px}
+  .kick{font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.28em;
+    color:var(--green);font-size:.82rem;margin-bottom:14px}
+  .hero h1{font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,7vw,4.4rem);color:#fff;letter-spacing:.01em}
+  .hero p{color:#bcd2c4;font-size:1.16rem;max-width:54ch;margin:16px 0 0}
+  .hero .who{display:inline-flex;align-items:center;gap:8px;margin-top:26px;padding:8px 15px;border:1px solid rgba(255,255,255,.22);
+    border-radius:999px;font-size:.9rem;color:#cfe0d6}
+
+  /* TOC */
+  .toc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+    margin:-34px auto 0;position:relative;overflow:hidden}
+  .toc h2{font-size:1rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);padding:16px 20px;border-bottom:1px solid var(--line)}
+  .toc ol{list-style:none;margin:0;padding:8px 0;counter-reset:t}
+  .toc li a{display:flex;gap:14px;align-items:baseline;padding:9px 20px;text-decoration:none;color:var(--ink)}
+  .toc li a:hover{background:var(--surface2)}
+  .toc .n{font-family:"Barlow Condensed";font-weight:800;color:var(--green);width:1.7em;text-align:right;font-size:1.05rem;
+    font-variant-numeric:tabular-nums}
+  .toc .tt{font-weight:600}
+  .toc .sub{color:var(--faint);font-size:.9rem}
+
+  /* Sections */
+  section.ch{padding:52px 0 8px}
+  .chhead{display:flex;gap:18px;align-items:flex-start;margin-bottom:10px}
+  .chnum{font-family:"Barlow Condensed";font-weight:800;font-size:2.5rem;line-height:.9;color:var(--green);
+    background:var(--surface2);border:1px solid var(--line);border-radius:12px;min-width:64px;height:64px;
+    display:flex;align-items:center;justify-content:center;flex:none;font-variant-numeric:tabular-nums}
+  .chhead h2{font-weight:800;text-transform:uppercase;font-size:clamp(1.7rem,3.6vw,2.3rem)}
+  .chhead .lede{color:var(--muted);margin-top:4px}
+  h3{font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:1.22rem;margin:30px 0 6px;color:var(--ink)}
+  p{margin:12px 0}
+  .lead{font-size:1.12rem;color:var(--muted)}
+
+  ol.steps{counter-reset:s;list-style:none;margin:14px 0;padding:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:11px 0 11px 52px;border-top:1px solid var(--line)}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:9px;width:34px;height:34px;border-radius:9px;
+    background:var(--green);color:#fff;font-family:"Barlow Condensed";font-weight:800;display:flex;align-items:center;justify-content:center;
+    font-size:1.02rem}
+  ol.steps>li:first-child{border-top:0}
+  ol.steps b{color:var(--ink)}
+  ul.plain{margin:12px 0;padding-left:0;list-style:none}
+  ul.plain li{padding:7px 0 7px 26px;position:relative;border-bottom:1px dashed var(--line)}
+  ul.plain li:last-child{border-bottom:0}
+  ul.plain li::before{content:"";position:absolute;left:4px;top:15px;width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+  /* UI chips (representan botones reales) */
+  .chip{display:inline-flex;align-items:center;gap:7px;vertical-align:middle;
+    padding:3px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+    font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:.86rem;
+    white-space:nowrap;line-height:1.4;box-shadow:0 1px 0 var(--line)}
+  .chip svg{width:16px;height:16px;flex:none}
+  .chip.g{border-color:var(--green);color:var(--green-d);background:var(--tip-bg)}
+  :root[data-theme="dark"] .chip.g,:root:not([data-theme="light"]) .chip.g{color:var(--green)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.g{color:var(--green)}}
+  kbd{font-family:"Barlow Condensed";font-weight:700;background:var(--surface2);border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:.9em}
+
+  /* Callouts */
+  .call{border-radius:12px;padding:15px 18px 15px 16px;margin:20px 0;border:1px solid var(--line);background:var(--surface2);
+    display:flex;gap:13px;align-items:flex-start}
+  .call .ic{flex:none;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:"Barlow Condensed"}
+  .call p{margin:0}
+  .call .t{font-family:"Barlow Condensed";font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:.82rem;display:block;margin-bottom:2px}
+  .tip{background:var(--tip-bg);border-color:color-mix(in srgb,var(--green) 35%,var(--line))}
+  .tip .ic{background:var(--green)}
+  .warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--amber) 40%,var(--line))}
+  .warn .ic{background:var(--amber)}
+  .warn .t{color:var(--amber)}
+
+  /* Diagram cards */
+  .arrows{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:18px 0}
+  .arrow{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px;box-shadow:var(--shadow)}
+  .arrow svg{display:block;width:100%;height:52px}
+  .arrow b{display:block;font-family:"Barlow Condensed";font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:8px}
+  .arrow span{color:var(--muted);font-size:.92rem}
+  .stroke{stroke:var(--ink);fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  .fill{fill:var(--ink)}
+
+  .board{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin:20px 0;background:var(--court2)}
+  .board svg{display:block;width:100%;height:auto}
+
+  hr.soft{border:0;border-top:1px solid var(--line);margin:40px 0 0}
+  footer{padding:48px 0 70px;color:var(--faint)}
+  footer b{color:var(--ink)}
+  .toplink{display:inline-block;margin-top:10px;font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.85rem}
+  ::selection{background:color-mix(in srgb,var(--green) 30%,transparent)}
+</style>
+
+<header class="hero">
+  <div class="wrap hero-in">
+    <div class="kick">Green Bears · Pizarra táctica</div>
+    <h1>Manual del entrenador</h1>
+    <p>Todo lo que necesitas para crear jugadas, dibujar los movimientos y verlas animadas — explicado paso a paso, aunque nunca hayas usado la plataforma.</p>
+    <div class="who">🏀 Para coaches · Se usa desde el iPad, tablet o computador</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contenido">
+    <h2>Contenido</h2>
+    <ol>
+      <li><a href="#c1"><span class="n">1</span><span><span class="tt">Qué es la pizarra</span> · <span class="sub">los 3 modos</span></span></a></li>
+      <li><a href="#c2"><span class="n">2</span><span><span class="tt">Entrar y elegir tu equipo</span> · <span class="sub">login y selector</span></span></a></li>
+      <li><a href="#c3"><span class="n">3</span><span><span class="tt">La pantalla de un vistazo</span> · <span class="sub">cada zona explicada</span></span></a></li>
+      <li><a href="#c4"><span class="n">4</span><span><span class="tt">Crear una jugada nueva</span></span></a></li>
+      <li><a href="#c5"><span class="n">5</span><span><span class="tt">Mover jugadores y el balón</span></span></a></li>
+      <li><a href="#c6"><span class="n">6</span><span><span class="tt">Las flechas: corte, pase, bote, bloqueo</span></span></a></li>
+      <li><a href="#c7"><span class="n">7</span><span><span class="tt">Los pasos: así se arma el movimiento</span></span></a></li>
+      <li><a href="#c8"><span class="n">8</span><span><span class="tt">Ver la jugada en movimiento</span> · <span class="sub">modo Presentar</span></span></a></li>
+      <li><a href="#c9"><span class="n">9</span><span><span class="tt">Herramientas de cancha</span> · <span class="sub">media/completa, reponer, borrar</span></span></a></li>
+      <li><a href="#c10"><span class="n">10</span><span><span class="tt">El menú ⋮</span> · <span class="sub">renombrar, duplicar, exportar</span></span></a></li>
+      <li><a href="#c11"><span class="n">11</span><span><span class="tt">Estadísticas del partido</span> · <span class="sub">convocatoria y parches</span></span></a></li>
+      <li><a href="#c12"><span class="n">12</span><span><span class="tt">Guardado, equipos y dudas frecuentes</span></span></a></li>
+    </ol>
+  </nav>
+</div>
+
+<main class="wrap">
+
+  <section class="ch" id="c1">
+    <div class="chhead"><div class="chnum">1</div><div><h2>Qué es la pizarra</h2><div class="lede">Una pizarra táctica digital para diseñar y enseñar jugadas.</div></div></div>
+    <p class="lead">Es como la pizarra de siempre, pero además <b>guarda tus jugadas</b> y las puede <b>reproducir en movimiento</b> para explicarlas al equipo. Todo lo que hagas se guarda solo, en tu cuenta, y lo puedes abrir desde cualquier dispositivo.</p>
+    <p>Arriba a la izquierda hay tres modos. Es lo primero que debes entender, porque cada uno sirve para algo distinto:</p>
+    <ul class="plain">
+      <li><span class="chip g">Editar</span> &nbsp;Donde <b>armas</b> la jugada: mueves jugadores, dibujas flechas y creas los pasos.</li>
+      <li><span class="chip">Presentar</span> &nbsp;Donde <b>muestras</b> la jugada animada, paso por paso, para explicarla.</li>
+      <li><span class="chip">Estadísticas</span> &nbsp;Para llevar la <b>planilla del partido</b> (puntos, rebotes, faltas…). Ver capítulo 11.</li>
+    </ul>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">La idea en una frase</span><p>En <b>Editar</b> construyes la jugada por “fotos” (pasos). En <b>Presentar</b>, la pizarra une esas fotos y las anima, como una película.</p></div></div>
+  </section>
+
+  <section class="ch" id="c2">
+    <div class="chhead"><div class="chnum">2</div><div><h2>Entrar y elegir tu equipo</h2><div class="lede">Cada coach entra con su cuenta y trabaja sus propios equipos.</div></div></div>
+    <ol class="steps">
+      <li>Abre <b>greenbears.cl/pizarra</b> en el navegador (Safari o Chrome).</li>
+      <li>Escribe tu <b>usuario</b> y <b>clave</b> de coach (te los entrega el administrador del club) y toca <b>Ingresar</b>.</li>
+      <li>Aparece la ventana <b>“Elige tu equipo”</b>. Debes elegir o crear uno para continuar — <b>no se puede cerrar</b> hasta elegir.</li>
+      <li>Para <b>crear un equipo</b>: escribe el nombre abajo (ej: “Sub-15”) y toca <b>Crear</b>.</li>
+      <li>Para <b>abrir uno existente</b>: tócalo en la lista. Se cargan sus jugadas y su plantel.</li>
+    </ol>
+    <p>Abajo a la izquierda queda siempre el botón <span class="chip">⇄ Nombre del equipo</span>. Tócalo cuando quieras <b>cambiar de equipo</b>. Cada equipo tiene sus propias jugadas.</p>
+    <div class="call warn"><div class="ic">!</div><div><span class="t">Green Bears es de solo lectura</span><p>El equipo <b>Green Bears</b> aparece marcado como <b>“compartido”</b> y usa el plantel del sitio. Todos los coaches lo ven y lo pueden <b>usar y presentar</b>, pero <b>solo la cuenta “greenbears” puede crear, editar o borrar</b> sus jugadas. Verás una franja naranja de aviso cuando lo abras.</p></div></div>
+  </section>
+
+  <section class="ch" id="c3">
+    <div class="chhead"><div class="chnum">3</div><div><h2>La pantalla de un vistazo</h2><div class="lede">Cuatro zonas. Con esto te ubicas para todo lo demás.</div></div></div>
+    <h3>Arriba — barra superior</h3>
+    <ul class="plain">
+      <li>Los tres <b>modos</b>: <span class="chip">Editar</span> <span class="chip">Presentar</span> <span class="chip">Estadísticas</span>.</li>
+      <li>El <b>selector de jugada</b> (menú desplegable): elige cuál jugada estás viendo.</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Nueva</span> crea una jugada nueva.</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> Menú</span> abre opciones (renombrar, duplicar, exportar… capítulo 10).</li>
+    </ul>
+    <h3>Izquierda — herramientas</h3>
+    <p>La barra <b>Herram.</b> tiene las flechas de dibujo (capítulo 6) y <b>Tinta</b> (los colores). Más abajo: <span class="chip">Cancha</span> (media/completa), <span class="chip">Borrar</span> (flechas del paso) y <span class="chip">Reponer</span> (formación).</p>
+    <h3>Centro — la cancha</h3>
+    <p>Donde arrastras a los jugadores y dibujas. Los círculos con número son los jugadores; hay <b>equipo propio</b> y <b>rival</b>, más el <b>balón</b>.</p>
+    <h3>Derecha — pasos de la jugada</h3>
+    <p>La lista de <b>Pasos</b> (las “fotos” de la jugada) y el cuadro <b>Explicación del paso</b> donde escribes qué pasa en ese momento. Es el corazón del movimiento (capítulo 7).</p>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">En el celular</span><p>Si la pantalla es chica, las zonas se acomodan; puede que tengas que desplazar. Se ve mejor en <b>horizontal</b> y en tablet/iPad.</p></div></div>
+  </section>
+
+  <section class="ch" id="c4">
+    <div class="chhead"><div class="chnum">4</div><div><h2>Crear una jugada nueva</h2><div class="lede">Tu primera jugada, de cero.</div></div></div>
+    <ol class="steps">
+      <li>Asegúrate de estar en el modo <span class="chip g">Editar</span>.</li>
+      <li>Toca <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Nueva</span> (arriba, junto al selector de jugadas).</li>
+      <li>Aparece una jugada en blanco con la <b>formación inicial</b>: cinco jugadores tuyos, cinco del rival y el balón, todos en su lugar de partida (este es el <b>Paso 1</b>).</li>
+      <li><b>Ponle nombre:</b> abre el <span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> Menú</span> → <b>Renombrar jugada</b> y escribe algo claro, ej. “Saque de banda 4-bajo”.</li>
+      <li>Coloca a los jugadores en la <b>posición de inicio</b> que quieras (capítulo 5).</li>
+      <li>Dibuja los <b>movimientos</b> de ese primer momento con las flechas (capítulo 6).</li>
+      <li>Escribe la <b>explicación</b> del paso en el cuadro de la derecha, ej: “El 1 sube la bola y llama bloqueo del 5”.</li>
+      <li>Para el siguiente momento, agrega un <b>paso</b> (capítulo 7) y repite.</li>
+    </ol>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">No hay botón “Guardar”</span><p>La pizarra <b>guarda sola</b> cada cambio, en el equipo que tienes abierto. Puedes cerrar y volver: tu jugada estará ahí.</p></div></div>
+  </section>
+
+  <section class="ch" id="c5">
+    <div class="chhead"><div class="chnum">5</div><div><h2>Mover jugadores y el balón</h2><div class="lede">Arrastrar y soltar. Así de simple.</div></div></div>
+    <p>Con la herramienta <span class="chip g"><svg viewBox="0 0 24 24" class="" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9 2 12l3 3M9 5 12 2l3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 2v20M2 12h20"/></svg> Mover</span> seleccionada (viene activa por defecto):</p>
+    <ul class="plain">
+      <li><b>Arrastra un jugador</b> con el dedo (o el mouse) hasta la posición que quieras.</li>
+      <li><b>El balón</b> se arrastra igual — ponlo en manos de quien lo tiene.</li>
+      <li>Colócalos como estén al <b>inicio de ese paso</b>. En el siguiente paso los moverás a donde llegan.</li>
+    </ul>
+    <div class="board" aria-hidden="true">
+      <svg viewBox="0 0 400 150">
+        <rect width="400" height="150" fill="var(--court2)"/>
+        <g stroke="rgba(255,255,255,.35)" fill="none" stroke-width="1.5">
+          <rect x="6" y="6" width="388" height="138" rx="4"/>
+          <circle cx="200" cy="75" r="22"/><path d="M200 6V144"/>
+        </g>
+        <g font-family="Barlow Condensed" font-weight="800" font-size="15" text-anchor="middle">
+          <circle cx="120" cy="100" r="15" fill="#1f9b57"/><text x="120" y="105" fill="#fff">1</text>
+          <circle cx="80" cy="60" r="15" fill="#1f9b57"/><text x="80" y="65" fill="#fff">2</text>
+          <circle cx="250" cy="55" r="15" fill="#1f9b57"/><text x="250" y="60" fill="#fff">5</text>
+          <circle cx="138" cy="96" r="6.5" fill="#f0982a" stroke="#7a4a10" stroke-width="1.5"/>
+        </g>
+        <path d="M120 100 C 170 100, 200 80, 245 60" stroke="#eafff2" stroke-width="3" fill="none" stroke-dasharray="2 7" stroke-linecap="round"/>
+        <path d="M245 60 l -9 -1 l 5 8 Z" fill="#eafff2"/>
+      </svg>
+    </div>
+    <p style="color:var(--muted);font-size:.95rem;margin-top:-6px">Ejemplo: el <b>1</b> con el balón; la línea punteada es el <b>pase</b> hacia el <b>5</b>.</p>
+    <div class="call warn"><div class="ic">!</div><div><span class="t">Ojo con la herramienta activa</span><p>Si tienes seleccionada una flecha (Corte, Pase…) y tocas la cancha, <b>dibujas</b> en vez de mover. Para arrastrar jugadores, vuelve a <span class="chip">Mover</span>.</p></div></div>
+  </section>
+
+  <section class="ch" id="c6">
+    <div class="chhead"><div class="chnum">6</div><div><h2>Las flechas: corte, pase, bote, bloqueo</h2><div class="lede">Cada tipo de movimiento tiene su flecha. Se dibujan igual: toca donde empieza y arrastra hasta donde termina.</div></div></div>
+    <p>En <b>Herram.</b> (barra izquierda) eliges el tipo. Luego, sobre la cancha, <b>arrastra</b> desde el punto de inicio hasta el final; se dibuja la flecha. Cada una significa algo distinto en básquet:</p>
+    <div class="arrows">
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" d="M10 20 H132"/><path class="fill" d="M132 20 l-13 -7 l0 14 Z"/></svg>
+        <b>Corte</b><span>Línea <b>continua</b>. Un jugador corre <b>sin balón</b> (corta al aro, a un lado…).</span>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" style="stroke-dasharray:3 9" d="M10 20 H132"/><path class="fill" d="M132 20 l-13 -7 l0 14 Z"/></svg>
+        <b>Pase</b><span>Línea <b>punteada</b>. El balón <b>viaja</b> de un jugador a otro.</span>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" d="M10 20 q 12 -12 24 0 t 24 0 t 24 0 t 24 0 t 24 0"/><path class="fill" d="M132 20 l-13 -7 l0 14 Z"/></svg>
+        <b>Bote</b><span>Línea <b>ondulada</b>. El jugador avanza <b>driblando</b> (con balón).</span>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" d="M10 20 H120"/><path class="stroke" d="M120 8 V32"/></svg>
+        <b>Bloqueo</b><span>Termina en <b>“T”</b>. Un jugador pone un <b>bloqueo</b> (cortina) a un compañero.</span>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" d="M14 30 C 40 6, 70 34, 96 14 S 140 8, 150 22"/></svg>
+        <b>Lápiz</b><span>Dibujo <b>libre</b>. Para marcar zonas, notas o lo que quieras a mano alzada.</span>
+      </div>
+      <div class="arrow">
+        <svg viewBox="0 0 160 40" aria-hidden="true"><path class="stroke" style="opacity:.4" d="M20 20 H110"/><path class="stroke" d="M116 12 l22 22 M116 34 l22 -22" stroke-width="3.4"/></svg>
+        <b>Borrar</b><span>Elige <b>Borrar</b> y toca una flecha para <b>eliminarla</b> del paso.</span>
+      </div>
+    </div>
+    <h3>Tinta (el color)</h3>
+    <p>Debajo de las herramientas está <b>Tinta</b>: toca un color para que las <b>flechas nuevas</b> salgan de ese color. Útil para diferenciar movimientos (ej. pases en un color, cortes en otro).</p>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">Regla de oro</span><p>Las flechas que dibujas pertenecen <b>al paso actual</b>. En el paso siguiente, la cancha parte “limpia” de flechas para que dibujes el movimiento de <b>ese</b> momento.</p></div></div>
+  </section>
+
+  <section class="ch" id="c7">
+    <div class="chhead"><div class="chnum">7</div><div><h2>Los pasos: así se arma el movimiento</h2><div class="lede">Este es el concepto clave. Léelo con calma.</div></div></div>
+    <p class="lead">Una jugada es una <b>secuencia de pasos</b>. Cada paso es una <b>foto</b> de dónde están todos en ese instante. La pizarra, al presentar, <b>anima el trayecto</b> entre una foto y la siguiente.</p>
+    <h3>Cómo se crea el movimiento</h3>
+    <ol class="steps">
+      <li><b>Paso 1 = posición de inicio.</b> Coloca a todos donde arrancan y dibuja las flechas de lo que van a hacer.</li>
+      <li>En el panel derecho toca <span class="chip g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Agregar paso</span>. Se crea el <b>Paso 2</b>, que <b>copia</b> las posiciones del paso anterior.</li>
+      <li>Ahora <b>mueve</b> a los jugadores a donde <b>llegan</b> tras ese movimiento (arrástralos a la nueva posición).</li>
+      <li>Al presentar, la pizarra hará que se <b>deslicen</b> desde la posición del Paso 1 hasta la del Paso 2. <b>Ese deslizamiento es el movimiento.</b></li>
+      <li>Escribe la <b>explicación</b> del Paso 2 (“el 5 rueda al aro tras el bloqueo”), agrega otro paso y sigue.</li>
+    </ol>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">La forma correcta de pensarlo</span><p>No dibujas la animación: dibujas <b>dónde están al inicio</b> y <b>dónde quedan al final</b> de cada tramo. El programa rellena el camino. Más pasos = movimiento más detallado.</p></div></div>
+    <h3>Trabajar con la lista de pasos</h3>
+    <ul class="plain">
+      <li><b>Cambiar de paso:</b> toca un paso en la lista para verlo y editarlo.</li>
+      <li><span class="chip">Duplicar</span> copia el paso actual (útil para hacer un cambio pequeño sin empezar de cero).</li>
+      <li><b>Explicación del paso:</b> el cuadro de texto de la derecha. Ese texto aparece en pantalla cuando presentas — es lo que le lees al equipo.</li>
+    </ul>
+    <div class="call warn"><div class="ic">!</div><div><span class="t">Regla del “solo mover”</span><p>Al agregar un paso, <b>solo mueve a quien se mueve</b>. Los que se quedan quietos ya están en su lugar (se copiaron del paso anterior). No hace falta tocarlos.</p></div></div>
+  </section>
+
+  <section class="ch" id="c8">
+    <div class="chhead"><div class="chnum">8</div><div><h2>Ver la jugada en movimiento</h2><div class="lede">Modo Presentar: la jugada cobra vida.</div></div></div>
+    <ol class="steps">
+      <li>Toca el modo <span class="chip">Presentar</span> (arriba).</li>
+      <li>Abajo aparece la <b>barra de reproducción</b> y, sobre la cancha, el <b>texto del paso</b> (la explicación que escribiste).</li>
+      <li>Toca <span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Reproducir</span> y la jugada se anima paso a paso, sola.</li>
+    </ol>
+    <p>Controles de la barra:</p>
+    <ul class="plain">
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Reproducir</span> anima desde el paso actual hasta el final.</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 6 8 12l10 6V6ZM6 6h2v12H6z"/></svg> Anterior</span> y <span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6l10 6-10 6V6ZM16 6h2v12h-2z"/></svg> Siguiente</span> avanzan de a un paso (perfecto para ir explicando y detenerte).</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg> Reiniciar</span> vuelve al Paso 1.</li>
+      <li>La <b>barra de progreso</b> (scrub) muestra por qué paso vas; puedes tocarla para saltar.</li>
+      <li><b>Velocidad</b> (el control deslizante con el rayo): más lento para explicar, más rápido para mostrar el conjunto.</li>
+    </ul>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">Para la charla técnica</span><p>Usa <b>Siguiente</b> paso a paso mientras lees la explicación de cada momento. Así el equipo entiende el <b>porqué</b> de cada movimiento, no solo el dibujo.</p></div></div>
+  </section>
+
+  <section class="ch" id="c9">
+    <div class="chhead"><div class="chnum">9</div><div><h2>Herramientas de cancha</h2><div class="lede">Tres botones de la barra izquierda que conviene conocer.</div></div></div>
+    <ul class="plain">
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/><circle cx="12" cy="12" r="2.5"/></svg> Cancha</span> cambia entre <b>media cancha</b> y <b>cancha completa</b>. Media sirve para ataques posicionales; completa para transiciones y contragolpe.</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 20h16M6 16 18 4l3 3L9 19H6v-3Z"/></svg> Borrar</span> quita <b>todas las flechas del paso actual</b> (no borra a los jugadores ni los otros pasos).</li>
+      <li><span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4"/></svg> Reponer</span> devuelve a los jugadores a la <b>formación inicial</b> estándar, por si desordenaste y quieres partir limpio.</li>
+    </ul>
+  </section>
+
+  <section class="ch" id="c10">
+    <div class="chhead"><div class="chnum">10</div><div><h2>El menú ⋮</h2><div class="lede">Opciones extra de la jugada. Está arriba, junto al selector.</div></div></div>
+    <p>Toca <span class="chip"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg> Menú</span> y escribe el <b>número</b> de la opción:</p>
+    <ul class="plain">
+      <li><b>Logo del equipo</b> — sube una imagen para que aparezca en la cancha.</li>
+      <li><b>Restaurar sistemas de ejemplo (22)</b> — vuelve a agregar la biblioteca de 22 jugadas de ejemplo (no borra las tuyas).</li>
+      <li><b>Renombrar jugada</b> — cambia el nombre de la jugada actual.</li>
+      <li><b>Duplicar jugada</b> — crea una copia (para probar variantes sin perder la original).</li>
+      <li><b>Exportar todo (.json)</b> — descarga un archivo con <b>todas</b> tus jugadas (respaldo).</li>
+      <li><b>Importar (.json)</b> — carga jugadas desde un archivo exportado.</li>
+      <li><b>Exportar imagen (.png)</b> — guarda el paso actual como imagen para compartir.</li>
+      <li><b>Eliminar jugada</b> — borra la jugada actual (pide confirmación).</li>
+    </ul>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">Biblioteca de 22 sistemas</span><p>La pizarra trae <b>22 jugadas de ejemplo</b> ya cargadas. Ábrelas desde el selector de jugadas para estudiarlas, presentarlas o <b>duplicarlas</b> y adaptarlas a tu equipo.</p></div></div>
+  </section>
+
+  <section class="ch" id="c11">
+    <div class="chhead"><div class="chnum">11</div><div><h2>Estadísticas del partido</h2><div class="lede">La planilla en vivo: convocatoria, acciones y export.</div></div></div>
+    <p>Entra al modo <span class="chip">Estadísticas</span>. Arriba pones el <b>rival</b> y el marcador; abajo llevas la planilla jugador por jugador.</p>
+    <h3>Convocatoria (quiénes juegan hoy)</h3>
+    <ol class="steps">
+      <li>Toca <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg> Convocatoria</span>.</li>
+      <li><b>Marca los presentes</b> (deja los 10–12 que juegan). Los no marcados no aparecen en la planilla.</li>
+      <li>¿Llegó un refuerzo de último minuto? Toca <b>＋ Parche</b> para agregarlo solo para este partido (queda marcado en naranja).</li>
+    </ol>
+    <h3>Registrar acciones</h3>
+    <ol class="steps">
+      <li>Toca al <b>jugador</b> en la barra para seleccionarlo.</li>
+      <li>Toca la <b>acción</b>: 2P/3P/TL anotado o fallado, Rebote, Asistencia, Robo, Tapa, Pérdida, Falta. El marcador y la planilla se actualizan solos.</li>
+      <li><b>Rival:</b> usa <b>+2 / +3 / +1</b> para sus puntos.</li>
+    </ol>
+    <ul class="plain">
+      <li><span class="chip">Exportar CSV</span> descarga la planilla para Excel/Sheets.</li>
+      <li><span class="chip">Guardar partido</span> lo archiva y deja la planilla lista para el próximo.</li>
+      <li>En <b>Green Bears</b>, el plantel llega automático desde el sitio; a medida que el club sube jugadores, aparecen aquí.</li>
+    </ul>
+  </section>
+
+  <section class="ch" id="c12">
+    <div class="chhead"><div class="chnum">12</div><div><h2>Guardado, equipos y dudas frecuentes</h2><div class="lede">Lo último para trabajar tranquilo.</div></div></div>
+    <ul class="plain">
+      <li><b>¿Se guarda solo?</b> Sí. Cada cambio se guarda en el equipo abierto, en el servidor. Puedes cerrar y volver desde otro dispositivo.</li>
+      <li><b>¿Funciona sin internet?</b> Sí durante el uso; los cambios se sincronizan cuando vuelve la conexión. Para <b>cambiar de equipo</b> sí necesitas conexión.</li>
+      <li><b>¿Cada equipo tiene sus jugadas?</b> Exacto. Al abrir un equipo ves <b>solo</b> sus jugadas y su plantel.</li>
+      <li><b>Perdí una jugada / quiero un respaldo.</b> Usa <b>Menú → Exportar todo (.json)</b> cada cierto tiempo.</li>
+      <li><b>No puedo editar Green Bears.</b> Es de <b>solo lectura</b> para coaches; solo la cuenta “greenbears” edita sus jugadas. Puedes <b>duplicarla</b> a un equipo tuyo si quieres modificarla.</li>
+      <li><b>Cerrar sesión:</b> desde la ventana de elegir equipo, abajo, <b>“Cerrar sesión”</b>.</li>
+    </ul>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">Flujo recomendado para empezar</span><p>1) Crea tu equipo. 2) Crea una jugada simple de 3 pasos. 3) Pásala a <b>Presentar</b> y reprodúcela. Cuando le tomes el ritmo a los pasos, el resto sale solo.</p></div></div>
+  </section>
+
+  <hr class="soft">
+  <footer>
+    <p><b>Green Bears · Pizarra táctica.</b> Manual para el cuerpo técnico. Cualquier duda o mejora, avisa al administrador del club.</p>
+    <a class="toplink" href="#">↑ Volver arriba</a>
+  </footer>
+</main>
+
+</body>
+</html>
