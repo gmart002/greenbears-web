@@ -479,6 +479,7 @@
             <button class="chip pt" data-them="1">+1</button>
           </div>
           <button class="mini" id="btnPlantel">Plantel</button>
+          <button class="mini" id="btnHistory">Historial</button>
           <button class="mini" id="btnStatExport">Exportar CSV</button>
           <button class="mini" id="btnStatFinish">Guardar partido</button>
           <button class="mini warn" id="btnStatReset">Reiniciar</button>
@@ -1734,6 +1735,52 @@
     draw();
   }
 
+  // ---- Historial de partidos guardados ----
+  function openHistory(){
+    let hist=[]; try{ hist=JSON.parse(localStorage.getItem(HIST_KEY))||[]; }catch(e){}
+    let ov=document.getElementById('histOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='histOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(8,12,10,.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif';
+    document.body.appendChild(ov);
+    function fmt(d){ if(!d) return ''; try{ return new Date(d).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return ''; } }
+    function detail(g){
+      const cols=[['pts','PTS'],['m2','2P'],['m3','3P'],['mft','TL'],['reb','REB'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
+      let h='<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="color:#8aa;text-align:right"><th style="text-align:left">Jugador</th>'+cols.map(c=>'<th>'+c[1]+'</th>').join('')+'</tr></thead><tbody>';
+      (g.stats||[]).forEach(function(p){ const c=p.c||{}; const pts=2*(c.m2||0)+3*(c.m3||0)+(c.mft||0);
+        h+='<tr style="text-align:right;border-top:1px solid #1e2a22"><td style="text-align:left;padding:3px 0">'+(p.num?('#'+p.num+' '):'')+escapeHtml(p.name||'')+'</td>'
+          +'<td><b>'+pts+'</b></td><td>'+(c.m2||0)+'/'+(c.a2||0)+'</td><td>'+(c.m3||0)+'/'+(c.a3||0)+'</td><td>'+(c.mft||0)+'/'+(c.aft||0)+'</td>'
+          +'<td>'+(c.reb||0)+'</td><td>'+(c.ast||0)+'</td><td>'+(c.stl||0)+'</td><td>'+(c.blk||0)+'</td><td>'+(c.tov||0)+'</td><td>'+(c.pf||0)+'</td></tr>';
+      });
+      return h+'</tbody></table>';
+    }
+    function rows(){
+      if(!hist.length) return '<div style="color:#8aa;padding:14px 4px">Aún no hay partidos guardados. Al terminar un partido usa “Guardar partido”.</div>';
+      return hist.map(function(g,i){ const win=g.us>g.them;
+        return '<div style="border-bottom:1px solid #1e2a22;padding:9px 4px">'
+          +'<div style="display:flex;align-items:center;gap:10px">'
+            +'<span style="color:#8aa;font-size:.78rem;width:74px">'+fmt(g.date)+'</span>'
+            +'<b style="flex:1;min-width:60px">vs '+escapeHtml(g.rival||'Rival')+'</b>'
+            +'<b style="color:'+(win?'#37b26b':'#e0605a')+';font-variant-numeric:tabular-nums">'+g.us+' – '+g.them+'</b>'
+            +'<button data-open="'+i+'" style="background:none;border:1px solid #33443a;color:#cfe0d6;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:.8rem">ver</button>'
+            +'<button data-del="'+i+'" title="Eliminar" style="background:none;border:0;color:#b55;cursor:pointer;font-size:1.15rem">×</button>'
+          +'</div>'
+          +'<div id="hg'+i+'" style="display:none;margin-top:8px;overflow:auto"></div>'
+        +'</div>';
+      }).join('');
+    }
+    function draw(){
+      ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:640px;width:100%;color:#eaf2ec;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+        +'<div style="padding:14px 18px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.15rem">Partidos guardados</b><button id="hX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+        +'<div id="hList" style="padding:4px 16px 14px;overflow:auto">'+rows()+'</div></div>';
+      ov.querySelector('#hX').onclick=function(){ ov.remove(); };
+      [].forEach.call(ov.querySelectorAll('[data-open]'),function(b){ b.onclick=function(){ const i=b.getAttribute('data-open'); const d=ov.querySelector('#hg'+i);
+        if(d.style.display==='none'){ if(!d.innerHTML) d.innerHTML=detail(hist[i]); d.style.display='block'; b.textContent='ocultar'; } else { d.style.display='none'; b.textContent='ver'; } }; });
+      [].forEach.call(ov.querySelectorAll('[data-del]'),function(b){ b.onclick=function(){ const i=+b.getAttribute('data-del');
+        if(confirm('¿Eliminar este partido del historial?')){ hist.splice(i,1); try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){} draw(); } }; });
+    }
+    draw();
+  }
+
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const c=cnt(selPlayer);
@@ -1825,8 +1872,8 @@
     if(!roster.length){ toast('No hay jugadores'); return; }
     if(!confirm('¿Guardar el partido y empezar uno nuevo? (el actual queda respaldado)')) return;
     let hist=[]; try{ hist=JSON.parse(localStorage.getItem(HIST_KEY))||[]; }catch(e){}
-    hist.push({rival:game.rival||'', us:usScore(), them:game.themPts||0,
-      stats:roster.map(p=>({name:p.name,num:p.num,c:cnt(p.id)}))});
+    hist.push({date:new Date().toISOString(), rival:game.rival||'', us:usScore(), them:game.themPts||0,
+      stats:presentRoster().map(p=>({name:p.name,num:p.num,c:cnt(p.id)}))});
     try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){}
     game={rival:'',themPts:0,stats:{},log:[]}; saveGame(); selPlayer=null; renderStats();
     toast('Partido guardado. Nuevo partido listo.');
@@ -1869,6 +1916,7 @@
   $('#rivalInput').addEventListener('input',()=>{ game.rival=$('#rivalInput').value; document.getElementById('rivalName').textContent=game.rival||'Rival'; saveGame(); });
   $('#btnUndo').onclick=undo;
   $('#btnPlantel').onclick=openPlantel;
+  $('#btnHistory').onclick=openHistory;
   $('#btnStatExport').onclick=exportStatsCSV;
   $('#btnStatFinish').onclick=finishGame;
   $('#btnStatReset').onclick=resetGame;
