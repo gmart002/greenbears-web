@@ -167,7 +167,7 @@
       <li><a href="#c10"><span class="n">10</span><span><span class="tt">Herramientas de cancha</span> · <span class="sub">media/completa, reponer, borrar</span></span></a></li>
       <li><a href="#c11"><span class="n">11</span><span><span class="tt">El menú ⋮ y el logo del equipo</span></span></a></li>
       <li><a href="#c12"><span class="n">12</span><span><span class="tt">Plantel del equipo</span> · <span class="sub">nombre, número, estatura, fecha</span></span></a></li>
-      <li><a href="#c13"><span class="n">13</span><span><span class="tt">Estadísticas del partido</span> · <span class="sub">cuadros, cuartos, tiros e historial</span></span></a></li>
+      <li><a href="#c13"><span class="n">13</span><span><span class="tt">Estadísticas del partido</span> · <span class="sub">reloj, cambios, cuartos, tiros e informe</span></span></a></li>
       <li><a href="#c14"><span class="n">14</span><span><span class="tt">Guardado, equipos y dudas frecuentes</span></span></a></li>
     </ol>
   </nav>
@@ -392,8 +392,8 @@
   </section>
 
   <section class="ch" id="c13">
-    <div class="chhead"><div class="chnum">13</div><div><h2>Estadísticas del partido</h2><div class="lede">Planilla en vivo: cuadros de jugadores, cuartos, tiros por ubicación e historial.</div></div></div>
-    <p>Entra al modo <span class="chip">Estadísticas</span>. La pantalla se divide en <b>dos mitades</b>: a la <b>izquierda</b> los jugadores y las acciones para registrar; a la <b>derecha</b>, la <b>tabla</b> con todo lo que va pasando. Arriba pones el <b>rival</b> y ves el marcador.</p>
+    <div class="chhead"><div class="chnum">13</div><div><h2>Estadísticas del partido</h2><div class="lede">Reloj, titulares y cambios, planilla en vivo, tiros por ubicación e informe con notas.</div></div></div>
+    <p>Entra al modo <span class="chip">Estadísticas</span>. A la <b>izquierda</b> está el <b>reloj</b>, los <b>cuadros de jugadores</b> (los 5 en cancha arriba y la banca abajo) y las acciones para registrar; a la <b>derecha</b>, tarjetas con los <b>porcentajes y totales del equipo</b>. Arriba pones el <b>rival</b> y ves el marcador.</p>
 
     <h3>1 · Convocatoria (quiénes juegan hoy)</h3>
     <ol class="steps">
@@ -402,33 +402,54 @@
       <li>¿Llegó un refuerzo de último minuto? Toca <b>＋ Parche</b> para agregarlo solo para este partido (queda marcado en naranja).</li>
     </ol>
 
-    <h3>2 · Registrar acciones (toca el jugador, luego la acción)</h3>
+    <h3>2 · En cancha, banca y cambios (arrastrando)</h3>
+    <p>Los <b>5 que están en cancha</b> aparecen en la <b>primera fila</b> (borde verde, etiqueta <b>● Cancha</b>); la <b>banca</b> queda debajo, más atenuada. Cada cuadro muestra los <b>minutos jugados</b> y una <b>★</b> si es titular.</p>
     <ol class="steps">
-      <li>A la izquierda ves a los convocados en <b>cuadros</b>, cada uno con su número y sus puntos.</li>
+      <li>Para <b>hacer un cambio</b>: <b>mantén presionado</b> un jugador (medio segundo) y <b>arrástralo sobre otro</b>. Al soltar te pregunta <b>“¿Cambiar a X (sale) por Y (entra)?”</b>. Confirmas y listo.</li>
+      <li>Un <b>deslizamiento rápido</b> solo mueve la lista (scroll); un <b>toque simple</b> abre las acciones del jugador.</li>
+      <li>Los <b>titulares</b> se fijan solos: son los 5 que estén en cancha cuando le das <b>▶</b> por primera vez. Ordénalos antes de empezar.</li>
+    </ol>
+
+    <h3>3 · Reloj y minutos</h3>
+    <p>Arriba a la izquierda está el <b>cronómetro del cuarto</b> (C1–C4 = 10:00, TE = 5:00).</p>
+    <ul class="plain">
+      <li><span class="chip">▶ / ⏸</span> inicia o pausa el reloj. Mientras corre, se <b>suman los minutos</b> solo a los que están en cancha.</li>
+      <li><span class="chip">⟲</span> reinicia el cronómetro del cuarto.</li>
+      <li>Al <b>cambiar de cuarto</b> (barra C1–C4/TE) el reloj se pone en el tiempo completo del nuevo cuarto.</li>
+    </ul>
+
+    <h3>4 · Registrar acciones (toca el jugador, luego la acción)</h3>
+    <ol class="steps">
       <li><b>Toca el cuadro</b> del jugador. Se abre su <b>detalle</b> con los botones de acción.</li>
-      <li>Toca la acción: <b>2P / 3P / TL</b> (anotado o fallado), <b>Rebote, Asistencia, Robo, Tapa, Pérdida, Falta</b>. El marcador y la tabla se actualizan solos.</li>
+      <li>Toca la acción: <b>2P / 3P / TL</b> (anotado o fallado), <b>Rebote, Asistencia, Robo, Tapa, Pérdida, Falta</b>. El marcador y las tarjetas se actualizan solos.</li>
       <li>Toca <b>‹ Volver</b> para regresar a los cuadros y registrar a otro jugador.</li>
       <li><b>Rival:</b> con los botones <b>+2 / +3 / +1</b> (y <b>Rival −1</b> para corregir).</li>
       <li>¿Te equivocaste? <span class="chip">↶ Deshacer</span> borra la última acción registrada.</li>
     </ol>
 
-    <h3>3 · Ubicación del tiro</h3>
+    <h3>5 · Ubicación del tiro</h3>
     <p>Al registrar un <b>2P o 3P</b> (anotado o fallado), aparece una <b>media cancha</b>: <b>toca el lugar</b> desde donde se lanzó y queda marcado. Si no quieres registrar el punto exacto, toca <b>Sin ubicación</b>. Con <b>Cancelar</b> no se cuenta la acción.</p>
 
-    <h3>4 · Cuartos (C1–C4 y TE)</h3>
-    <p>Arriba de los jugadores está la barra de <b>cuartos</b>: <span class="chip">C1</span> <span class="chip">C2</span> <span class="chip">C3</span> <span class="chip">C4</span> <span class="chip">TE</span> <span class="chip">Total</span>. El cuarto <b>marcado</b> es donde se registra; toca otro para <b>cambiar de cuarto</b>. <b>Total</b> muestra la suma del partido. Así la estadística queda separada por período.</p>
+    <h3>6 · Cuartos (C1–C4 y TE)</h3>
+    <p>La barra de <b>cuartos</b> <span class="chip">C1</span> <span class="chip">C2</span> <span class="chip">C3</span> <span class="chip">C4</span> <span class="chip">TE</span> <span class="chip">Total</span> elige dónde registras y qué ves. El cuarto <b>marcado</b> es el activo; <b>Total</b> muestra la suma del partido.</p>
 
-    <h3>5 · Gráfico de lanzamientos</h3>
-    <p>El botón <span class="chip">Lanzamientos</span> abre el <b>mapa de tiros</b> sobre la media cancha: cada <b>● verde</b> es un tiro anotado y cada <b>✕ rojo</b> uno fallado. Puedes <b>filtrar por jugador</b> y por <b>cuarto</b>, y ver el <b>porcentaje</b>. También puedes registrar tiros tocando directamente la cancha ahí.</p>
+    <h3>7 · Panel de la derecha y la Tabla</h3>
+    <p>A la derecha ves <b>tarjetas del equipo</b>: <b>%2P, %3P y %TL</b> (con aciertos/intentos), más totales de <b>Puntos, Tiro de campo, Rebotes, Asistencias, Robos, Tapas, Pérdidas y Faltas</b> del cuarto elegido. Para el <b>detalle por jugador</b>, toca <span class="chip">Tabla</span>: se abre la planilla completa en una ventana.</p>
 
-    <h3>6 · Guardar e Historial</h3>
+    <h3>8 · Lanzamientos</h3>
+    <p>El botón <span class="chip">Lanzamientos</span> abre el <b>mapa de tiros</b>: cada <b>● verde</b> es un tiro anotado y cada <b>✕ rojo</b> uno fallado. Filtras por <b>jugador</b> y <b>cuarto</b>, y ves el <b>porcentaje</b>.</p>
+
+    <h3>9 · Informe con notas (valoración FIBA)</h3>
+    <p>El botón <span class="chip">Informe</span> abre una <b>pestaña aparte</b> con: marcador por cuarto, planilla con <b>minutos</b>, gráficas (puntos, valoración y minutos por jugador) y el mapa de tiros. Tiene botón <b>Imprimir / PDF</b>.</p>
+    <div class="call tip"><div class="ic">✓</div><div><span class="t">Valoración y nota por jugador</span><p>Se calcula la <b>valoración (FIBA)</b>: (PTS + REB + AST + ROB + TAP) − (tiros de campo fallados + tiros libres fallados + pérdidas + faltas). A partir de ella, cada jugador recibe una <b>nota de 1,0 a 7,0</b> orientativa (4,0 + 0,22 × valoración).</p></div></div>
+
+    <h3>10 · Guardar e Historial</h3>
     <ul class="plain">
-      <li><span class="chip">Guardar partido</span> lo archiva (con su planilla, tiros y cuartos) y deja todo listo para el próximo.</li>
-      <li><span class="chip">Historial</span> muestra los partidos guardados. Toca <b>ver</b> para el resumen, o <span class="chip g">Cargar</span> para <b>traer todo de vuelta a la vista</b> —la misma tabla y los tiros— y revisarlo con calma.</li>
+      <li><span class="chip">Guardar partido</span> lo archiva (planilla, tiros, cuartos, minutos y titulares) y deja todo listo para el próximo.</li>
+      <li><span class="chip">Historial</span> muestra los partidos guardados. Toca <b>ver</b> para el resumen, o <span class="chip g">Cargar</span> para <b>traer todo de vuelta a la vista</b> y revisarlo con calma.</li>
       <li><span class="chip">Exportar CSV</span> descarga la planilla para Excel/Sheets.</li>
       <li><span class="chip">Reiniciar</span> pone el partido actual a cero (no toca el plantel).</li>
     </ul>
-    <div class="call tip"><div class="ic">✓</div><div><span class="t">Cargar un partido guardado</span><p>Si <b>no hay un partido en curso</b>, entra a <span class="chip">Historial</span> y toca <b>Cargar</b> en el que quieras: vuelve a la vista con la <b>tabla completa</b>, los <b>cuartos</b> y los <b>tiros</b>. Si había un partido a medias, te avisa antes de reemplazarlo (el guardado no se pierde).</p></div></div>
   </section>
 
   <section class="ch" id="c14">
