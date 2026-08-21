@@ -304,8 +304,7 @@
   .court-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
   .bench-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
   @media(max-width:640px){ .court-row{grid-template-columns:repeat(3,1fr)} }
-  .pbox{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .pbox.armed{transform:scale(1.06);box-shadow:0 14px 30px -10px #000;z-index:2}
+  .pbox{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
   .pbox.dragsrc{opacity:.35}
   .pbox.drop{outline:3px dashed var(--amber);outline-offset:2px}
   .pbox.droptarget{border-style:dashed}
@@ -2315,22 +2314,21 @@
   function cardUnder(x,y,selfId){ const e=document.elementFromPoint(x,y); const c=e&&e.closest?e.closest('.pbox'):null; if(!c) return null;
     const id=c.getAttribute('data-pid'); if(!id||id===selfId) return null; if(isOnCourt(id)===isOnCourt(selfId)) return null; return c; }
   function bindCard(el,pid){
-    let sx,sy,armed=false,dragging=false,clone=null,curTarget=null,timer=null;
-    function cleanup(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); if(timer){ clearTimeout(timer); timer=null; } }
+    let sx,sy,dragging=false,clone=null,curTarget=null, w=0;
     function move(ev){
-      if(dragging){ moveDrag(ev); ev.preventDefault(); return; }
-      if(!armed){ if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>10){ cleanup(); } return; }  // deslizó antes de armar → scroll
-      startDrag(); moveDrag(ev); ev.preventDefault();
+      if(!dragging){ if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)<7) return; startDrag(); }
+      moveDrag(ev); if(ev.cancelable) ev.preventDefault();
     }
-    function up(){ cleanup(); el.classList.remove('armed');
+    function up(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up);
       if(dragging){ endDrag(); }
-      else { selPlayer=pid; renderRosterBar(); renderSheet(); updatePadHint(); } }  // toque = registrar
-    el.addEventListener('pointerdown',function(e){ if(e.button&&e.button!==0) return; sx=e.clientX; sy=e.clientY; armed=false; dragging=false;
-      timer=setTimeout(function(){ armed=true; el.classList.add('armed'); },180);   // mantener presionado ~0.2s = arrastrar
+      else { selPlayer=pid; renderRosterBar(); renderSheet(); updatePadHint(); } }   // toque simple = registrar
+    el.addEventListener('pointerdown',function(e){ if(e.button&&e.button!==0) return; sx=e.clientX; sy=e.clientY; dragging=false; w=el.offsetWidth;
       document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up); });
-    function startDrag(){ dragging=true; clone=el.cloneNode(true); clone.classList.remove('bench'); clone.style.cssText+=';position:fixed;pointer-events:none;z-index:9998;margin:0;width:'+el.offsetWidth+'px;opacity:.92;transform:scale(1.05);box-shadow:0 20px 44px -12px #000'; document.body.appendChild(clone); el.classList.add('dragsrc');
+    function startDrag(){ dragging=true; clone=el.cloneNode(true); clone.classList.remove('bench');
+      clone.style.cssText+=';position:fixed;pointer-events:none;z-index:9998;margin:0;left:-9999px;top:0;width:'+w+'px;opacity:.92;transform:scale(1.05);box-shadow:0 20px 44px -12px #000';
+      document.body.appendChild(clone); el.classList.add('dragsrc');
       [].forEach.call(document.querySelectorAll('.pbox[data-pid]'),function(t){ const id=t.getAttribute('data-pid'); if(id!==pid && isOnCourt(id)!==isOnCourt(pid)) t.classList.add('droptarget'); }); }
-    function moveDrag(ev){ if(clone){ clone.style.left=(ev.clientX-el.offsetWidth/2)+'px'; clone.style.top=(ev.clientY-26)+'px'; }
+    function moveDrag(ev){ if(clone){ clone.style.left=(ev.clientX-w/2)+'px'; clone.style.top=(ev.clientY-26)+'px'; }
       const t=cardUnder(ev.clientX,ev.clientY,pid); if(t!==curTarget){ if(curTarget) curTarget.classList.remove('drop'); curTarget=t; if(curTarget) curTarget.classList.add('drop'); } }
     function endDrag(){ if(clone){ clone.remove(); clone=null; } el.classList.remove('dragsrc');
       [].forEach.call(document.querySelectorAll('.pbox.droptarget'),function(t){ t.classList.remove('droptarget'); });

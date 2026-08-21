@@ -32,14 +32,29 @@ const upload = multer({
 const uploadedUrl = (file) => file ? '/uploads/' + file.filename : '';
 
 // Subida para Highlights: acepta un video (o imagen) + una miniatura. Límite mayor.
+const VIDEO_EXT = /\.(mp4|m4v|mov|webm|ogg|ogv|mkv|avi|3gp|3g2|mpg|mpeg|ts|m2ts|wmv|flv)$/i;
 const uploadHL = multer({
   storage,
   limits: { fileSize: 300 * 1024 * 1024 },   // 300 MB por video
   fileFilter: (req, file, cb) => {
-    if (file.fieldname === 'video') return cb(null, /^video\/(mp4|webm|quicktime|ogg)$/.test(file.mimetype));
-    return cb(null, /^image\/(png|jpe?g|webp|gif|avif)$/.test(file.mimetype));   // poster
+    if (file.fieldname === 'video') {
+      // Aceptar por tipo MIME de video o por extensión (algunos navegadores no envían un MIME fiable).
+      if (/^video\//i.test(file.mimetype) || VIDEO_EXT.test(file.originalname || '')) return cb(null, true);
+      const e = new Error('Formato de video no soportado. Usa MP4, MOV, M4V, WebM, MKV, AVI, OGG, 3GP, MPEG, TS, WMV o FLV.');
+      e.code = 'BAD_VIDEO'; return cb(e);
+    }
+    if (/^image\/(png|jpe?g|webp|gif|avif)$/.test(file.mimetype)) return cb(null, true);
+    const e = new Error('La portada debe ser una imagen (PNG, JPG, WEBP, GIF o AVIF).');
+    e.code = 'BAD_POSTER'; return cb(e);
   }
 }).fields([{ name: 'video', maxCount: 1 }, { name: 'poster', maxCount: 1 }]);
+// Envuelve la subida para devolver un mensaje claro si el formato o el tamaño no corresponden.
+const uploadHLsafe = (req, res, next) => uploadHL(req, res, (err) => {
+  if (!err) return next();
+  let msg = err.message || 'No se pudo subir el archivo.';
+  if (err.code === 'LIMIT_FILE_SIZE') msg = 'El archivo supera el máximo de 300 MB.';
+  return res.status(400).send(msg + ' — <a href="/admin/panel#highlights">volver</a>');
+});
 const fileField = (req, name) => (req.files && req.files[name] && req.files[name][0]) || null;
 
 // ---- Autenticación ----
@@ -136,7 +151,7 @@ module.exports = function (checkCsrf) {
     if (!item) return next();
     res.render('admin/highlight-form', { item });
   });
-  router.post('/highlights/:id?', uploadHL, checkCsrf, (req, res) => {
+  router.post('/highlights/:id?', uploadHLsafe, checkCsrf, (req, res) => {
     const b = req.body;
     const video = uploadedUrl(fileField(req, 'video')) || b.video || '';
     const poster = uploadedUrl(fileField(req, 'poster')) || b.poster || '';

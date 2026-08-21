@@ -6,8 +6,8 @@
   <h1><%= item ? 'Editar highlight' : 'Nuevo highlight' %></h1>
   <div class="field"><label>Título (opcional)</label><input type="text" name="title" placeholder="Ej: Contragolpe vs. Rival" value="<%= item ? item.title : '' %>"></div>
   <div class="field">
-    <label>Subir video (MP4 · máx. 300 MB)</label>
-    <input type="file" name="video" accept="video/*">
+    <label>Subir video (MP4, MOV, WebM, MKV, AVI… · máx. 300 MB)</label>
+    <input type="file" name="video" accept="video/*,.mp4,.m4v,.mov,.webm,.ogg,.ogv,.mkv,.avi,.3gp,.3g2,.mpg,.mpeg,.ts,.m2ts,.wmv,.flv">
     <% if (item && item.video) { %><input type="hidden" name="video" value="<%= item.video %>"><video src="<%= item.video %>" controls style="max-height:180px;border-radius:10px;margin-top:8px"></video><% } %>
     <div class="hint">Ideal para tus propias grabaciones. Clips cortos (10–40 s) para que carguen rápido.</div>
   </div>
