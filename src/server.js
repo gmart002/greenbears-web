@@ -39,6 +39,8 @@ app.use(helmet({
 }));
 
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+// Versión de assets para invalidar el caché del CSS/JS en cada despliegue.
+app.locals.assetVer = Date.now().toString(36);
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '7d' }));
 app.use('/uploads', express.static(path.join(DATA_DIR, 'uploads'), { maxAge: '30d' }));
 

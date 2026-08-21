@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=<%= typeof assetVer !== 'undefined' ? assetVer : '1' %>">
   <link rel="stylesheet" href="/css/admin.css">
   <style>:root{ --primary: <%= /^#[0-9a-fA-F]{3,8}$/.test(s.primary) ? s.primary : '#1f9b57' %>; }</style>
 </head>
