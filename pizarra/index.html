@@ -370,10 +370,27 @@
     return fetch('/pizarra/api'+p,opts);
   }
   function payloadStr(){ var o={}; KEYS.forEach(function(k){var v=localStorage.getItem(k); if(v!=null)o[k]=v;}); return JSON.stringify(o); }
-  function pushNow(){ if(!cur||readonly) return Promise.resolve(); return api('/teams/'+cur.id,{method:'PUT',body:JSON.stringify({payload:payloadStr()})}).catch(function(){}); }
-  function schedule(){ if(!cur||readonly)return; clearTimeout(timer); timer=setTimeout(pushNow,900); }
+  var alerted=false;
+  function setStat(state){
+    var el=document.getElementById('pzSync');
+    if(!el){ el=document.createElement('div'); el.id='pzSync'; el.style.cssText='position:fixed;left:12px;bottom:46px;z-index:9001;font:700 .72rem system-ui,sans-serif;padding:4px 10px;border-radius:999px;pointer-events:none;transition:opacity .3s;opacity:0'; document.body.appendChild(el); }
+    var m={saving:['Guardando…','#332b12','#f0c04a'], ok:['Guardado ✓','#11251a','#7ee6a6'], err:['⚠ No se guardó','#3a1414','#f0908b']};
+    var c=m[state]; if(!c){ el.style.opacity='0'; return; }
+    el.textContent=c[0]; el.style.background=c[1]; el.style.color=c[2]; el.style.opacity='1';
+    if(state==='ok') setTimeout(function(){ if(el.textContent==='Guardado ✓') el.style.opacity='0'; },1400);
+  }
+  function pushNow(opts){ if(!cur||readonly) return Promise.resolve(); opts=opts||{}; setStat('saving');
+    return fetch('/pizarra/api/teams/'+cur.id,{method:'PUT',credentials:'same-origin',keepalive:!!opts.keepalive,
+      headers:{'x-pizarra':'1','content-type':'application/json'},body:JSON.stringify({payload:payloadStr()})})
+      .then(function(r){ if(!r.ok){ setStat('err');
+          if(r.status===413 && !alerted){ alerted=true; alert('Este equipo tiene demasiados datos para guardar (probablemente un logo o imágenes muy pesadas). Cambia el logo por uno más liviano.'); }
+          return; }
+        setStat('ok'); })
+      .catch(function(){ setStat('err'); }); }
+  function schedule(){ if(!cur||readonly)return; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
   localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
-  window.addEventListener('pagehide',function(){ pushNow(); });
+  window.addEventListener('pagehide',function(){ pushNow({keepalive:true}); });
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') pushNow({keepalive:true}); });
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function writeTeam(data,plantel,clubLogo){

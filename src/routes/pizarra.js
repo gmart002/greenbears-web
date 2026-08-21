@@ -52,7 +52,7 @@ module.exports = function (checkCsrf) {
 
   // ---------------- API de equipos (JSON, protegida por sesión de coach) ----------------
   const api = express.Router();
-  api.use(express.json({ limit: '6mb' }));
+  api.use(express.json({ limit: '25mb' }));
   // Solo coach con sesión; defensa CSRF ligera para JSON: exige cabecera propia
   // (un formulario de otro sitio no puede enviar cabeceras personalizadas).
   api.use((req, res, next) => {
@@ -100,6 +100,12 @@ module.exports = function (checkCsrf) {
   api.delete('/teams/:id', (req, res) => {
     deleteTeam(Number(req.params.id), req.coachId);
     res.json({ ok: true });
+  });
+
+  // Errores del API en JSON (p. ej. payload demasiado grande → 413).
+  api.use((err, req, res, next) => {
+    const code = err.status || err.statusCode || 400;
+    res.status(code).json({ error: code === 413 ? 'too-large' : 'bad-request' });
   });
 
   router.use('/api', api);
