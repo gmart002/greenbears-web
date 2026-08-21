@@ -34,7 +34,7 @@ const uploadedUrl = (file) => file ? '/uploads/' + file.filename : '';
 // Subida para Highlights: acepta un video (o imagen) + una miniatura. Límite mayor.
 const uploadHL = multer({
   storage,
-  limits: { fileSize: 80 * 1024 * 1024 },   // 80 MB por video
+  limits: { fileSize: 300 * 1024 * 1024 },   // 300 MB por video
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'video') return cb(null, /^video\/(mp4|webm|quicktime|ogg)$/.test(file.mimetype));
     return cb(null, /^image\/(png|jpe?g|webp|gif|avif)$/.test(file.mimetype));   // poster
