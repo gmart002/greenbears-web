@@ -216,7 +216,7 @@
   .chip.pt:active{background:var(--panel2)}
 
   .stats-body{flex:1;display:flex;min-height:0}
-  .tracker{flex:1 1 50%;min-width:0;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px;overflow-y:auto}
+  .tracker{flex:1 1 62%;min-width:0;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:14px;overflow-y:auto}
   .period-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
   .pbtn2{font-family:inherit;font-weight:700;font-size:14px;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;position:relative}
   .pbtn2.on{background:var(--team-green);border-color:var(--team-green);color:#fff}
@@ -279,7 +279,41 @@
   .undo{background:var(--panel);border:1px solid var(--line2);border-radius:10px;min-height:44px;font-weight:700;color:var(--ink)}
   .undo:disabled{opacity:.4}
 
-  .sheet-wrap{flex:1 1 50%;min-width:0;overflow:auto;padding:14px}
+  .sheet-wrap{flex:1 1 38%;min-width:0;overflow:auto;padding:14px}
+  /* Panel de estadísticas del equipo (tarjetas) */
+  .teamstats{display:flex;flex-direction:column;gap:12px}
+  .ts-score{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .ts-score b{font-family:"Barlow Condensed";font-weight:800;font-size:34px;line-height:1}
+  .ts-score .us{color:var(--team-green)} .ts-score .them{color:var(--amber)} .ts-score .dash{color:var(--faint);font-size:22px}
+  .ts-score small{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+  .ts-shots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ts-shot{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .ts-shot .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .ts-shot .pct{font-family:"Barlow Condensed";font-weight:800;font-size:30px;line-height:1.05;color:var(--ink)}
+  .ts-shot .mk{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .ts-shot .barwrap{height:6px;background:var(--bg2);border-radius:4px;margin-top:7px;overflow:hidden}
+  .ts-shot .bar{height:100%;background:var(--team-green);border-radius:4px}
+  .ts-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .ts-tile{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 6px;text-align:center}
+  .ts-tile b{font-family:"Barlow Condensed";font-weight:800;font-size:22px;color:var(--ink);display:block;line-height:1}
+  .ts-tile span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+  .ts-note{font-size:11px;color:var(--faint);text-align:center}
+  /* Roster: en cancha (fila) + banca */
+  .rgroup-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:2px 2px -2px}
+  .rgroup-lbl.court{color:var(--team-green)}
+  .court-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .bench-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+  @media(max-width:640px){ .court-row{grid-template-columns:repeat(3,1fr)} }
+  .pbox{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .pbox.armed{transform:scale(1.06);box-shadow:0 14px 30px -10px #000;z-index:2}
+  .pbox.dragsrc{opacity:.35}
+  .pbox.drop{outline:3px dashed var(--amber);outline-offset:2px}
+  .pbox.droptarget{border-style:dashed}
+  /* Modal tabla completa */
+  .tblmodal-bg{position:fixed;inset:0;z-index:9650;background:rgba(8,12,10,.9);display:flex;align-items:center;justify-content:center;padding:16px}
+  .tblmodal{background:var(--bg);border:1px solid var(--line2);border-radius:16px;max-width:900px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000}
+  .tblmodal .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .tblmodal .bd{overflow:auto;padding:8px 12px 14px}
   table.sheet{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
   table.sheet th,table.sheet td{padding:8px 9px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
   table.sheet th{position:sticky;top:0;background:var(--bg2);color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;z-index:1}
@@ -537,6 +571,7 @@
           <button class="mini" id="btnPlantel">Plantel</button>
           <button class="mini" id="btnShots">Lanzamientos</button>
           <button class="mini" id="btnHistory">Historial</button>
+          <button class="mini" id="btnTable">Tabla</button>
           <button class="mini" id="btnReport">Informe</button>
           <button class="mini" id="btnStatExport">Exportar CSV</button>
           <button class="mini" id="btnStatFinish">Guardar partido</button>
@@ -551,7 +586,6 @@
             <div class="clk-ctrls">
               <button class="clk-btn play" id="clkToggle" title="Iniciar / Pausar">▶</button>
               <button class="clk-btn" id="clkReset" title="Reiniciar el cronómetro del cuarto">⟲</button>
-              <button class="clk-btn wide" id="clkSubs" title="Hacer cambios">⇄ Cambios</button>
             </div>
           </div>
           <div class="period-bar" id="periodBar"></div>
@@ -561,7 +595,7 @@
           <button class="undo" id="btnUndo" disabled>↶ Deshacer</button>
         </div>
         <div class="sheet-wrap">
-          <table class="sheet" id="statSheet"></table>
+          <div class="teamstats" id="teamStats"></div>
         </div>
       </div>
     </section>
@@ -2240,20 +2274,23 @@
       if(pad) pad.style.display='';
       if(hint) hint.style.display='';
     } else {
-      // --- Cuadros de jugadores (estilo tarjetas) ---
-      const grid=document.createElement('div'); grid.className='roster-grid';
-      presentRoster().forEach(p=>{
-        const c=viewCnt(p.id); const on=isOnCourt(p.id);
-        const el=document.createElement('button'); el.className='pbox'+(on?' oncourt':' bench'); el.setAttribute('data-min',p.id);
-        const nl=nameLines(p.name);
-        const nameHtml='<span class="l1">'+escapeHtml(nl[0])+'</span>'+(nl[1]?'<span class="l2">'+escapeHtml(nl[1])+(p.tmp?' <em>parche</em>':'')+'</span>':(p.tmp?'<span class="l2"><em>parche</em></span>':''));
-        const tag=(on?'● Cancha':'Banca')+(isStarter(p.id)?' ★':'');
-        el.innerHTML='<span class="pb-num">'+(p.num||'–')+'</span><span class="pb-name">'+nameHtml+'</span><span class="pb-pts">'+ptsOf(c)+'<small>PTS</small></span>'
-          +'<span class="pb-tag">'+tag+'</span><span class="pb-min">'+fmtMin(liveSecs(p.id))+'</span>';
-        el.onclick=()=>{ selPlayer=p.id; renderRosterBar(); renderSheet(); updatePadHint(); };
-        grid.appendChild(el);
-      });
-      bar.appendChild(grid);
+      // --- En cancha (fila) + Banca, con arrastre para cambios ---
+      ensureOncourt();
+      const pres=presentRoster();
+      const onc=pres.filter(p=>isOnCourt(p.id));
+      const ben=pres.filter(p=>!isOnCourt(p.id));
+      const cl=document.createElement('div'); cl.className='rgroup-lbl court';
+      cl.textContent='En cancha ('+onc.length+'/5) — arrastra un jugador sobre otro para cambiar';
+      bar.appendChild(cl);
+      const crow=document.createElement('div'); crow.className='court-row';
+      onc.forEach(p=>crow.appendChild(buildPbox(p)));
+      if(!onc.length){ const e=document.createElement('div'); e.className='ts-note'; e.style.gridColumn='1/-1'; e.textContent='Nadie en cancha.'; crow.appendChild(e); }
+      bar.appendChild(crow);
+      const bl=document.createElement('div'); bl.className='rgroup-lbl'; bl.textContent='Banca'; bar.appendChild(bl);
+      const bgrid=document.createElement('div'); bgrid.className='bench-grid';
+      ben.forEach(p=>bgrid.appendChild(buildPbox(p)));
+      if(!ben.length){ const e=document.createElement('div'); e.className='ts-note'; e.textContent='Nadie en banca.'; bgrid.appendChild(e); }
+      bar.appendChild(bgrid);
       const acts=document.createElement('div'); acts.className='roster-acts';
       const conv=document.createElement('button'); conv.className='pchip add'; conv.innerHTML='✔ Convocatoria'; conv.onclick=openConvocatoria; acts.appendChild(conv);
       const add=document.createElement('button'); add.className='pchip add'; add.innerHTML='＋ Jugador'; add.onclick=addPlayer; acts.appendChild(add);
@@ -2261,6 +2298,55 @@
       if(pad) pad.style.display='none';
       if(hint) hint.style.display='none';
     }
+  }
+  // Tarjeta de jugador (toca = registrar; arrastra sobre otro = cambio)
+  function buildPbox(p){
+    const c=viewCnt(p.id); const on=isOnCourt(p.id);
+    const el=document.createElement('div'); el.className='pbox'+(on?' oncourt':' bench');
+    el.setAttribute('data-min',p.id); el.setAttribute('data-pid',p.id);
+    const nl=nameLines(p.name);
+    const nameHtml='<span class="l1">'+escapeHtml(nl[0])+'</span>'+(nl[1]?'<span class="l2">'+escapeHtml(nl[1])+(p.tmp?' <em>parche</em>':'')+'</span>':(p.tmp?'<span class="l2"><em>parche</em></span>':''));
+    const tag=(on?'● Cancha':'Banca')+(isStarter(p.id)?' ★':'');
+    el.innerHTML='<span class="pb-num">'+(p.num||'–')+'</span><span class="pb-name">'+nameHtml+'</span><span class="pb-pts">'+ptsOf(c)+'<small>PTS</small></span>'
+      +'<span class="pb-tag">'+tag+'</span><span class="pb-min">'+fmtMin(liveSecs(p.id))+'</span>';
+    bindCard(el,p.id);
+    return el;
+  }
+  function cardUnder(x,y,selfId){ const e=document.elementFromPoint(x,y); const c=e&&e.closest?e.closest('.pbox'):null; if(!c) return null;
+    const id=c.getAttribute('data-pid'); if(!id||id===selfId) return null; if(isOnCourt(id)===isOnCourt(selfId)) return null; return c; }
+  function bindCard(el,pid){
+    let sx,sy,armed=false,dragging=false,clone=null,curTarget=null,timer=null;
+    function cleanup(){ document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); document.removeEventListener('pointercancel',up); if(timer){ clearTimeout(timer); timer=null; } }
+    function move(ev){
+      if(dragging){ moveDrag(ev); ev.preventDefault(); return; }
+      if(!armed){ if(Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>10){ cleanup(); } return; }  // deslizó antes de armar → scroll
+      startDrag(); moveDrag(ev); ev.preventDefault();
+    }
+    function up(){ cleanup(); el.classList.remove('armed');
+      if(dragging){ endDrag(); }
+      else { selPlayer=pid; renderRosterBar(); renderSheet(); updatePadHint(); } }  // toque = registrar
+    el.addEventListener('pointerdown',function(e){ if(e.button&&e.button!==0) return; sx=e.clientX; sy=e.clientY; armed=false; dragging=false;
+      timer=setTimeout(function(){ armed=true; el.classList.add('armed'); },180);   // mantener presionado ~0.2s = arrastrar
+      document.addEventListener('pointermove',move); document.addEventListener('pointerup',up); document.addEventListener('pointercancel',up); });
+    function startDrag(){ dragging=true; clone=el.cloneNode(true); clone.classList.remove('bench'); clone.style.cssText+=';position:fixed;pointer-events:none;z-index:9998;margin:0;width:'+el.offsetWidth+'px;opacity:.92;transform:scale(1.05);box-shadow:0 20px 44px -12px #000'; document.body.appendChild(clone); el.classList.add('dragsrc');
+      [].forEach.call(document.querySelectorAll('.pbox[data-pid]'),function(t){ const id=t.getAttribute('data-pid'); if(id!==pid && isOnCourt(id)!==isOnCourt(pid)) t.classList.add('droptarget'); }); }
+    function moveDrag(ev){ if(clone){ clone.style.left=(ev.clientX-el.offsetWidth/2)+'px'; clone.style.top=(ev.clientY-26)+'px'; }
+      const t=cardUnder(ev.clientX,ev.clientY,pid); if(t!==curTarget){ if(curTarget) curTarget.classList.remove('drop'); curTarget=t; if(curTarget) curTarget.classList.add('drop'); } }
+    function endDrag(){ if(clone){ clone.remove(); clone=null; } el.classList.remove('dragsrc');
+      [].forEach.call(document.querySelectorAll('.pbox.droptarget'),function(t){ t.classList.remove('droptarget'); });
+      const t=curTarget; if(curTarget){ curTarget.classList.remove('drop'); } curTarget=null;
+      if(t){ trySwap(pid, t.getAttribute('data-pid')); } }
+  }
+  function trySwap(aId,bId){
+    if(isOnCourt(aId)===isOnCourt(bId)) return;
+    const outId=isOnCourt(aId)?aId:bId;   // el que está en cancha sale
+    const inId =isOnCourt(aId)?bId:aId;   // el de banca entra
+    const outP=roster.find(x=>x.id===outId), inP=roster.find(x=>x.id===inId);
+    const nm=function(p){ return (p&&p.num?'#'+p.num+' ':'')+(p?p.name:''); };
+    if(!confirm('¿Cambiar a '+nm(outP)+' (sale) por '+nm(inP)+' (entra)?')) { renderRosterBar(); return; }
+    settleClock();
+    game.oncourt=game.oncourt.map(x=>x===outId?inId:x);
+    saveGame(); renderRosterBar(); toast('Cambio: sale '+nm(outP)+', entra '+nm(inP));
   }
   function updatePadHint(){
     const p=roster.find(x=>x.id===selPlayer);
@@ -2279,28 +2365,46 @@
     });
     updatePadHint();
   }
+  // Panel derecho: tarjetas con % del equipo (2P, 3P, TL) + acumulados.
   function renderSheet(){
-    const t=document.getElementById('statSheet');
-    let h='<thead><tr><th>Jugador</th>'+COLS.slice(1).map(c=>'<th>'+c[1]+'</th>').join('')+'<th>PTS</th></tr></thead><tbody>';
+    const el=document.getElementById('teamStats'); if(!el) return;
     const pres=presentRoster();
-    if(!roster.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Agrega jugadores o usa la Convocatoria para llevar la estadística.</td></tr>'; }
-    else if(!pres.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Nadie convocado. Abre “Convocatoria” y marca los presentes.</td></tr>'; }
+    if(!pres.length){ el.innerHTML='<div class="ts-note" style="padding:22px 8px">Convoca jugadores para ver las estadísticas del equipo.</div>'; return; }
+    const tot=emptyCnt(); pres.forEach(p=>{ const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]); });
+    const pct=(m,a)=>a?Math.round(m/a*100):0;
+    const fgM=tot.m2+tot.m3, fgA=tot.a2+tot.a3;
+    const shot=(lbl,m,a)=>'<div class="ts-shot"><div class="lbl">'+lbl+'</div><div class="pct">'+pct(m,a)+'%</div><div class="mk">'+m+'/'+a+'</div><div class="barwrap"><div class="bar" style="width:'+pct(m,a)+'%"></div></div></div>';
+    const tile=(v,l)=>'<div class="ts-tile"><b>'+v+'</b><span>'+l+'</span></div>';
+    const per=(viewPeriod&&viewPeriod!==0)?((PERIODS.find(x=>x[0]===viewPeriod)||[0,''])[1]):'Total';
+    el.innerHTML=
+      '<div class="ts-shots">'+shot('2 puntos',tot.m2,tot.a2)+shot('3 puntos',tot.m3,tot.a3)+shot('Tiros libres',tot.mft,tot.aft)+'</div>'
+      +'<div class="ts-tiles">'+tile(ptsOf(tot),'Puntos')+tile(pct(fgM,fgA)+'%','Tiro camp.')+tile(tot.reb,'Rebotes')+tile(tot.ast,'Asist.')
+        +tile(tot.stl,'Robos')+tile(tot.blk,'Tapas')+tile(tot.tov,'Pérdidas')+tile(tot.pf,'Faltas')+'</div>'
+      +'<div class="ts-note">Equipo · '+escapeHtml(per)+' · toca “Tabla” para el detalle por jugador.</div>';
+  }
+  // Tabla completa por jugador en un modal.
+  function openTable(){
+    let ov=document.getElementById('tblOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='tblOv'; ov.className='tblmodal-bg';
+    const pres=presentRoster();
+    let h='<table class="sheet" style="width:100%;border-collapse:collapse"><thead><tr><th>Jugador</th>'+COLS.slice(1).map(c=>'<th>'+c[1]+'</th>').join('')+'<th>PTS</th></tr></thead><tbody>';
+    if(!pres.length){ h+='<tr class="empty-row"><td colspan="'+(COLS.length+1)+'">Nadie convocado.</td></tr>'; }
     const tot=emptyCnt();
-    pres.forEach(p=>{
-      const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
-      h+=`<tr class="${selPlayer===p.id?'sel':''}"><td><span class="pnum">${p.num||'–'}</span><span class="pname">${escapeHtml(p.name)}</span></td>`+
-        `<td>${c.m2}/${c.a2}</td><td>${c.m3}/${c.a3}</td><td>${c.mft}/${c.aft}</td>`+
-        `<td>${c.reb}</td><td>${c.ast}</td><td>${c.stl}</td><td>${c.blk}</td><td>${c.tov}</td><td>${c.pf}</td>`+
-        `<td class="pts">${ptsOf(c)}</td></tr>`;
-    });
-    if(pres.length){
-      h+=`<tr class="tot"><td>TOTAL</td>`+
-        `<td>${tot.m2}/${tot.a2}</td><td>${tot.m3}/${tot.a3}</td><td>${tot.mft}/${tot.aft}</td>`+
-        `<td>${tot.reb}</td><td>${tot.ast}</td><td>${tot.stl}</td><td>${tot.blk}</td><td>${tot.tov}</td><td>${tot.pf}</td>`+
-        `<td class="pts">${ptsOf(tot)}</td></tr>`;
-    }
-    h+='</tbody>';
-    t.innerHTML=h;
+    pres.forEach(p=>{ const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
+      h+='<tr><td><span class="pnum">'+(p.num||'–')+'</span><span class="pname">'+escapeHtml(p.name)+'</span></td>'
+        +'<td>'+c.m2+'/'+c.a2+'</td><td>'+c.m3+'/'+c.a3+'</td><td>'+c.mft+'/'+c.aft+'</td>'
+        +'<td>'+c.reb+'</td><td>'+c.ast+'</td><td>'+c.stl+'</td><td>'+c.blk+'</td><td>'+c.tov+'</td><td>'+c.pf+'</td>'
+        +'<td class="pts">'+ptsOf(c)+'</td></tr>'; });
+    if(pres.length){ h+='<tr class="tot"><td>TOTAL</td>'
+      +'<td>'+tot.m2+'/'+tot.a2+'</td><td>'+tot.m3+'/'+tot.a3+'</td><td>'+tot.mft+'/'+tot.aft+'</td>'
+      +'<td>'+tot.reb+'</td><td>'+tot.ast+'</td><td>'+tot.stl+'</td><td>'+tot.blk+'</td><td>'+tot.tov+'</td><td>'+tot.pf+'</td>'
+      +'<td class="pts">'+ptsOf(tot)+'</td></tr>'; }
+    h+='</tbody></table>';
+    const per=(viewPeriod&&viewPeriod!==0)?((PERIODS.find(x=>x[0]===viewPeriod)||[0,''])[1]):'Total';
+    ov.innerHTML='<div class="tblmodal"><div class="hd"><b style="font-size:1.1rem">Planilla por jugador · '+escapeHtml(per)+'</b><button id="tblX" style="background:none;border:0;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div><div class="bd">'+h+'</div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#tblX').onclick=function(){ ov.remove(); };
+    ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
   }
   function renderStats(){
     document.getElementById('rivalInput').value=game.rival||'';
@@ -2374,9 +2478,9 @@
   $('#btnShots').onclick=openShots;
   $('#btnHistory').onclick=openHistory;
   $('#btnReport').onclick=openReport;
+  $('#btnTable').onclick=openTable;
   $('#clkToggle').onclick=toggleClock;
   $('#clkReset').onclick=resetClock;
-  $('#clkSubs').onclick=openSubs;
   $('#btnStatExport').onclick=exportStatsCSV;
   $('#btnStatFinish').onclick=finishGame;
   $('#btnStatReset').onclick=resetGame;
