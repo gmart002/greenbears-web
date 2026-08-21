@@ -1799,7 +1799,14 @@
     (game.oncourt||[]).forEach(function(id){ game.secs[id]=(game.secs[id]||0)+add; }); c.base=nowMs();
     if(c.remain<=0){ c.remain=0; c.running=false; c.base=null; } }
   function liveSecs(id){ var c=game.clock; var extra=(c&&c.running&&c.base&&(game.oncourt||[]).indexOf(id)>=0)?(nowMs()-c.base)/1000:0; return (game.secs[id]||0)+extra; }
-  function ensureOncourt(){ if(!game.oncourt){ game.oncourt=presentRoster().slice(0,5).map(function(p){return p.id;}); } }
+  function ensureOncourt(){
+    var pres=presentRoster().map(function(p){return p.id;});
+    var before=Array.isArray(game.oncourt)?game.oncourt.slice():null;
+    if(!Array.isArray(game.oncourt)) game.oncourt=[];
+    game.oncourt=game.oncourt.filter(function(id){ return pres.indexOf(id)>=0; });   // quita no convocados
+    if(!game.oncourt.length) game.oncourt=pres.slice(0,5);                            // vacío → primeros 5 presentes
+    if(!before || before.join()!==game.oncourt.join()) saveGame();
+  }
   function isOnCourt(id){ ensureOncourt(); return game.oncourt.indexOf(id)>=0; }
   function isStarter(id){ return !!(game.starters&&game.starters.indexOf(id)>=0); }
   var clockTick=null;
