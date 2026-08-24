@@ -24,9 +24,9 @@
       <div class="matchcard">
         <div class="section-head" style="margin-bottom:12px"><span class="kicker">Próximo partido</span></div>
         <div class="match-teams"><span>Green Bears</span> <span class="muted">vs</span> <span><%= nextMatch.opponent %></span></div>
-        <p class="muted" style="margin:10px 0 0"><%= fmtDateTime(nextMatch.date) %><% if (nextMatch.location) { %> · <%= nextMatch.location %><% } %>
+        <p class="muted" style="margin:10px 0 0"><%= fmtDateTime(nextMatch.date) %><% if (nextMatch.tournament) { %> · <%= nextMatch.tournament %><% } %>
           <span class="badge <%= nextMatch.home ? 'home' : '' %>"><%= nextMatch.home ? 'Local' : 'Visita' %></span></p>
-        <div style="margin-top:14px"><a class="btn ghost sm" href="/calendario/<%= nextMatch.id %>.ics">+ Agregar al calendario</a></div>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn ghost sm" href="<%= nextMatch.icsUrl || ('/calendario/'+nextMatch.id+'.ics') %>">+ Agregar al calendario</a><a class="btn ghost sm" href="/lbo">Ver tabla LBO</a></div>
       </div>
       <% } %>
       <% if (lastResults.length) { %>

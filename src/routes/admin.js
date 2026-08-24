@@ -7,10 +7,11 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
   listUsers, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin,
-  listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach } = require('../db');
+  listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach,
+  lboAll, lboSaveResult, lboStandings } = require('../db');
 
 // Módulos del panel que se pueden otorgar a un editor (clave, etiqueta).
-const MODULES = [['noticias', 'Noticias'], ['jugadores', 'Jugadores'], ['partidos', 'Partidos'],
+const MODULES = [['noticias', 'Noticias'], ['jugadores', 'Jugadores'], ['partidos', 'Partidos'], ['lbo', 'Liga LBO'],
   ['galeria', 'Galería'], ['highlights', 'Highlights'], ['patrocinadores', 'Patrocinadores'],
   ['mensajes', 'Mensajes'], ['club', 'El Club']];
 
@@ -169,6 +170,17 @@ module.exports = function (checkCsrf) {
   });
   router.post('/highlights/:id/eliminar', checkCsrf, (req, res) => {
     db.prepare('DELETE FROM highlights WHERE id = ?').run(req.params.id); res.redirect('/admin/panel#highlights');
+  });
+
+  // ---- Liga LBO: cargar resultados y ver tabla ----
+  router.get('/lbo', (req, res) => {
+    const rounds = {};
+    lboAll().forEach(m => { (rounds[m.rnd] = rounds[m.rnd] || []).push(m); });
+    res.render('admin/lbo', { rounds, standings: lboStandings() });
+  });
+  router.post('/lbo/:id', checkCsrf, (req, res) => {
+    lboSaveResult(Number(req.params.id), req.body.home_pts, req.body.away_pts, req.body.wo);
+    res.redirect('/admin/lbo#f' + (req.body.rnd || ''));
   });
 
   // ---- Usuarios (solo superadmin) ----

@@ -1,0 +1,65 @@
+<% var pageTitle = 'Liga LBO 2026' %>
+<%- include('partials/header') %>
+<%
+  function res(m){
+    if(m.wo===1) return {done:true, h:20, a:0, wo:true};
+    if(m.wo===2) return {done:true, h:0, a:20, wo:true};
+    if(m.home_pts!=null && m.away_pts!=null) return {done:true, h:m.home_pts, a:m.away_pts, wo:false};
+    return {done:false};
+  }
+  var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function fdate(d){ if(!d) return ''; var p=String(d).split('-'); return p[2]+' '+(MESES[(+p[1])-1]||'')+' '+p[0]; }
+%>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head"><div><span class="kicker">Torneo</span><h2>Liga LBO 2026</h2></div>
+      <a class="btn ghost sm" href="/calendario">Partidos de Green Bears</a></div>
+
+    <% if (gbNext) { %>
+    <div class="matchcard" style="margin-bottom:26px">
+      <div class="section-head" style="margin-bottom:8px"><span class="kicker">Próximo de Green Bears</span></div>
+      <div class="match-teams" style="font-size:1.15rem">Green Bears <span class="muted">vs</span> <%= gbNext.opponent %></div>
+      <p class="muted" style="margin:8px 0 0"><%= fmtDateTime(gbNext.date) %> · Fecha <%= gbNext.rnd %>
+        <span class="badge <%= gbNext.home ? 'home' : '' %>"><%= gbNext.home ? 'Local' : 'Visita' %></span></p>
+    </div>
+    <% } %>
+
+    <h3 style="margin:6px 0 10px">Tabla de posiciones</h3>
+    <div class="lbo-wrap">
+      <table class="lbo">
+        <thead><tr><th>#</th><th class="l">Equipo</th><th>PJ</th><th>G</th><th>P</th><th>PF</th><th>PC</th><th>DIF</th><th>PTS</th></tr></thead>
+        <tbody>
+          <% standings.forEach(function(t){ var gb=(t.team===LBO_TEAM); %>
+          <tr class="<%= gb ? 'gb' : '' %> <%= t.pos<=4 ? 'clasif' : '' %>">
+            <td class="pos"><%= t.pos %></td>
+            <td class="l team"><%= t.team %></td>
+            <td><%= t.pj %></td><td><%= t.g %></td><td><%= t.p %></td>
+            <td><%= t.pf %></td><td><%= t.pc %></td>
+            <td class="<%= t.dif>0?'pos':(t.dif<0?'neg':'') %>"><%= t.dif>0?'+':'' %><%= t.dif %></td>
+            <td class="pts"><%= t.pts %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:.82rem;margin-top:8px">Clasifican los <b>4 primeros</b> (sombreados) a semifinales. Puntos: ganar 2 · perder 1 · W.O. 0. Desempate: puntos → diferencia (PF−PC) → resultado directo. <b>Green Bears</b> resaltado.</p>
+
+    <h3 style="margin:30px 0 10px">Fixture</h3>
+    <% Object.keys(rounds).sort(function(a,b){return a-b;}).forEach(function(rk){ var gs=rounds[rk]; %>
+      <div class="lbo-round">
+        <div class="lbo-rhead">Fecha <%= rk %> <span class="muted">· <%= fdate(gs[0].mdate) %></span></div>
+        <% gs.forEach(function(m){ var r=res(m); var gb=(m.home===LBO_TEAM||m.away===LBO_TEAM); %>
+          <div class="lbo-game <%= gb ? 'gb' : '' %>">
+            <span class="t hh <%= r.done&&r.h>r.a?'w':'' %>"><%= m.home %></span>
+            <span class="mid">
+              <% if (r.done) { %><b><%= r.h %></b><span class="muted">–</span><b><%= r.a %></b><% if (r.wo) { %><small>W.O.</small><% } %>
+              <% } else { %><span class="hr"><%= m.mtime %></span><% } %>
+            </span>
+            <span class="t aa <%= r.done&&r.a>r.h?'w':'' %>"><%= m.away %></span>
+          </div>
+        <% }) %>
+      </div>
+    <% }) %>
+  </div>
+</section>
+<%- include('partials/footer') %>

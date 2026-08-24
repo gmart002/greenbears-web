@@ -89,6 +89,14 @@
   </section>
   <% } %>
 
+  <% if (can('lbo')) { %>
+  <!-- Liga LBO -->
+  <section class="panel-sec">
+    <header><h2>Liga LBO 2026</h2><a class="btn primary sm" href="/admin/lbo">Cargar resultados / tabla</a></header>
+    <div class="muted sm" style="padding:0 20px 16px">Carga los marcadores de la liga; la tabla de posiciones se calcula según las bases y el próximo partido de Green Bears se publica solo en el sitio.</div>
+  </section>
+  <% } %>
+
   <% if (can('partidos')) { %>
   <!-- Partidos -->
   <section class="panel-sec">

@@ -249,3 +249,31 @@ p{margin:0 0 1rem}
 .hl-link img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
 .hl-link span{position:relative;font-family:"Barlow Condensed";font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .hl-card figcaption{padding:11px 14px;color:#fff;font-weight:600;font-size:.95rem}
+
+/* Liga LBO: tabla de posiciones + fixture */
+.lbo-wrap{overflow-x:auto;border-radius:var(--r);box-shadow:var(--shadow)}
+table.lbo{width:100%;border-collapse:collapse;font-size:.92rem;min-width:560px;background:var(--paper)}
+.lbo th,.lbo td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.lbo th{font-family:"Barlow Condensed";text-transform:uppercase;letter-spacing:.04em;font-size:.8rem;color:var(--muted);background:var(--paper2)}
+.lbo .l{text-align:left}
+.lbo td.pos{font-family:"Barlow Condensed";font-weight:800;color:var(--faint)}
+.lbo td.team{font-weight:600}
+.lbo td.pts{font-weight:800;color:var(--primary);font-size:1.02rem}
+.lbo td.pos+td.team{padding-left:4px}
+.lbo .pos{color:#1f9b57} .lbo .neg{color:#d0453d}
+.lbo tr.clasif td{background:rgba(31,155,87,.06)}
+.lbo tr.clasif td.pos{color:#fff;background:var(--primary)}
+.lbo tr.gb td{background:rgba(31,155,87,.16)}
+.lbo tr.gb td.team{color:var(--primary-d);font-weight:800}
+.lbo-round{margin-bottom:16px}
+.lbo-rhead{font-family:"Barlow Condensed";font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1rem;margin:0 2px 6px}
+.lbo-game{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-s);margin:6px 0;background:var(--paper)}
+.lbo-game.gb{border-color:var(--primary);background:rgba(31,155,87,.08)}
+.lbo-game .t{font-weight:600;color:var(--ink)}
+.lbo-game .hh{text-align:right}
+.lbo-game .aa{text-align:left}
+.lbo-game .t.w{color:var(--primary-d);font-weight:800}
+.lbo-game .mid{display:flex;align-items:center;justify-content:center;gap:6px;min-width:78px;font-variant-numeric:tabular-nums}
+.lbo-game .mid b{font-family:"Barlow Condensed";font-weight:800;font-size:1.15rem}
+.lbo-game .mid small{color:var(--faint);font-size:.66rem;font-weight:700}
+.lbo-game .mid .hr{font-family:"Barlow Condensed";font-weight:700;color:var(--muted)}

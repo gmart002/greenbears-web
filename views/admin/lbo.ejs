@@ -1,0 +1,46 @@
+<% var pageTitle = 'Liga LBO' %>
+<%- include('../partials/admin-head') %>
+<a class="link-back" href="/admin/panel">← Volver al panel</a>
+<div class="form-card" style="max-width:900px">
+  <h1>Liga LBO 2026 — resultados</h1>
+  <p class="hint">Carga el marcador de cada partido. La tabla de abajo se recalcula sola. Para un <b>W.O.</b> elige el equipo que gana (queda 20‑0). La tabla pública está en <a href="/lbo" target="_blank">/lbo</a>.</p>
+
+  <h2 style="margin-top:18px">Tabla de posiciones</h2>
+  <div class="lbo-wrap" style="margin-bottom:8px">
+    <table class="lbo">
+      <thead><tr><th>#</th><th class="l">Equipo</th><th>PJ</th><th>G</th><th>P</th><th>PF</th><th>PC</th><th>DIF</th><th>PTS</th></tr></thead>
+      <tbody>
+        <% standings.forEach(function(t){ %>
+        <tr class="<%= t.team==='GREEN BEARS'?'gb':'' %> <%= t.pos<=4?'clasif':'' %>">
+          <td class="pos"><%= t.pos %></td><td class="l team"><%= t.team %></td>
+          <td><%= t.pj %></td><td><%= t.g %></td><td><%= t.p %></td><td><%= t.pf %></td><td><%= t.pc %></td>
+          <td class="<%= t.dif>0?'pos':(t.dif<0?'neg':'') %>"><%= t.dif>0?'+':'' %><%= t.dif %></td><td class="pts"><%= t.pts %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 style="margin-top:22px">Fixture</h2>
+  <% Object.keys(rounds).sort(function(a,b){return a-b;}).forEach(function(rk){ var gs=rounds[rk]; %>
+    <div id="f<%= rk %>" style="margin:14px 0 6px;font-weight:800;font-family:'Barlow Condensed';text-transform:uppercase">Fecha <%= rk %> · <%= gs[0].mdate || '' %></div>
+    <% gs.forEach(function(m){ %>
+      <form method="post" action="/admin/lbo/<%= m.id %>" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line)">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <input type="hidden" name="rnd" value="<%= rk %>">
+        <span style="flex:1;min-width:110px;text-align:right;font-weight:<%= m.home==='GREEN BEARS'?'800':'600' %>"><%= m.home %></span>
+        <input type="number" name="home_pts" min="0" value="<%= m.home_pts!=null ? m.home_pts : '' %>" style="width:56px;text-align:center;padding:6px;border:1px solid var(--line);border-radius:8px">
+        <span class="muted">–</span>
+        <input type="number" name="away_pts" min="0" value="<%= m.away_pts!=null ? m.away_pts : '' %>" style="width:56px;text-align:center;padding:6px;border:1px solid var(--line);border-radius:8px">
+        <span style="flex:1;min-width:110px;font-weight:<%= m.away==='GREEN BEARS'?'800':'600' %>"><%= m.away %></span>
+        <select name="wo" style="padding:6px;border:1px solid var(--line);border-radius:8px">
+          <option value="0" <%= !m.wo?'selected':'' %>>Normal</option>
+          <option value="1" <%= m.wo===1?'selected':'' %>>W.O. gana local</option>
+          <option value="2" <%= m.wo===2?'selected':'' %>>W.O. gana visita</option>
+        </select>
+        <button class="btn primary sm">Guardar</button>
+      </form>
+    <% }) %>
+  <% }) %>
+</div>
+<%- include('../partials/admin-foot') %>

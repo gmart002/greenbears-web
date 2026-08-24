@@ -136,7 +136,91 @@ addColumn('coaches', 'role', "TEXT NOT NULL DEFAULT 'coach'"); // 'super' ve/rev
 db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
-const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
+const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
+
+// ---------- Liga LBO 2026 (fixture + resultados + tabla) ----------
+db.exec(`CREATE TABLE IF NOT EXISTS lbo_matches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rnd INTEGER NOT NULL,
+  mdate TEXT, mtime TEXT,
+  home TEXT NOT NULL, away TEXT NOT NULL,
+  home_pts INTEGER, away_pts INTEGER,
+  wo INTEGER NOT NULL DEFAULT 0,          -- 0 normal, 1 gana local por W.O., 2 gana visita por W.O.
+  sort INTEGER NOT NULL DEFAULT 0
+);`);
+(function seedLbo() {
+  if (db.prepare('SELECT COUNT(*) AS c FROM lbo_matches').get().c > 0) return;
+  const LBO_SEED = [
+    [1,"2026-09-27","10:00","OLD'S MAGIC","LOS CHAMOS"],
+    [1,"2026-09-27","11:30","RANCAGUA CAF","PLACILLA"],
+    [1,"2026-09-27","13:00","UNCA","PATRIOTAS"],
+    [1,"2026-09-27","14:30","PESTAÑAS","GREEN BEARS"],
+    [1,"2026-09-27","16:00","PARROTS","SANTA CRUZ"],
+    [1,"2026-09-27","17:30","UBC","O'HIGGINS"],
+    [2,"2026-10-03","13:00","OLD'S MAGIC","UNCA"],
+    [2,"2026-10-03","14:30","PATRIOTAS","RANCAGUA CAF"],
+    [2,"2026-10-03","16:00","PLACILLA","UBC"],
+    [2,"2026-10-03","17:30","O'HIGGINS","PARROTS"],
+    [2,"2026-10-03","19:00","SANTA CRUZ","PESTAÑAS"],
+    [2,"2026-10-03","20:30","LOS CHAMOS","GREEN BEARS"],
+    [3,"2026-10-10","13:00","PESTAÑAS","O'HIGGINS"],
+    [3,"2026-10-10","14:30","UBC","PATRIOTAS"],
+    [3,"2026-10-10","16:00","PARROTS","PLACILLA"],
+    [3,"2026-10-10","17:30","OLD'S MAGIC","RANCAGUA CAF"],
+    [3,"2026-10-10","19:00","GREEN BEARS","SANTA CRUZ"],
+    [3,"2026-10-10","20:30","UNCA","LOS CHAMOS"],
+    [4,"2026-10-18","10:00","LOS CHAMOS","SANTA CRUZ"],
+    [4,"2026-10-18","11:30","UNCA","RANCAGUA CAF"],
+    [4,"2026-10-18","13:00","PLACILLA","PESTAÑAS"],
+    [4,"2026-10-18","14:30","PATRIOTAS","PARROTS"],
+    [4,"2026-10-18","16:00","OLD'S MAGIC","UBC"],
+    [4,"2026-10-18","17:30","O'HIGGINS","GREEN BEARS"],
+    [5,"2026-10-24","13:00","OLD'S MAGIC","PARROTS"],
+    [5,"2026-10-24","14:30","UBC","UNCA"],
+    [5,"2026-10-24","16:00","PESTAÑAS","PATRIOTAS"],
+    [5,"2026-10-24","17:30","PLACILLA","GREEN BEARS"],
+    [5,"2026-10-24","19:00","O'HIGGINS","SANTA CRUZ"],
+    [5,"2026-10-24","20:30","RANCAGUA CAF","LOS CHAMOS"],
+    [6,"2026-11-07","13:00","PATRIOTAS","GREEN BEARS"],
+    [6,"2026-11-07","14:30","UNCA","PARROTS"],
+    [6,"2026-11-07","16:00","RANCAGUA CAF","UBC"],
+    [6,"2026-11-07","17:30","OLD'S MAGIC","PESTAÑAS"],
+    [6,"2026-11-07","19:00","PLACILLA","SANTA CRUZ"],
+    [6,"2026-11-07","20:30","LOS CHAMOS","O'HIGGINS"],
+    [7,"2026-11-14","13:00","PARROTS","RANCAGUA CAF"],
+    [7,"2026-11-14","14:30","PESTAÑAS","UNCA"],
+    [7,"2026-11-14","16:00","OLD'S MAGIC","GREEN BEARS"],
+    [7,"2026-11-14","17:30","O'HIGGINS","PLACILLA"],
+    [7,"2026-11-14","19:00","UBC","LOS CHAMOS"],
+    [7,"2026-11-14","20:30","SANTA CRUZ","PATRIOTAS"],
+    [8,"2026-11-21","13:00","UNCA","GREEN BEARS"],
+    [8,"2026-11-21","14:30","RANCAGUA CAF","PESTAÑAS"],
+    [8,"2026-11-21","16:00","UBC","PARROTS"],
+    [8,"2026-11-21","17:30","OLD'S MAGIC","SANTA CRUZ"],
+    [8,"2026-11-21","19:00","PATRIOTAS","O'HIGGINS"],
+    [8,"2026-11-21","20:30","LOS CHAMOS","PLACILLA"],
+    [9,"2026-12-05","13:00","OLD'S MAGIC","O'HIGGINS"],
+    [9,"2026-12-05","14:30","SANTA CRUZ","UNCA"],
+    [9,"2026-12-05","16:00","GREEN BEARS","RANCAGUA CAF"],
+    [9,"2026-12-05","17:30","PESTAÑAS","UBC"],
+    [9,"2026-12-05","19:00","PLACILLA","PATRIOTAS"],
+    [9,"2026-12-05","20:30","PARROTS","LOS CHAMOS"],
+    [10,"2026-12-12","13:00","PARROTS","PESTAÑAS"],
+    [10,"2026-12-12","14:30","LOS CHAMOS","PATRIOTAS"],
+    [10,"2026-12-12","16:00","OLD'S MAGIC","PLACILLA"],
+    [10,"2026-12-12","17:30","UNCA","O'HIGGINS"],
+    [10,"2026-12-12","19:00","UBC","GREEN BEARS"],
+    [10,"2026-12-12","20:30","SANTA CRUZ","RANCAGUA CAF"],
+    [11,"2026-12-19","13:00","PARROTS","GREEN BEARS"],
+    [11,"2026-12-19","14:30","PLACILLA","UNCA"],
+    [11,"2026-12-19","16:00","O'HIGGINS","RANCAGUA CAF"],
+    [11,"2026-12-19","17:30","SANTA CRUZ","UBC"],
+    [11,"2026-12-19","19:00","OLD'S MAGIC","PATRIOTAS"],
+    [11,"2026-12-19","20:30","PESTAÑAS","LOS CHAMOS"]
+  ];
+  const ins = db.prepare('INSERT INTO lbo_matches (rnd, mdate, mtime, home, away, sort) VALUES (?,?,?,?,?,?)');
+  LBO_SEED.forEach((g, i) => ins.run(g[0], g[1], g[2], g[3], g[4], i));
+})();
 // Editores existentes sin permisos definidos: darles todo el contenido (no romper lo que ya tenían).
 db.prepare("UPDATE users SET perms = ? WHERE role = 'editor' AND (perms = '' OR perms IS NULL)").run(ADMIN_MODULE_KEYS.join(','));
 
@@ -353,10 +437,75 @@ function visitStats() {
   };
 }
 
+// ---------- Liga LBO: funciones ----------
+const LBO_TEAM = 'GREEN BEARS';
+function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
+function lboGet(id) { return db.prepare('SELECT * FROM lbo_matches WHERE id = ?').get(id); }
+function lboSaveResult(id, hp, ap, wo) {
+  wo = wo ? Number(wo) : 0;
+  if (wo === 1 || wo === 2) { db.prepare('UPDATE lbo_matches SET wo = ?, home_pts = NULL, away_pts = NULL WHERE id = ?').run(wo, id); return; }
+  const h = (hp === '' || hp == null) ? null : Math.max(0, parseInt(hp, 10) || 0);
+  const a = (ap === '' || ap == null) ? null : Math.max(0, parseInt(ap, 10) || 0);
+  db.prepare('UPDATE lbo_matches SET home_pts = ?, away_pts = ?, wo = 0 WHERE id = ?').run(h, a, id);
+}
+function lboResolve(m) {
+  // Devuelve {played, hp, ap} aplicando W.O. (20-0) si corresponde.
+  if (m.wo === 1) return { played: true, hp: 20, ap: 0, wo: true };
+  if (m.wo === 2) return { played: true, hp: 0, ap: 20, wo: true };
+  if (m.home_pts != null && m.away_pts != null) return { played: true, hp: m.home_pts, ap: m.away_pts, wo: false };
+  return { played: false };
+}
+function lboStandings() {
+  const ms = lboAll();
+  const T = {};
+  const team = (n) => (T[n] = T[n] || { team: n, pj: 0, g: 0, p: 0, pf: 0, pc: 0, pts: 0 });
+  ms.forEach(m => { team(m.home); team(m.away); });
+  const key = (x, y) => [x, y].sort().join(' | ');
+  const h2h = {};
+  ms.forEach(m => {
+    const r = lboResolve(m); if (!r.played) return;
+    const H = team(m.home), A = team(m.away);
+    H.pj++; A.pj++; H.pf += r.hp; H.pc += r.ap; A.pf += r.ap; A.pc += r.hp;
+    if (r.wo) { // W.O.: ganador 2 pts, perdedor 0
+      if (r.hp > r.ap) { H.g++; A.p++; H.pts += 2; } else { A.g++; H.p++; A.pts += 2; }
+    } else if (r.hp === r.ap) { H.p++; A.p++; H.pts += 1; A.pts += 1; }
+    else if (r.hp > r.ap) { H.g++; A.p++; H.pts += 2; A.pts += 1; h2h[key(m.home, m.away)] = m.home; }
+    else { A.g++; H.p++; A.pts += 2; H.pts += 1; h2h[key(m.home, m.away)] = m.away; }
+  });
+  const arr = Object.values(T).map(t => Object.assign(t, { dif: t.pf - t.pc }));
+  arr.sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    if (b.dif !== a.dif) return b.dif - a.dif;
+    const w = h2h[key(a.team, b.team)];            // desempate: ganador del partido directo
+    if (w === a.team) return -1; if (w === b.team) return 1;
+    if (b.pf !== a.pf) return b.pf - a.pf;
+    return a.team.localeCompare(b.team);
+  });
+  arr.forEach((t, i) => { t.pos = i + 1; });
+  return arr;
+}
+function lboShapeGB(m) {
+  const gbHome = m.home === LBO_TEAM;
+  const opp = gbHome ? m.away : m.home;
+  const r = lboResolve(m);
+  let our = null, opp_s = null;
+  if (r.played) { our = gbHome ? r.hp : r.ap; opp_s = gbHome ? r.ap : r.hp; }
+  return {
+    id: m.id, opponent: opp, date: (m.mdate || '') + 'T' + (m.mtime || '00:00'),
+    location: '', tournament: 'LBO 2026', home: gbHome ? 1 : 0, confirmed: 1,
+    our_score: our, opp_score: opp_s, status: r.played ? 'played' : 'upcoming',
+    rnd: m.rnd, icsUrl: '/lbo/' + m.id + '.ics'
+  };
+}
+function lboGBGames() { return lboAll().filter(m => m.home === LBO_TEAM || m.away === LBO_TEAM).map(lboShapeGB); }
+function lboGBUpcoming(limit) { const a = lboGBGames().filter(x => x.status === 'upcoming'); return limit ? a.slice(0, limit) : a; }
+function lboGBLast(limit) { const a = lboGBGames().filter(x => x.status === 'played').reverse(); return limit ? a.slice(0, limit) : a; }
+
 module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
   recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
   listUsers, findUser, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin, ADMIN_MODULE_KEYS,
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
-  teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam
+  teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
+  lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

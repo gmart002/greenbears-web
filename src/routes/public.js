@@ -3,7 +3,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { marked } = require('marked');
 const sanitizeHtml = require('sanitize-html');
-const { db, settings } = require('../db');
+const { db, settings, lboStandings, lboAll, lboGet, lboGBUpcoming, lboGBLast, lboShapeGB } = require('../db');
 
 const router = express.Router();
 const now = () => new Date().toISOString();
@@ -41,8 +41,8 @@ router.use((req, res, next) => { res.locals.fmtDate = fmtDate; res.locals.fmtDat
 router.get('/', (req, res) => {
   const posts = db.prepare('SELECT * FROM posts WHERE published = 1 ORDER BY created_at DESC LIMIT 3').all();
   const players = db.prepare('SELECT * FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name LIMIT 6').all();
-  const nextMatch = db.prepare("SELECT * FROM matches WHERE status = 'upcoming' ORDER BY date ASC LIMIT 1").get();
-  const lastResults = db.prepare("SELECT * FROM matches WHERE status = 'played' ORDER BY date DESC LIMIT 3").all();
+  const nextMatch = lboGBUpcoming(1)[0] || null;      // próximo partido de Green Bears (LBO)
+  const lastResults = lboGBLast(3);                    // últimos resultados de Green Bears (LBO)
   const gallery = db.prepare("SELECT * FROM gallery WHERE image != '' ORDER BY season DESC, sort, id DESC LIMIT 6").all();
   const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC LIMIT 8').all();
   res.render('home', { posts, players, nextMatch, lastResults, gallery, highlights });
@@ -71,11 +71,41 @@ router.get('/jugadores/:id', (req, res, next) => {
   res.render('jugador', { player, bioHtml: renderBody(player.bio) });
 });
 
-// ---------- Partidos (calendario) ----------
+// ---------- Partidos (calendario) — partidos de Green Bears en la LBO ----------
 router.get('/calendario', (req, res) => {
-  const upcoming = db.prepare("SELECT * FROM matches WHERE status = 'upcoming' ORDER BY date ASC").all();
-  const played = db.prepare("SELECT * FROM matches WHERE status = 'played' ORDER BY date DESC").all();
+  const upcoming = lboGBUpcoming();
+  const played = lboGBLast();
   res.render('calendario', { upcoming, played });
+});
+
+// ---------- Liga LBO 2026: tabla de posiciones + fixture ----------
+router.get('/lbo', (req, res) => {
+  const standings = lboStandings();
+  const rounds = {};
+  lboAll().forEach(m => { (rounds[m.rnd] = rounds[m.rnd] || []).push(m); });
+  const gbNext = lboGBUpcoming(1)[0] || null;
+  res.render('lbo', { standings, rounds, gbNext, LBO_TEAM: 'GREEN BEARS' });
+});
+router.get('/lbo/:id.ics', (req, res, next) => {
+  const raw = lboGet(Number(req.params.id)); if (!raw) return next();
+  const m = lboShapeGB(raw);
+  const s = settings();
+  const dt = String(m.date).replace(/[-:]/g, '').slice(0, 15).padEnd(15, '0');
+  const start = dt.slice(0, 8) + 'T' + dt.slice(9, 15);
+  const d = new Date(m.date); const endD = new Date(d.getTime() + 2 * 3600 * 1000);
+  const p2 = n => String(n).padStart(2, '0');
+  const end = `${endD.getFullYear()}${p2(endD.getMonth() + 1)}${p2(endD.getDate())}T${p2(endD.getHours())}${p2(endD.getMinutes())}00`;
+  const esc = t => String(t || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+  const title = `${s.site_title} vs ${m.opponent} · LBO 2026`;
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Green Bears//ES', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT', `UID:lbo-${raw.id}@greenbears.cl`, `DTSTART:${start}`, `DTEND:${end}`,
+    `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc((m.home ? 'Local' : 'Visita') + ' · Fecha ' + m.rnd)}`,
+    'END:VEVENT', 'END:VCALENDAR'
+  ].join('\r\n');
+  res.set('Content-Type', 'text/calendar; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="lbo-${raw.id}.ics"`);
+  res.send(ics);
 });
 // Añadir un partido al calendario (.ics)
 router.get('/calendario/:id.ics', (req, res, next) => {

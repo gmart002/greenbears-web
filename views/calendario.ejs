@@ -18,7 +18,7 @@
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
           <span class="badge <%= m.home ? 'home' : '' %>"><%= m.home ? 'Local' : 'Visita' %></span>
           <span class="badge <%= m.confirmed ? 'ok' : 'pend' %>"><%= m.confirmed ? 'Confirmado' : 'Pendiente' %></span>
-          <a class="btn ghost sm" href="/calendario/<%= m.id %>.ics">+ Calendario</a>
+          <a class="btn ghost sm" href="<%= m.icsUrl || ('/calendario/'+m.id+'.ics') %>">+ Calendario</a>
         </div>
       </div>
       <% }) %>
