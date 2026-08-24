@@ -20,7 +20,7 @@
 :root{color-scheme:light}
 :root[data-theme="dark"]{color-scheme:dark}
 /* Switch de tema */
-.theme-toggle{position:relative;width:58px;height:30px;flex:none;padding:0;border:1px solid var(--line);border-radius:999px;
+.theme-toggle{position:relative;z-index:50;width:58px;height:30px;flex:none;padding:0;border:1px solid var(--line);border-radius:999px;
   background:var(--paper2);cursor:pointer;display:inline-flex;align-items:center;justify-content:space-between}
 .theme-toggle .ic{width:15px;height:15px;color:var(--muted);z-index:1}
 .theme-toggle .ic-sun{margin-left:7px} .theme-toggle .ic-moon{margin-right:7px}
