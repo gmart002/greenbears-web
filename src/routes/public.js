@@ -37,12 +37,28 @@ function videoEmbed(url) {
 }
 router.use((req, res, next) => { res.locals.fmtDate = fmtDate; res.locals.fmtDateTime = fmtDateTime; res.locals.videoEmbed = videoEmbed; next(); });
 
+// Partidos manuales (amistosos / otra liga) del módulo "Partidos".
+function manualMatches(status) {
+  return db.prepare('SELECT * FROM matches WHERE status = ? ORDER BY date').all(status)
+    .map(m => Object.assign({}, m, { icsUrl: '/calendario/' + m.id + '.ics', tournament: m.tournament || 'Amistoso' }));
+}
+// Próximos = LBO de Green Bears + manuales, ordenados por fecha ascendente.
+function upcomingAll() {
+  return lboGBUpcoming().concat(manualMatches('upcoming'))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+// Resultados = LBO de Green Bears + manuales, más recientes primero.
+function playedAll() {
+  return lboGBLast().concat(manualMatches('played'))
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
 // ---------- Inicio ----------
 router.get('/', (req, res) => {
   const posts = db.prepare('SELECT * FROM posts WHERE published = 1 ORDER BY created_at DESC LIMIT 3').all();
   const players = db.prepare('SELECT * FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name LIMIT 6').all();
-  const nextMatch = lboGBUpcoming(1)[0] || null;      // próximo partido de Green Bears (LBO)
-  const lastResults = lboGBLast(3);                    // últimos resultados de Green Bears (LBO)
+  const nextMatch = upcomingAll()[0] || null;         // próximo partido (LBO + amistosos)
+  const lastResults = playedAll().slice(0, 3);        // últimos resultados (LBO + amistosos)
   const gallery = db.prepare("SELECT * FROM gallery WHERE image != '' ORDER BY season DESC, sort, id DESC LIMIT 6").all();
   const highlights = db.prepare('SELECT * FROM highlights ORDER BY sort, id DESC LIMIT 8').all();
   res.render('home', { posts, players, nextMatch, lastResults, gallery, highlights });
@@ -73,9 +89,7 @@ router.get('/jugadores/:id', (req, res, next) => {
 
 // ---------- Partidos (calendario) — partidos de Green Bears en la LBO ----------
 router.get('/calendario', (req, res) => {
-  const upcoming = lboGBUpcoming();
-  const played = lboGBLast();
-  res.render('calendario', { upcoming, played });
+  res.render('calendario', { upcoming: upcomingAll(), played: playedAll() });
 });
 
 // ---------- Liga LBO 2026: tabla de posiciones + fixture ----------
