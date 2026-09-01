@@ -372,6 +372,7 @@
   var inflight=false;    // hay un PUT en curso (evita pisarse)
   var retryTimer=null, retryDelay=0;
   var rev=0, sentRev=0;  // revisión de datos: si cambia durante un PUT, no marcamos como confirmado
+  var curUpdatedAt=(cur&&cur.updated_at)||null;   // fecha del equipo al cargar (control de versión anti-pisado)
 
   function api(p,opts){ opts=opts||{}; opts.credentials='same-origin';
     opts.headers=Object.assign({'x-pizarra':'1'},opts.headers||{});
@@ -393,18 +394,32 @@
   function pushNow(opts){ if(!cur||readonly||switching) return Promise.resolve(); opts=opts||{};
     if(inflight && !opts.keepalive){ dirty=true; return Promise.resolve(); }   // ya hay uno en curso; queda marcado como pendiente
     inflight=true; sentRev=rev; setStat('saving');
+    var body={payload:payloadStr()};
+    if(!opts.keepalive && curUpdatedAt) body.baseUpdatedAt=curUpdatedAt;   // control de versión (no en keepalive)
     return fetch('/pizarra/api/teams/'+cur.id,{method:'PUT',credentials:'same-origin',keepalive:!!opts.keepalive,
-      headers:{'x-pizarra':'1','content-type':'application/json'},body:JSON.stringify({payload:payloadStr()})})
+      headers:{'x-pizarra':'1','content-type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){ inflight=false;
+        if(r.status===409){                                // el servidor tiene algo más nuevo, o se intentó vaciar: NO pisar
+          dirty=false; setStat('err');
+          if(!opts.keepalive) reloadFromServer();          // traer la copia buena del servidor y recargar
+          return; }
         if(!r.ok){ setStat('err'); dirty=true;
           if(r.status===413 && !alerted){ alerted=true; alert('Este equipo tiene demasiados datos para guardar (probablemente un logo o imágenes muy pesadas). Cambia el logo por uno más liviano.'); }
           else if(!opts.keepalive) scheduleRetry();     // 4xx/5xx transitorio: reintenta con espera creciente
           return; }
         retryDelay=0; if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
+        r.json().then(function(d){ if(d&&d.updated_at){ curUpdatedAt=d.updated_at; try{ if(cur){ cur.updated_at=d.updated_at; _set(TEAM_KEY,JSON.stringify(cur)); } }catch(e){} } }).catch(function(){});
         if(rev===sentRev){ dirty=false; setStat('ok'); }   // no hubo cambios durante el PUT → confirmado
         else { setStat('ok'); pushNow(); }                 // llegaron cambios mientras subía → vuelve a subir
       })
       .catch(function(){ inflight=false; setStat('err'); dirty=true; if(!opts.keepalive) scheduleRetry(); }); }  // sin red: reintenta
+  // Trae la copia buena del servidor y recarga (cuando no debemos pisar lo del servidor).
+  function reloadFromServer(){ if(!cur) return; switching=true; clearTimeout(timer);
+    api('/teams/'+cur.id).then(function(r){return r.json();}).then(function(d){
+      if(d&&!d.error){ writeTeam(d.payload,d.plantel,d.clubLogo);
+        _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned,review:d.team.review||0,updated_at:d.team.updated_at})); }
+      location.reload();
+    }).catch(function(){ switching=false; }); }
   function schedule(){ if(!cur||readonly||switching)return; dirty=true; rev++; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
   localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
   window.addEventListener('pagehide',function(){ pushNow({keepalive:true}); });
@@ -443,7 +458,7 @@
       // dispara el reload) para no grabar el roster del nuevo sobre el equipo anterior.
       switching=true; clearTimeout(timer);
       writeTeam(d.payload,d.plantel,d.clubLogo);
-      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned,review:d.team.review||0}));
+      _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned,review:d.team.review||0,updated_at:d.team.updated_at}));
       location.reload();
     });
   }

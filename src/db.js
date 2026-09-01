@@ -134,6 +134,18 @@ addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/ed
 addColumn('coaches', 'role', "TEXT NOT NULL DEFAULT 'coach'"); // 'super' ve/revisa todos los equipos
 // Green Bears (enlazado al plantel) es compartido entre coaches.
 db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
+// Historial de versiones de cada equipo: antes de sobrescribir un payload se archiva
+// el anterior aquí. Así ninguna sobrescritura es definitiva y todo es recuperable.
+db.exec(`CREATE TABLE IF NOT EXISTS pz_team_versions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id    INTEGER NOT NULL,
+  payload    TEXT NOT NULL,
+  size       INTEGER NOT NULL DEFAULT 0,
+  roster_n   INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (team_id) REFERENCES pz_teams(id) ON DELETE CASCADE
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_pz_team_versions_team ON pz_team_versions(team_id, id)');
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
 const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
@@ -383,11 +395,62 @@ function renameTeam(id, coachId, name) {
   db.prepare('UPDATE pz_teams SET name = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
     .run(String(name || '').trim() || 'Equipo', new Date().toISOString(), id, coachId);
 }
-function saveTeamPayload(id, coachId, payload) {
-  // Solo el dueño puede guardar (los compartidos son de solo lectura para los demás).
-  const info = db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?')
-    .run(String(payload == null ? '' : payload), new Date().toISOString(), id, coachId);
-  return info.changes > 0;
+// Cantidad de jugadores dentro de un payload (para detectar borrados accidentales).
+function payloadRosterN(payload) {
+  try { const p = JSON.parse(payload || '{}') || {}; const r = JSON.parse(p['pizarra.roster'] || '[]'); return Array.isArray(r) ? r.length : 0; }
+  catch (e) { return 0; }
+}
+// Archiva la versión actual del equipo antes de sobrescribirla; conserva las últimas 30.
+function archiveTeamVersion(teamId, payload) {
+  if (!payload || String(payload).length <= 2) return;   // nada útil que archivar
+  const p = String(payload);
+  db.prepare('INSERT INTO pz_team_versions (team_id, payload, size, roster_n, created_at) VALUES (?,?,?,?,?)')
+    .run(teamId, p, p.length, payloadRosterN(p), new Date().toISOString());
+  db.prepare(`DELETE FROM pz_team_versions WHERE team_id = ? AND id NOT IN (
+    SELECT id FROM pz_team_versions WHERE team_id = ? ORDER BY id DESC LIMIT 30)`).run(teamId, teamId);
+}
+// Guarda el payload de un equipo con protecciones contra pérdida/pisado.
+// opts.baseUpdatedAt: fecha que tenía el cliente al cargar (control de versión).
+// opts.force: permite un guardado que de otro modo se bloquearía (vaciar a propósito).
+function saveTeamPayload(id, coachId, payload, opts) {
+  opts = opts || {};
+  const t = db.prepare('SELECT payload, updated_at FROM pz_teams WHERE id = ? AND coach_id = ?').get(id, coachId);
+  if (!t) return { ok: false, reason: 'not-found' };          // no existe o no es el dueño
+  const incoming = String(payload == null ? '' : payload);
+  // C) Control de versión: si el cliente traía una base y el servidor ya es más nuevo, no pisar.
+  if (opts.baseUpdatedAt && t.updated_at && opts.baseUpdatedAt !== t.updated_at) {
+    return { ok: false, reason: 'conflict', updated_at: t.updated_at };
+  }
+  // B) Anti-borrado: no dejar que un payload vacío pise uno con datos (salvo force explícito).
+  if (!opts.force && t.payload && t.payload.length > 50 && incoming.length <= 2) {
+    return { ok: false, reason: 'would-empty', updated_at: t.updated_at, oldRoster: payloadRosterN(t.payload) };
+  }
+  // A) Historial: archiva lo actual antes de sobrescribir.
+  archiveTeamVersion(id, t.payload);
+  const ts = new Date().toISOString();
+  db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?').run(incoming, ts, id, coachId);
+  return { ok: true, updated_at: ts };
+}
+function listTeamVersions(id, coachId, isSuper) {
+  const t = getTeam(id, coachId, isSuper);
+  if (!t) return null;
+  return db.prepare('SELECT id, size, roster_n, created_at FROM pz_team_versions WHERE team_id = ? ORDER BY id DESC').all(id);
+}
+function getTeamVersion(id, coachId, versionId, isSuper) {
+  const t = getTeam(id, coachId, isSuper);
+  if (!t) return null;
+  return db.prepare('SELECT id, payload, size, roster_n, created_at FROM pz_team_versions WHERE id = ? AND team_id = ?').get(versionId, id) || null;
+}
+// Restaura una versión archivada como payload actual (archivando antes lo vigente).
+function restoreTeamVersion(id, coachId, versionId) {
+  const t = db.prepare('SELECT payload FROM pz_teams WHERE id = ? AND coach_id = ?').get(id, coachId);
+  if (!t) return { ok: false, reason: 'not-found' };
+  const v = db.prepare('SELECT payload FROM pz_team_versions WHERE id = ? AND team_id = ?').get(versionId, id);
+  if (!v) return { ok: false, reason: 'no-version' };
+  archiveTeamVersion(id, t.payload);
+  const ts = new Date().toISOString();
+  db.prepare('UPDATE pz_teams SET payload = ?, updated_at = ? WHERE id = ? AND coach_id = ?').run(v.payload, ts, id, coachId);
+  return { ok: true, updated_at: ts };
 }
 function deleteTeam(id, coachId) { db.prepare('DELETE FROM pz_teams WHERE id = ? AND coach_id = ?').run(id, coachId); }
 function setSetting(key, value) { setSettingStmt.run(key, String(value == null ? '' : value)); }
@@ -507,5 +570,6 @@ module.exports = {
   listUsers, findUser, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin, ADMIN_MODULE_KEYS,
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
+  listTeamVersions, getTeamVersion, restoreTeamVersion,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

@@ -2,7 +2,7 @@
 const path = require('path');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam } = require('../db');
+const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam, listTeamVersions, restoreTeamVersion } = require('../db');
 
 const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
@@ -92,9 +92,35 @@ module.exports = function (checkCsrf) {
     if (!t) return res.status(404).json({ error: 'not-found' });
     if (t.coach_id !== req.coachId) return res.status(403).json({ error: 'readonly' }); // compartido: solo el dueño edita
     if (typeof req.body.name === 'string' && req.body.name.trim()) renameTeam(id, req.coachId, req.body.name);
-    if (typeof req.body.payload === 'string') saveTeamPayload(id, req.coachId, req.body.payload);
+    if (typeof req.body.payload === 'string') {
+      const r = saveTeamPayload(id, req.coachId, req.body.payload, { baseUpdatedAt: req.body.baseUpdatedAt, force: !!req.body.force });
+      if (!r.ok) {
+        // conflict: otro dispositivo ya guardó algo más nuevo. would-empty: intentó vaciar un equipo con datos.
+        if (r.reason === 'conflict' || r.reason === 'would-empty') {
+          return res.status(409).json({ error: r.reason, updated_at: r.updated_at, oldRoster: r.oldRoster });
+        }
+        return res.status(400).json({ error: r.reason || 'bad-request' });
+      }
+      return res.json({ ok: true, updated_at: r.updated_at });
+    }
     const t2 = getTeam(id, req.coachId);
     res.json({ ok: true, updated_at: t2.updated_at });
+  });
+
+  // Historial de versiones del equipo (para recuperar de un borrado/pisado).
+  api.get('/teams/:id/versions', (req, res) => {
+    const v = listTeamVersions(Number(req.params.id), req.coachId, req.isSuper);
+    if (!v) return res.status(404).json({ error: 'not-found' });
+    res.json({ versions: v });
+  });
+  api.post('/teams/:id/restore', (req, res) => {
+    const id = Number(req.params.id);
+    const t = getTeam(id, req.coachId);
+    if (!t) return res.status(404).json({ error: 'not-found' });
+    if (t.coach_id !== req.coachId) return res.status(403).json({ error: 'readonly' });
+    const r = restoreTeamVersion(id, req.coachId, Number(req.body.versionId));
+    if (!r.ok) return res.status(400).json({ error: r.reason });
+    res.json({ ok: true, updated_at: r.updated_at });
   });
 
   api.delete('/teams/:id', (req, res) => {
