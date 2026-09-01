@@ -367,6 +367,7 @@
   var _set=localStorage.setItem.bind(localStorage);
   var _rm=localStorage.removeItem.bind(localStorage);
   var timer=null;
+  var switching=false;   // durante el cambio de equipo NO se debe guardar (localStorage ya tiene datos del equipo nuevo pero cur aún es el viejo)
 
   function api(p,opts){ opts=opts||{}; opts.credentials='same-origin';
     opts.headers=Object.assign({'x-pizarra':'1'},opts.headers||{});
@@ -383,7 +384,7 @@
     el.textContent=c[0]; el.style.background=c[1]; el.style.color=c[2]; el.style.opacity='1';
     if(state==='ok') setTimeout(function(){ if(el.textContent==='Guardado ✓') el.style.opacity='0'; },1400);
   }
-  function pushNow(opts){ if(!cur||readonly) return Promise.resolve(); opts=opts||{}; setStat('saving');
+  function pushNow(opts){ if(!cur||readonly||switching) return Promise.resolve(); opts=opts||{}; setStat('saving');
     return fetch('/pizarra/api/teams/'+cur.id,{method:'PUT',credentials:'same-origin',keepalive:!!opts.keepalive,
       headers:{'x-pizarra':'1','content-type':'application/json'},body:JSON.stringify({payload:payloadStr()})})
       .then(function(r){ if(!r.ok){ setStat('err');
@@ -391,7 +392,7 @@
           return; }
         setStat('ok'); })
       .catch(function(){ setStat('err'); }); }
-  function schedule(){ if(!cur||readonly)return; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
+  function schedule(){ if(!cur||readonly||switching)return; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
   localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
   window.addEventListener('pagehide',function(){ pushNow({keepalive:true}); });
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') pushNow({keepalive:true}); });
@@ -418,6 +419,10 @@
   function open(id){
     pushNow().then(function(){ return api('/teams/'+id).then(function(r){return r.json();}); }).then(function(d){
       if(!d||d.error){ alert('No se pudo abrir el equipo'); return; }
+      // A partir de aquí localStorage pasa a tener los datos del equipo NUEVO mientras cur aún
+      // apunta al viejo. Bloqueamos todo guardado (incluidos pagehide/visibilitychange que
+      // dispara el reload) para no grabar el roster del nuevo sobre el equipo anterior.
+      switching=true; clearTimeout(timer);
       writeTeam(d.payload,d.plantel,d.clubLogo);
       _set(TEAM_KEY,JSON.stringify({id:d.team.id,name:d.team.name,linked:d.team.linked_plantel,owned:d.team.owned,review:d.team.review||0}));
       location.reload();
