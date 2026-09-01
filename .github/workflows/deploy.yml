@@ -41,7 +41,12 @@ jobs:
           script: |
             set -e
             cd ~/greenbears-web || { echo "Falta clonar ~/greenbears-web una vez (ver README)"; exit 1; }
-            git pull origin main
+            # Sincroniza el código EXACTO del repo. Se usa fetch + reset --hard (en vez de
+            # git pull) para que el deploy no se caiga si en el servidor quedaron cambios
+            # locales o archivos que chocan. Es seguro para los datos: data/ y .env están en
+            # .gitignore, así que la base (data/greenbears.db) y la config NO se tocan.
+            git fetch origin main
+            git reset --hard origin/main
             [ -f .env ] || { echo "Falta ~/greenbears-web/.env con ADMIN_PASSWORD y SESSION_SECRET (créalo una vez)"; exit 1; }
             docker compose --env-file .env up -d --build --force-recreate
             # Conecta Caddy a la red aislada para poder enrutar (idempotente).
