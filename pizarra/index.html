@@ -368,6 +368,10 @@
   var _rm=localStorage.removeItem.bind(localStorage);
   var timer=null;
   var switching=false;   // durante el cambio de equipo NO se debe guardar (localStorage ya tiene datos del equipo nuevo pero cur aún es el viejo)
+  var dirty=false;       // hay cambios locales que aún no se confirmaron en el servidor
+  var inflight=false;    // hay un PUT en curso (evita pisarse)
+  var retryTimer=null, retryDelay=0;
+  var rev=0, sentRev=0;  // revisión de datos: si cambia durante un PUT, no marcamos como confirmado
 
   function api(p,opts){ opts=opts||{}; opts.credentials='same-origin';
     opts.headers=Object.assign({'x-pizarra':'1'},opts.headers||{});
@@ -384,22 +388,37 @@
     el.textContent=c[0]; el.style.background=c[1]; el.style.color=c[2]; el.style.opacity='1';
     if(state==='ok') setTimeout(function(){ if(el.textContent==='Guardado ✓') el.style.opacity='0'; },1400);
   }
-  function pushNow(opts){ if(!cur||readonly||switching) return Promise.resolve(); opts=opts||{}; setStat('saving');
+  function scheduleRetry(){ if(retryTimer) return; retryDelay=Math.min(retryDelay?retryDelay*2:2000,30000);
+    retryTimer=setTimeout(function(){ retryTimer=null; if(dirty) pushNow(); },retryDelay); }
+  function pushNow(opts){ if(!cur||readonly||switching) return Promise.resolve(); opts=opts||{};
+    if(inflight && !opts.keepalive){ dirty=true; return Promise.resolve(); }   // ya hay uno en curso; queda marcado como pendiente
+    inflight=true; sentRev=rev; setStat('saving');
     return fetch('/pizarra/api/teams/'+cur.id,{method:'PUT',credentials:'same-origin',keepalive:!!opts.keepalive,
       headers:{'x-pizarra':'1','content-type':'application/json'},body:JSON.stringify({payload:payloadStr()})})
-      .then(function(r){ if(!r.ok){ setStat('err');
+      .then(function(r){ inflight=false;
+        if(!r.ok){ setStat('err'); dirty=true;
           if(r.status===413 && !alerted){ alerted=true; alert('Este equipo tiene demasiados datos para guardar (probablemente un logo o imágenes muy pesadas). Cambia el logo por uno más liviano.'); }
+          else if(!opts.keepalive) scheduleRetry();     // 4xx/5xx transitorio: reintenta con espera creciente
           return; }
-        setStat('ok'); })
-      .catch(function(){ setStat('err'); }); }
-  function schedule(){ if(!cur||readonly||switching)return; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
+        retryDelay=0; if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
+        if(rev===sentRev){ dirty=false; setStat('ok'); }   // no hubo cambios durante el PUT → confirmado
+        else { setStat('ok'); pushNow(); }                 // llegaron cambios mientras subía → vuelve a subir
+      })
+      .catch(function(){ inflight=false; setStat('err'); dirty=true; if(!opts.keepalive) scheduleRetry(); }); }  // sin red: reintenta
+  function schedule(){ if(!cur||readonly||switching)return; dirty=true; rev++; clearTimeout(timer); timer=setTimeout(function(){ pushNow(); },700); }
   localStorage.setItem=function(k,v){ _set(k,v); if(cur&&KEYS.indexOf(k)>=0) schedule(); };
   window.addEventListener('pagehide',function(){ pushNow({keepalive:true}); });
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') pushNow({keepalive:true}); });
+  // Red de seguridad para partidos en vivo: reintenta al recuperar conexión y reintenta en segundo plano
+  // mientras haya cambios sin confirmar (aunque el reloj corra sin ediciones nuevas).
+  window.addEventListener('online',function(){ if(dirty) pushNow(); });
+  setInterval(function(){ if(dirty && !inflight && (navigator.onLine!==false)) pushNow(); },15000);
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function writeTeam(data,plantel,clubLogo){
     KEYS.forEach(function(k){ try{_rm(k);}catch(e){} });
+    try{_rm('pizarra.game.bak');}catch(e){}   // el respaldo local del partido es por equipo: no debe cruzarse al cambiar
+    dirty=false;                               // los datos nuevos vienen del servidor; nada pendiente por subir
     var p={}; try{ p=JSON.parse(data||'{}')||{}; }catch(e){}
     Object.keys(p).forEach(function(k){ if(KEYS.indexOf(k)>=0) _set(k,p[k]); });
     // Equipo enlazado (Green Bears): si no hay logo propio, usar el logo del club del sitio.
@@ -1735,6 +1754,12 @@
   //  Estadísticas (plantilla + partido en vivo)
   // ============================================================
   const ROSTER_KEY='pizarra.roster', GAME_KEY='pizarra.game', HIST_KEY='pizarra.games';
+  const BAK_KEY='pizarra.game.bak';   // respaldo local del partido en curso (por equipo), red de seguridad ante pérdidas
+  function curTeamId(){ try{ return (window.__pzTeam&&window.__pzTeam.id)||0; }catch(e){ return 0; } }
+  function gameIsEmpty(g){ return !g || (!(g.log&&g.log.length) && !(g.shots&&g.shots.length) && !(g.stats&&Object.keys(g.stats).length) && !g.themPts && !(g.secs&&Object.keys(g.secs).length)); }
+  var storageWarned=false;
+  function warnStorage(){ try{ toast('⚠ El dispositivo no pudo guardar (memoria llena)'); }catch(e){}
+    if(!storageWarned){ storageWarned=true; try{ alert('Atención: el navegador no pudo guardar los datos en este dispositivo (almacenamiento lleno). Para no perder el partido: usa un logo más liviano y guarda el partido. Si hay conexión, los datos igual se envían al servidor.'); }catch(e){} } }
   const CNT=['m2','a2','m3','a3','mft','aft','reb','ast','stl','blk','tov','pf'];
   const ACTIONS=[
     {id:'m2',label:'2P',small:'anotado',cls:'good',inc:{m2:1,a2:1}},
@@ -1784,6 +1809,15 @@
   function loadStats(){
     try{ roster=JSON.parse(localStorage.getItem(ROSTER_KEY))||[]; }catch(e){ roster=[]; }
     try{ game=JSON.parse(localStorage.getItem(GAME_KEY)); }catch(e){ game=null; }
+    // Red de seguridad: si el partido guardado se perdió o quedó vacío pero hay un respaldo
+    // local del MISMO equipo con datos, se recupera (evita perder un partido en curso).
+    try{ var bak=JSON.parse(localStorage.getItem(BAK_KEY)||'null');
+      if(bak && bak.game && bak.t===curTeamId() && gameIsEmpty(game) && !gameIsEmpty(bak.game)){
+        game=bak.game; if(Array.isArray(bak.roster)&&bak.roster.length&&!roster.length) roster=bak.roster;
+        try{ localStorage.setItem(GAME_KEY,JSON.stringify(game)); }catch(e){}
+        try{ toast('Partido recuperado del respaldo local'); }catch(e){}
+      }
+    }catch(e){}
     if(!game||typeof game!=='object') game={rival:'',themPts:0,stats:{},log:[]};
     if(!game.stats) game.stats={}; if(!game.log) game.log=[];
     if(!game.period) game.period=1;                   // cuarto activo para registrar
@@ -1820,7 +1854,11 @@
   function isOnCourt(id){ ensureOncourt(); return game.oncourt.indexOf(id)>=0; }
   function isStarter(id){ return !!(game.starters&&game.starters.indexOf(id)>=0); }
   var clockTick=null;
-  function startTick(){ if(clockTick) return; clockTick=setInterval(function(){ renderClock(); refreshMinutes(); if(clockRemainMs()<=0){ pauseClock(); toast('Fin del cuarto'); } },500); }
+  var autoSaveAcc=0;
+  function startTick(){ if(clockTick) return; autoSaveAcc=0; clockTick=setInterval(function(){ renderClock(); refreshMinutes();
+    if(clockRemainMs()<=0){ pauseClock(); toast('Fin del cuarto'); return; }
+    // cada ~10s: cuadra los minutos jugados y guarda (local + servidor) para no perder tiempo si algo falla
+    if(++autoSaveAcc>=20){ autoSaveAcc=0; settleClock(); saveGame(); } },500); }
   function stopTick(){ if(clockTick){ clearInterval(clockTick); clockTick=null; } }
   function startClock(){ var c=game.clock; if(c.running) return; if(clockRemainMs()<=0){ toast('El cuarto está en 0. Usa ⟲ o pasa de cuarto.'); return; } ensureOncourt();
     if(!game.starters) game.starters=game.oncourt.slice();   // titulares = los 5 con que arranca el partido
@@ -1895,8 +1933,9 @@
       if(p!==0 && p!==game.period){ if(game.clock&&game.clock.running) pauseClock(); game.period=p; game.clock={q:p, remain:qLenMs(p), running:false, base:null}; }
       saveGame(); renderStats(); }; });
   }
-  function saveRoster(){ try{ localStorage.setItem(ROSTER_KEY,JSON.stringify(roster)); }catch(e){} }
-  function saveGame(){ try{ localStorage.setItem(GAME_KEY,JSON.stringify(game)); }catch(e){} }
+  function saveRoster(){ try{ localStorage.setItem(ROSTER_KEY,JSON.stringify(roster)); }catch(e){ warnStorage(); } }
+  function backupGame(){ try{ localStorage.setItem(BAK_KEY,JSON.stringify({t:curTeamId(),ts:Date.now(),game:game,roster:roster})); }catch(e){} }
+  function saveGame(){ try{ localStorage.setItem(GAME_KEY,JSON.stringify(game)); backupGame(); }catch(e){ warnStorage(); } }
   function emptyCnt(){ const o={}; CNT.forEach(k=>o[k]=0); return o; }
   function cnt(id){ if(!game.stats[id]) game.stats[id]=emptyCnt(); return game.stats[id]; }
   function ptsOf(c){ return 2*c.m2+3*c.m3+c.mft; }
