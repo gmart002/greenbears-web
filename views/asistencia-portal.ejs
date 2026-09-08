@@ -1,5 +1,5 @@
 <% var pageTitle = 'Asistencia' %>
-<%- include('../partials/admin-head') %>
+<%- include('partials/asist-head') %>
 <%
   function fechaLarga(iso){
     if(!iso) return '';
@@ -9,14 +9,13 @@
     return dias[d.getDay()] + ' ' + d.getDate() + ' ' + mes[d.getMonth()] + ' ' + d.getFullYear();
   }
 %>
-<a class="link-back" href="/admin/panel">← Volver al panel</a>
 
 <div class="form-card" style="max-width:960px">
   <h1>Asistencia a entrenamientos</h1>
   <p class="hint">Entrenamientos: <b>viernes 21:00–22:00</b> en <b><%= def.place %></b>. Se controla la asistencia de los jugadores del plantel.</p>
 
   <h2 style="margin-top:18px">Registrar un entrenamiento</h2>
-  <form method="post" action="/admin/asistencia" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:6px">
+  <form method="post" action="/asistencia" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:6px">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
     <label style="display:flex;flex-direction:column;gap:4px">Fecha (viernes)
       <input type="date" name="date" value="<%= hoy %>" required style="padding:8px;border:1px solid var(--line);border-radius:8px">
@@ -51,8 +50,8 @@
           <td class="muted"><%= s.absent %></td>
           <td>
             <div class="actions">
-              <a class="btn primary sm" href="/admin/asistencia/<%= s.id %>">Tomar / editar</a>
-              <form method="post" action="/admin/asistencia/<%= s.id %>/eliminar" data-confirm="¿Eliminar este entrenamiento y su asistencia?">
+              <a class="btn primary sm" href="/asistencia/<%= s.id %>">Tomar / editar</a>
+              <form method="post" action="/asistencia/<%= s.id %>/eliminar" data-confirm="¿Eliminar este entrenamiento y su asistencia?">
                 <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button>
               </form>
             </div>
@@ -65,7 +64,7 @@
   <% } %>
 
   <h2 style="margin-top:24px">Resumen por jugador
-    <a class="btn ghost sm" href="/admin/asistencia/resumen.csv" style="float:right">Descargar CSV</a>
+    <a class="btn ghost sm" href="/asistencia/resumen.csv" style="float:right">Descargar CSV</a>
   </h2>
   <p class="hint">Sobre un total de <b><%= summary.totalSessions %></b> entrenamiento(s).</p>
   <% if (!summary.rows.length) { %>
@@ -90,5 +89,4 @@
   </div>
   <% } %>
 </div>
-<script src="/js/asistencia.js"></script>
-<%- include('../partials/admin-foot') %>
+<%- include('partials/asist-foot') %>

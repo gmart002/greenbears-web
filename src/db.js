@@ -166,6 +166,15 @@ db.exec(`CREATE TABLE IF NOT EXISTS training_attendance (
   FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (player_id)  REFERENCES players(id)           ON DELETE CASCADE
 )`);
+// Usuarios del portal público de asistencia (login propio, sin acceso al admin).
+db.exec(`CREATE TABLE IF NOT EXISTS att_users (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  username   TEXT NOT NULL UNIQUE,
+  pass_hash  TEXT NOT NULL,
+  name       TEXT DEFAULT '',
+  active     INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+)`);
 
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
@@ -573,6 +582,26 @@ function attendanceSummary() {
   return { totalSessions: total, rows };
 }
 
+// Usuarios del portal de asistencia. Crear/actualizar (upsert por username) e ingresar.
+function createAttUser(username, password, name) {
+  const u = String(username || '').trim().toLowerCase();
+  if (!u) throw new Error('El usuario no puede estar vacío.');
+  if (String(password || '').length < 4) throw new Error('La clave es muy corta.');
+  const hash = bcrypt.hashSync(String(password), 10);
+  db.prepare(`INSERT INTO att_users (username, pass_hash, name, active, created_at)
+    VALUES (?,?,?,1,?)
+    ON CONFLICT(username) DO UPDATE SET pass_hash = excluded.pass_hash, name = excluded.name, active = 1`)
+    .run(u, hash, name || '', new Date().toISOString());
+  return true;
+}
+function verifyAttUser(username, password) {
+  const u = db.prepare('SELECT * FROM att_users WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase());
+  if (!u) return null;
+  try { if (!bcrypt.compareSync(String(password || ''), u.pass_hash)) return null; } catch (e) { return null; }
+  return { id: u.id, username: u.username, name: u.name };
+}
+function listAttUsers() { return db.prepare('SELECT id, username, name, active, created_at FROM att_users ORDER BY username').all(); }
+
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
 function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
@@ -645,5 +674,6 @@ module.exports = {
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
+  createAttUser, verifyAttUser, listAttUsers,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

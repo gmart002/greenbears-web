@@ -103,6 +103,7 @@ app.use((req, res, next) => {
 
 // Rutas
 app.use('/pizarra', require('./routes/pizarra')(checkCsrf));
+app.use('/asistencia', require('./routes/asistencia')(checkCsrf));
 app.use('/', require('./routes/public'));
 app.use('/admin', require('./routes/admin')(checkCsrf));
 

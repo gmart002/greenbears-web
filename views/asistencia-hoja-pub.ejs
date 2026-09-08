@@ -1,5 +1,5 @@
 <% var pageTitle = 'Asistencia' %>
-<%- include('../partials/admin-head') %>
+<%- include('partials/asist-head') %>
 <%
   function fechaLarga(iso){
     if(!iso) return '';
@@ -9,7 +9,7 @@
     return dias[d.getDay()] + ' ' + d.getDate() + ' de ' + mes[d.getMonth()] + ' ' + d.getFullYear();
   }
 %>
-<a class="link-back" href="/admin/asistencia">← Volver a asistencia</a>
+<a class="link-back" href="/asistencia">← Volver a entrenamientos</a>
 
 <div class="form-card" style="max-width:720px">
   <h1>Asistencia · <%= fechaLarga(session.date) %></h1>
@@ -17,7 +17,7 @@
 
   <div id="okMsg" class="hint" style="display:none;color:#1f9b57;font-weight:700">✓ Asistencia guardada.</div>
 
-  <form method="post" action="/admin/asistencia/<%= session.id %>">
+  <form method="post" action="/asistencia/<%= session.id %>">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px">
@@ -26,7 +26,7 @@
     </div>
 
     <% if (!players.length) { %>
-      <p class="muted">No hay jugadores activos en el plantel. Agrégalos en el módulo Jugadores.</p>
+      <p class="muted">No hay jugadores activos en el plantel.</p>
     <% } else { %>
     <div style="overflow-x:auto">
       <table class="tbl att-tbl">
@@ -46,11 +46,9 @@
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
       <button class="btn primary">Guardar asistencia</button>
-      <a class="btn ghost" href="/admin/asistencia">Cancelar</a>
+      <a class="btn ghost" href="/asistencia">Cancelar</a>
     </div>
     <% } %>
   </form>
 </div>
-
-<script src="/js/asistencia.js"></script>
-<%- include('../partials/admin-foot') %>
+<%- include('partials/asist-foot') %>
