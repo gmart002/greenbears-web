@@ -146,9 +146,30 @@ db.exec(`CREATE TABLE IF NOT EXISTS pz_team_versions (
   FOREIGN KEY (team_id) REFERENCES pz_teams(id) ON DELETE CASCADE
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS idx_pz_team_versions_team ON pz_team_versions(team_id, id)');
+
+// ---------- Asistencia a entrenamientos ----------
+// Una fila por entrenamiento (viernes) y una fila por jugador presente/ausente.
+db.exec(`CREATE TABLE IF NOT EXISTS training_sessions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  date       TEXT NOT NULL UNIQUE,           -- YYYY-MM-DD
+  place      TEXT DEFAULT '',
+  start_time TEXT DEFAULT '',
+  end_time   TEXT DEFAULT '',
+  notes      TEXT DEFAULT '',
+  created_at TEXT NOT NULL
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS training_attendance (
+  session_id INTEGER NOT NULL,
+  player_id  INTEGER NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'present', -- present | absent | justified
+  PRIMARY KEY (session_id, player_id),
+  FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (player_id)  REFERENCES players(id)           ON DELETE CASCADE
+)`);
+
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
-const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
+const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club', 'asistencia'];
 
 // ---------- Liga LBO 2026 (fixture + resultados + tabla) ----------
 db.exec(`CREATE TABLE IF NOT EXISTS lbo_matches (
@@ -500,6 +521,58 @@ function visitStats() {
   };
 }
 
+// ---------- Asistencia a entrenamientos: funciones ----------
+// Jugadores a controlar: activos y que NO son cuerpo técnico.
+function trainingPlayers() {
+  return db.prepare("SELECT id, name, number FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name").all();
+}
+function listTrainingSessions() {
+  return db.prepare(`SELECT s.*,
+    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'present')   AS present,
+    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'justified') AS justified,
+    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'absent')    AS absent
+    FROM training_sessions s ORDER BY s.date DESC`).all();
+}
+function getTrainingSession(id) { return db.prepare('SELECT * FROM training_sessions WHERE id = ?').get(id); }
+// Crea (o actualiza si ya existe ese día) un entrenamiento y devuelve su id.
+function createTrainingSession(o) {
+  o = o || {};
+  const date = String(o.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Fecha inválida (usa AAAA-MM-DD).');
+  db.prepare(`INSERT INTO training_sessions (date, place, start_time, end_time, notes, created_at)
+    VALUES (@date, @place, @start, @end, @notes, @ts)
+    ON CONFLICT(date) DO UPDATE SET place = excluded.place, start_time = excluded.start_time, end_time = excluded.end_time, notes = excluded.notes`)
+    .run({ date, place: o.place || '', start: o.start || '', end: o.end || '', notes: o.notes || '', ts: new Date().toISOString() });
+  return db.prepare('SELECT id FROM training_sessions WHERE date = ?').get(date).id;
+}
+function deleteTrainingSession(id) { db.prepare('DELETE FROM training_sessions WHERE id = ?').run(id); }
+// Estado por jugador de un entrenamiento: { player_id: 'present'|'absent'|'justified' }
+function attendanceMap(sessionId) {
+  const m = {};
+  db.prepare('SELECT player_id, status FROM training_attendance WHERE session_id = ?').all(sessionId).forEach(r => { m[r.player_id] = r.status; });
+  return m;
+}
+const _saveAttendanceTx = db.transaction((sessionId, entries) => {
+  db.prepare('DELETE FROM training_attendance WHERE session_id = ?').run(sessionId);
+  const ins = db.prepare('INSERT INTO training_attendance (session_id, player_id, status) VALUES (?,?,?)');
+  entries.forEach(e => { if (['present', 'absent', 'justified'].indexOf(e.status) >= 0) ins.run(sessionId, e.player_id, e.status); });
+});
+function saveAttendance(sessionId, entries) { _saveAttendanceTx(sessionId, entries || []); }
+// Resumen por jugador: presentes/justificados/ausentes y % de asistencia sobre el total de entrenamientos.
+function attendanceSummary() {
+  const total = db.prepare('SELECT COUNT(*) AS c FROM training_sessions').get().c;
+  const rows = trainingPlayers().map(p => {
+    const r = db.prepare(`SELECT
+      SUM(status = 'present')   AS present,
+      SUM(status = 'justified') AS justified,
+      SUM(status = 'absent')    AS absent
+      FROM training_attendance WHERE player_id = ?`).get(p.id);
+    const present = r.present || 0, justified = r.justified || 0, absent = r.absent || 0;
+    return { player: p, present, justified, absent, pct: total ? Math.round((present / total) * 100) : 0 };
+  });
+  return { totalSessions: total, rows };
+}
+
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
 function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
@@ -571,5 +644,6 @@ module.exports = {
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
   listTeamVersions, getTeamVersion, restoreTeamVersion,
+  trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

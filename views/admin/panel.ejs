@@ -89,6 +89,14 @@
   </section>
   <% } %>
 
+  <% if (can('asistencia')) { %>
+  <!-- Asistencia a entrenamientos -->
+  <section class="panel-sec">
+    <header><h2>Asistencia</h2><a class="btn primary sm" href="/admin/asistencia">Registrar entrenamiento</a></header>
+    <p class="muted" style="padding:0 20px 16px">Control de asistencia a los entrenamientos (viernes 21:00–22:00, Ex Supermercado 45). <a href="/admin/asistencia">Abrir módulo →</a></p>
+  </section>
+  <% } %>
+
   <% if (can('lbo')) { %>
   <!-- Liga LBO -->
   <section class="panel-sec">

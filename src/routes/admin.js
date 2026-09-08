@@ -8,12 +8,21 @@ const rateLimit = require('express-rate-limit');
 const { db, setSetting, uniqueSlug, DATA_DIR, visitStats, resetVisits,
   listUsers, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin,
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach,
-  lboAll, lboSaveResult, lboStandings } = require('../db');
+  lboAll, lboSaveResult, lboStandings,
+  trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary } = require('../db');
+
+// Fecha del próximo viernes (o hoy si es viernes) en AAAA-MM-DD, hora de Chile.
+function nextFridayISO() {
+  const cl = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+  cl.setDate(cl.getDate() + ((5 - cl.getDay() + 7) % 7));   // 5 = viernes
+  const p = n => String(n).padStart(2, '0');
+  return cl.getFullYear() + '-' + p(cl.getMonth() + 1) + '-' + p(cl.getDate());
+}
 
 // Módulos del panel que se pueden otorgar a un editor (clave, etiqueta).
 const MODULES = [['noticias', 'Noticias'], ['jugadores', 'Jugadores'], ['partidos', 'Partidos'], ['lbo', 'Liga LBO'],
   ['galeria', 'Galería'], ['highlights', 'Highlights'], ['patrocinadores', 'Patrocinadores'],
-  ['mensajes', 'Mensajes'], ['club', 'El Club']];
+  ['mensajes', 'Mensajes'], ['club', 'El Club'], ['asistencia', 'Asistencia']];
 
 const now = () => new Date().toISOString();
 
@@ -181,6 +190,57 @@ module.exports = function (checkCsrf) {
   router.post('/lbo/:id', checkCsrf, (req, res) => {
     lboSaveResult(Number(req.params.id), req.body.home_pts, req.body.away_pts, req.body.wo);
     res.redirect('/admin/lbo#f' + (req.body.rnd || ''));
+  });
+
+  // ---- Asistencia a entrenamientos ----
+  const TRAIN_PLACE = 'Ex Supermercado 45', TRAIN_START = '21:00', TRAIN_END = '22:00';
+  // Lista de entrenamientos + resumen por jugador + formulario para crear uno nuevo.
+  router.get('/asistencia', (req, res) => {
+    res.render('admin/asistencia', {
+      sessions: listTrainingSessions(),
+      summary: attendanceSummary(),
+      hoy: nextFridayISO(),
+      def: { place: TRAIN_PLACE, start: TRAIN_START, end: TRAIN_END }
+    });
+  });
+  // Crear (o actualizar) un entrenamiento y saltar a su hoja de asistencia.
+  router.post('/asistencia', checkCsrf, (req, res) => {
+    try {
+      const id = createTrainingSession({
+        date: req.body.date, place: req.body.place || TRAIN_PLACE,
+        start: req.body.start || TRAIN_START, end: req.body.end || TRAIN_END, notes: req.body.notes || ''
+      });
+      res.redirect('/admin/asistencia/' + id);
+    } catch (e) { res.status(400).send(e.message + ' — <a href="/admin/asistencia">volver</a>'); }
+  });
+  // Hoja de asistencia de un entrenamiento (marcar presente/ausente/justificado).
+  router.get('/asistencia/:id(\\d+)', (req, res, next) => {
+    const session = getTrainingSession(Number(req.params.id));
+    if (!session) return next();
+    res.render('admin/asistencia-hoja', { session, players: trainingPlayers(), marks: attendanceMap(session.id) });
+  });
+  // Guardar la asistencia marcada.
+  router.post('/asistencia/:id(\\d+)', checkCsrf, (req, res) => {
+    const session = getTrainingSession(Number(req.params.id));
+    if (!session) return res.status(404).send('Entrenamiento no encontrado.');
+    // Cada jugador llega como campo plano st_<id> = present|absent|justified (el parser no anida corchetes).
+    const entries = trainingPlayers().map(p => ({ player_id: p.id, status: req.body['st_' + p.id] || 'absent' }));
+    saveAttendance(session.id, entries);
+    res.redirect('/admin/asistencia/' + session.id + '?ok=1');
+  });
+  router.post('/asistencia/:id(\\d+)/eliminar', checkCsrf, (req, res) => {
+    deleteTrainingSession(Number(req.params.id));
+    res.redirect('/admin/asistencia');
+  });
+  // Exportar el resumen a CSV (Excel).
+  router.get('/asistencia/resumen.csv', (req, res) => {
+    const { totalSessions, rows } = attendanceSummary();
+    const esc = v => { v = String(v == null ? '' : v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    let csv = ['Nº', 'Jugador', 'Presente', 'Justificado', 'Ausente', 'Entrenamientos', '% Asistencia'].join(';') + '\n';
+    rows.forEach(r => { csv += [r.player.number, r.player.name, r.present, r.justified, r.absent, totalSessions, r.pct + '%'].map(esc).join(';') + '\n'; });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="asistencia-resumen.csv"');
+    res.send('﻿' + csv);
   });
 
   // ---- Usuarios (solo superadmin) ----
