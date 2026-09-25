@@ -175,6 +175,15 @@ db.exec(`CREATE TABLE IF NOT EXISTS att_users (
   active     INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL
 )`);
+// Bitácora de entrenamiento: una por entrenamiento (session). Datos ricos en JSON.
+db.exec(`CREATE TABLE IF NOT EXISTS training_logs (
+  session_id INTEGER PRIMARY KEY,
+  data       TEXT NOT NULL DEFAULT '{}',
+  author     TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE
+)`);
 
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
@@ -539,7 +548,9 @@ function listTrainingSessions() {
   return db.prepare(`SELECT s.*,
     (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'present')   AS present,
     (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'justified') AS justified,
-    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'absent')    AS absent
+    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'absent')    AS absent,
+    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id)                            AS marcados,
+    (SELECT COUNT(*) FROM training_logs g WHERE g.session_id = s.id)                                  AS haslog
     FROM training_sessions s ORDER BY s.date DESC`).all();
 }
 function getTrainingSession(id) { return db.prepare('SELECT * FROM training_sessions WHERE id = ?').get(id); }
@@ -601,6 +612,24 @@ function verifyAttUser(username, password) {
   return { id: u.id, username: u.username, name: u.name };
 }
 function listAttUsers() { return db.prepare('SELECT id, username, name, active, created_at FROM att_users ORDER BY username').all(); }
+
+// ---------- Bitácora de entrenamiento ----------
+function getTrainingLog(sessionId) {
+  const r = db.prepare('SELECT data, author, updated_at FROM training_logs WHERE session_id = ?').get(sessionId);
+  if (!r) return null;
+  let data = {}; try { data = JSON.parse(r.data || '{}') || {}; } catch (e) {}
+  return { data, author: r.author, updated_at: r.updated_at };
+}
+function hasTrainingLog(sessionId) { return !!db.prepare('SELECT 1 FROM training_logs WHERE session_id = ?').get(sessionId); }
+function saveTrainingLog(sessionId, data, author) {
+  const json = JSON.stringify(data || {});
+  const ts = new Date().toISOString();
+  db.prepare(`INSERT INTO training_logs (session_id, data, author, created_at, updated_at)
+    VALUES (@id, @data, @author, @ts, @ts)
+    ON CONFLICT(session_id) DO UPDATE SET data = excluded.data, author = excluded.author, updated_at = excluded.updated_at`)
+    .run({ id: sessionId, data: json, author: author || '', ts });
+  return true;
+}
 
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
@@ -675,5 +704,6 @@ module.exports = {
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
   createAttUser, verifyAttUser, listAttUsers,
+  getTrainingLog, hasTrainingLog, saveTrainingLog,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

@@ -3,8 +3,45 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const {
   verifyAttUser, trainingPlayers, listTrainingSessions, getTrainingSession,
-  createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary
+  createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
+  getTrainingLog, saveTrainingLog
 } = require('../db');
+
+// Áreas de la evaluación 1–5 y campos repetidos de la bitácora.
+const EVAL_AREAS = [
+  ['intensidad', 'Intensidad'], ['concentracion', 'Concentración'], ['ejecucion', 'Ejecución técnica'],
+  ['decisiones', 'Toma de decisiones'], ['comunicacion', 'Comunicación'], ['competitividad', 'Competitividad']
+];
+
+// Arma el objeto estructurado de la bitácora desde los campos planos del formulario.
+function parseBitacora(b) {
+  const s = k => String(b[k] == null ? '' : b[k]).trim();
+  const objetivos = [1, 2, 3].map(i => ({
+    especifico: s('obj_' + i + '_especifico'),
+    trabajo: b['obj_' + i + '_trabajo'] ? 1 : 0,
+    logro: b['obj_' + i + '_logro'] ? 1 : 0,
+    obs: s('obj_' + i + '_obs')
+  }));
+  const evaluacion = {};
+  EVAL_AREAS.forEach(a => { evaluacion[a[0]] = { n: Number(b['ev_' + a[0] + '_n']) || 0, obs: s('ev_' + a[0] + '_obs') }; });
+  const proxima = [1, 2, 3].map(i => ({
+    prioridad: s('prox_' + i + '_prioridad'), como: s('prox_' + i + '_como'), indicador: s('prox_' + i + '_indicador')
+  }));
+  return {
+    categoria: s('categoria'), duracion: s('duracion'), entrenador: s('entrenador'),
+    n_jugadores: s('n_jugadores'), tipo_sesion: s('tipo_sesion'),
+    objetivo_general: s('objetivo_general'), concepto_dia: s('concepto_dia'),
+    objetivos, evaluacion,
+    analisis: {
+      funciono: s('an_funciono'), no_funciono: s('an_no_funciono'),
+      repetir: s('an_repetir'), corregir: s('an_corregir'),
+      destacaron: s('an_destacaron'), atencion: s('an_atencion')
+    },
+    cma: { corregir: s('cma_corregir'), mantener: s('cma_mantener'), agregar: s('cma_agregar') },
+    ideas: { idea: s('idea_nueva'), situacion: s('idea_situacion'), notas: s('idea_notas') },
+    proxima
+  };
+}
 
 // Valores por defecto del entrenamiento.
 const TRAIN_PLACE = 'Ex Supermercado 45', TRAIN_START = '21:00', TRAIN_END = '22:00';
@@ -85,6 +122,27 @@ module.exports = function (checkCsrf) {
   router.post('/:id(\\d+)/eliminar', gate, checkCsrf, (req, res) => {
     deleteTrainingSession(Number(req.params.id));
     res.redirect('/asistencia');
+  });
+
+  // ---- Bitácora del entrenamiento (una por sesión; se puede armar antes de la asistencia) ----
+  router.get('/:id(\\d+)/bitacora', gate, (req, res, next) => {
+    const session = getTrainingSession(Number(req.params.id));
+    if (!session) return next();
+    const log = getTrainingLog(session.id);
+    res.render('bitacora-form', { session, data: (log && log.data) || {}, areas: EVAL_AREAS, att: req.session.att });
+  });
+  router.post('/:id(\\d+)/bitacora', gate, checkCsrf, (req, res) => {
+    const session = getTrainingSession(Number(req.params.id));
+    if (!session) return res.status(404).send('Entrenamiento no encontrado.');
+    saveTrainingLog(session.id, parseBitacora(req.body), (req.session.att && req.session.att.name) || (req.session.att && req.session.att.username) || '');
+    res.redirect('/asistencia/' + session.id + '/bitacora?ok=1');
+  });
+  // Vista imprimible / PDF (formato del Word).
+  router.get('/:id(\\d+)/bitacora/print', gate, (req, res, next) => {
+    const session = getTrainingSession(Number(req.params.id));
+    if (!session) return next();
+    const log = getTrainingLog(session.id);
+    res.render('bitacora-print', { session, data: (log && log.data) || {}, areas: EVAL_AREAS, log });
   });
 
   return router;

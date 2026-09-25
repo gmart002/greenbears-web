@@ -1,0 +1,98 @@
+<%
+  function fechaCorta(iso){ if(!iso) return ''; var d=new Date(iso+'T12:00:00'); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2); }
+  function E(s){ return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+  var objs=data.objetivos||[], ev=data.evaluacion||{}, an=data.analisis||{}, cma=data.cma||{}, ideas=data.ideas||{}, prox=data.proxima||[];
+%><!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitácora <%= fechaCorta(session.date) %> · <%= s.site_title %></title>
+<script src="/js/asistencia.js" defer></script>
+<style>
+  :root{ --g:#1f9b57; --ink:#1a241d; --line:#c9d3cc; }
+  *{box-sizing:border-box}
+  body{font-family:'Barlow','Segoe UI',system-ui,sans-serif;color:var(--ink);background:#fff;margin:0;padding:28px;max-width:900px;margin:0 auto;line-height:1.4}
+  h1{font-size:22px;margin:0;color:var(--g);text-transform:uppercase;letter-spacing:.5px}
+  .sub{color:#5a6a60;font-size:13px;margin:2px 0 16px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#fff;background:var(--g);padding:6px 10px;border-radius:6px;margin:18px 0 8px}
+  table{width:100%;border-collapse:collapse;margin:6px 0;font-size:12.5px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#eef4f0;font-weight:700}
+  .c{text-align:center}
+  .lbl{font-size:11px;color:#5a6a60;text-transform:uppercase;letter-spacing:.4px}
+  .val{min-height:16px}
+  .printbtn{position:fixed;right:16px;bottom:16px;background:var(--g);color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px #0007;font-size:14px}
+  @media print{ .printbtn{display:none} body{padding:0} }
+</style>
+</head>
+<body>
+  <h1>Pauta y Bitácora de Entrenamiento</h1>
+  <div class="sub">Básquetbol · Planificar • Ejecutar • Evaluar • Mejorar<% if (log && log.updated_at) { %> · guardada <%= new Date(log.updated_at).toLocaleDateString('es-CL') %><% } %></div>
+
+  <h2>Datos de la sesión</h2>
+  <table>
+    <tr><th>Fecha</th><td><%= fechaCorta(session.date) %></td><th>Categoría</th><td><%= E(data.categoria) %></td></tr>
+    <tr><th>Duración</th><td><%= E(data.duracion) %></td><th>Entrenador</th><td><%= E(data.entrenador) %></td></tr>
+    <tr><th>N.º jugadores</th><td><%= E(data.n_jugadores) %></td><th>Lugar</th><td><%= E(session.place) %></td></tr>
+    <tr><th>Horario</th><td><%= E(session.start_time) %><%= session.end_time?('–'+E(session.end_time)):'' %></td><th>Tipo de sesión</th><td><%= E(data.tipo_sesion) %></td></tr>
+  </table>
+
+  <h2>Identidad del entrenamiento</h2>
+  <table>
+    <tr><th style="width:50%">Objetivo general de la sesión</th><th>Concepto / mensaje del día</th></tr>
+    <tr><td class="val"><%= E(data.objetivo_general) %></td><td class="val"><%= E(data.concepto_dia) %></td></tr>
+  </table>
+
+  <h2>Tres objetivos prioritarios</h2>
+  <table>
+    <tr><th>#</th><th>Objetivo específico</th><th class="c">¿Se trabajó?</th><th class="c">¿Se logró?</th><th>Observación</th></tr>
+    <% for (var i=1;i<=3;i++){ var o=objs[i-1]||{}; %>
+    <tr><td class="c"><b><%= i %></b></td><td><%= E(o.especifico) %></td><td class="c"><%= o.trabajo?'✓':'—' %></td><td class="c"><%= o.logro?'✓':'—' %></td><td><%= E(o.obs) %></td></tr>
+    <% } %>
+  </table>
+
+  <h2>Evaluación del entrenamiento</h2>
+  <table>
+    <tr><th>Área</th><th class="c">1</th><th class="c">2</th><th class="c">3</th><th class="c">4</th><th class="c">5</th><th>Observación</th></tr>
+    <% areas.forEach(function(a){ var e=ev[a[0]]||{}; %>
+    <tr><td><b><%= a[1] %></b></td><% for (var v=1;v<=5;v++){ %><td class="c"><%= Number(e.n)===v?'●':'' %></td><% } %><td><%= E(e.obs) %></td></tr>
+    <% }) %>
+  </table>
+
+  <h2>Análisis del entrenador</h2>
+  <table>
+    <tr><th style="width:50%">¿Qué funcionó?</th><th>¿Qué no funcionó?</th></tr>
+    <tr><td class="val"><%= E(an.funciono) %></td><td class="val"><%= E(an.no_funciono) %></td></tr>
+    <tr><th>¿Qué debemos repetir?</th><th>¿Qué debemos corregir?</th></tr>
+    <tr><td class="val"><%= E(an.repetir) %></td><td class="val"><%= E(an.corregir) %></td></tr>
+    <tr><th>Jugadores que destacaron</th><th>Jugadores que necesitan atención</th></tr>
+    <tr><td class="val"><%= E(an.destacaron) %></td><td class="val"><%= E(an.atencion) %></td></tr>
+  </table>
+
+  <h2>Corregir · Mantener · Agregar</h2>
+  <table>
+    <tr><th>🔴 Corregir</th><th>🟡 Mantener</th><th>🟢 Agregar</th></tr>
+    <tr><td class="val"><%= E(cma.corregir) %></td><td class="val"><%= E(cma.mantener) %></td><td class="val"><%= E(cma.agregar) %></td></tr>
+  </table>
+
+  <h2>Ideas y observaciones libres</h2>
+  <table>
+    <tr><th style="width:50%">Nueva idea / ejercicio / concepto táctico</th><th>Situación en que podría utilizarse</th></tr>
+    <tr><td class="val"><%= E(ideas.idea) %></td><td class="val"><%= E(ideas.situacion) %></td></tr>
+    <tr><th colspan="2">Notas del entrenador</th></tr>
+    <tr><td class="val" colspan="2"><%= E(ideas.notas) %></td></tr>
+  </table>
+
+  <h2>Preparación del próximo entrenamiento</h2>
+  <table>
+    <tr><th>#</th><th>Prioridad para la próxima sesión</th><th>Cómo la voy a trabajar</th><th>Indicador de éxito</th></tr>
+    <% for (var j=1;j<=3;j++){ var p=prox[j-1]||{}; %>
+    <tr><td class="c"><b><%= j %></b></td><td><%= E(p.prioridad) %></td><td><%= E(p.como) %></td><td><%= E(p.indicador) %></td></tr>
+    <% } %>
+  </table>
+
+  <p style="text-align:center;font-style:italic;color:#5a6a60;margin-top:18px">"Cada entrenamiento debe dejar algo mejor que como lo encontramos."</p>
+
+  <button class="printbtn" data-print type="button">Imprimir / Guardar PDF</button>
+</body>
+</html>

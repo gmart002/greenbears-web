@@ -15,6 +15,12 @@
     if (msg && !window.confirm(msg)) e.preventDefault();
   });
 
+  // Botón "Imprimir / PDF": elemento con data-print.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-print]') : null;
+    if (b) { e.preventDefault(); window.print(); }
+  });
+
   // Aviso "guardado" tras ?ok=1, y limpia la URL.
   try {
     if (location.search.indexOf('ok=1') >= 0) {

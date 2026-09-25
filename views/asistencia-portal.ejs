@@ -50,8 +50,9 @@
           <td class="muted"><%= s.absent %></td>
           <td>
             <div class="actions">
-              <a class="btn primary sm" href="/asistencia/<%= s.id %>">Tomar / editar</a>
-              <form method="post" action="/asistencia/<%= s.id %>/eliminar" data-confirm="¿Eliminar este entrenamiento y su asistencia?">
+              <a class="btn primary sm" href="/asistencia/<%= s.id %>">Asistencia</a>
+              <a class="btn ghost sm" href="/asistencia/<%= s.id %>/bitacora"><%= s.haslog ? 'Bitácora ✓' : 'Bitácora' %></a>
+              <form method="post" action="/asistencia/<%= s.id %>/eliminar" data-confirm="¿Eliminar este entrenamiento, su asistencia y su bitácora?">
                 <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button>
               </form>
             </div>
