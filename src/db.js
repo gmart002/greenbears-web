@@ -191,6 +191,37 @@ db.exec(`CREATE TABLE IF NOT EXISTS training_logs (
   FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE
 )`);
 
+// ===== Entrenamientos POR EQUIPO (modelo nuevo, ligado a la pizarra) =====
+// Cada entrenamiento pertenece a un equipo de la pizarra (pz_teams) y usa el
+// roster de ESE equipo (ids de roster como texto: 'gb<id>' o el uid del roster).
+db.exec(`CREATE TABLE IF NOT EXISTS tr_sessions (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id    INTEGER NOT NULL,
+  date       TEXT NOT NULL,
+  place      TEXT DEFAULT '',
+  start_time TEXT DEFAULT '',
+  end_time   TEXT DEFAULT '',
+  notes      TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  UNIQUE(team_id, date),
+  FOREIGN KEY (team_id) REFERENCES pz_teams(id) ON DELETE CASCADE
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS tr_attendance (
+  session_id INTEGER NOT NULL,
+  player_id  TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'present',
+  PRIMARY KEY (session_id, player_id),
+  FOREIGN KEY (session_id) REFERENCES tr_sessions(id) ON DELETE CASCADE
+)`);
+db.exec(`CREATE TABLE IF NOT EXISTS tr_logs (
+  session_id INTEGER PRIMARY KEY,
+  data       TEXT NOT NULL DEFAULT '{}',
+  author     TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES tr_sessions(id) ON DELETE CASCADE
+)`);
+
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
 const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club', 'asistencia'];
@@ -637,6 +668,66 @@ function saveTrainingLog(sessionId, data, author) {
   return true;
 }
 
+// ---------- Entrenamientos POR EQUIPO (modelo nuevo) ----------
+function listTeamTrainings(teamId) {
+  return db.prepare(`SELECT s.*,
+    (SELECT COUNT(*) FROM tr_attendance a WHERE a.session_id=s.id AND a.status='present')   AS present,
+    (SELECT COUNT(*) FROM tr_attendance a WHERE a.session_id=s.id AND a.status='justified') AS justified,
+    (SELECT COUNT(*) FROM tr_attendance a WHERE a.session_id=s.id AND a.status='absent')    AS absent,
+    (SELECT COUNT(*) FROM tr_logs g WHERE g.session_id=s.id)                                AS haslog
+    FROM tr_sessions s WHERE s.team_id=? ORDER BY s.date DESC`).all(teamId);
+}
+function getTraining(id) { return db.prepare('SELECT * FROM tr_sessions WHERE id = ?').get(id); }
+function createTeamTraining(teamId, o) {
+  o = o || {};
+  const date = String(o.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Fecha inválida (usa AAAA-MM-DD).');
+  db.prepare(`INSERT INTO tr_sessions (team_id, date, place, start_time, end_time, notes, created_at)
+    VALUES (@t,@date,@place,@start,@end,@notes,@ts)
+    ON CONFLICT(team_id, date) DO UPDATE SET place=excluded.place, start_time=excluded.start_time, end_time=excluded.end_time, notes=excluded.notes`)
+    .run({ t: teamId, date, place: o.place || '', start: o.start || '', end: o.end || '', notes: o.notes || '', ts: new Date().toISOString() });
+  return db.prepare('SELECT id FROM tr_sessions WHERE team_id=? AND date=?').get(teamId, date).id;
+}
+function deleteTraining(id) { db.prepare('DELETE FROM tr_sessions WHERE id = ?').run(id); }
+function trAttendanceMap(sessionId) {
+  const m = {};
+  db.prepare('SELECT player_id, status FROM tr_attendance WHERE session_id = ?').all(sessionId).forEach(r => { m[r.player_id] = r.status; });
+  return m;
+}
+const _saveTrAttendanceTx = db.transaction((sessionId, entries) => {
+  db.prepare('DELETE FROM tr_attendance WHERE session_id = ?').run(sessionId);
+  const ins = db.prepare('INSERT INTO tr_attendance (session_id, player_id, status) VALUES (?,?,?)');
+  entries.forEach(e => { if (['present', 'absent', 'justified'].indexOf(e.status) >= 0) ins.run(sessionId, String(e.player_id), e.status); });
+});
+function saveTrAttendance(sessionId, entries) { _saveTrAttendanceTx(sessionId, entries || []); }
+// Resumen por jugador del roster (se pasa el roster del equipo: [{id,name,num}]).
+function teamAttendanceSummary(teamId, roster) {
+  const total = db.prepare('SELECT COUNT(*) AS c FROM tr_sessions WHERE team_id = ?').get(teamId).c;
+  const st = db.prepare(`SELECT
+    SUM(status='present') AS present, SUM(status='justified') AS justified, SUM(status='absent') AS absent
+    FROM tr_attendance a JOIN tr_sessions s ON s.id = a.session_id WHERE s.team_id = ? AND a.player_id = ?`);
+  const rows = (roster || []).map(p => {
+    const r = st.get(teamId, String(p.id)) || {};
+    const present = r.present || 0, justified = r.justified || 0, absent = r.absent || 0;
+    return { player: p, present, justified, absent, pct: total ? Math.round((present / total) * 100) : 0 };
+  });
+  return { totalSessions: total, rows };
+}
+function getTrLog(sessionId) {
+  const r = db.prepare('SELECT data, author, updated_at FROM tr_logs WHERE session_id = ?').get(sessionId);
+  if (!r) return null;
+  let data = {}; try { data = JSON.parse(r.data || '{}') || {}; } catch (e) {}
+  return { data, author: r.author, updated_at: r.updated_at };
+}
+function saveTrLog(sessionId, data, author) {
+  const ts = new Date().toISOString();
+  db.prepare(`INSERT INTO tr_logs (session_id, data, author, created_at, updated_at)
+    VALUES (@id,@data,@author,@ts,@ts)
+    ON CONFLICT(session_id) DO UPDATE SET data=excluded.data, author=excluded.author, updated_at=excluded.updated_at`)
+    .run({ id: sessionId, data: JSON.stringify(data || {}), author: author || '', ts });
+  return true;
+}
+
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
 function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
@@ -711,5 +802,6 @@ module.exports = {
   trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
   createAttUser, verifyAttUser, listAttUsers,
   getTrainingLog, hasTrainingLog, saveTrainingLog,
+  listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };
