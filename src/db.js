@@ -153,44 +153,6 @@ db.exec(`CREATE TABLE IF NOT EXISTS pz_team_versions (
 )`);
 db.exec('CREATE INDEX IF NOT EXISTS idx_pz_team_versions_team ON pz_team_versions(team_id, id)');
 
-// ---------- Asistencia a entrenamientos ----------
-// Una fila por entrenamiento (viernes) y una fila por jugador presente/ausente.
-db.exec(`CREATE TABLE IF NOT EXISTS training_sessions (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  date       TEXT NOT NULL UNIQUE,           -- YYYY-MM-DD
-  place      TEXT DEFAULT '',
-  start_time TEXT DEFAULT '',
-  end_time   TEXT DEFAULT '',
-  notes      TEXT DEFAULT '',
-  created_at TEXT NOT NULL
-)`);
-db.exec(`CREATE TABLE IF NOT EXISTS training_attendance (
-  session_id INTEGER NOT NULL,
-  player_id  INTEGER NOT NULL,
-  status     TEXT NOT NULL DEFAULT 'present', -- present | absent | justified
-  PRIMARY KEY (session_id, player_id),
-  FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE,
-  FOREIGN KEY (player_id)  REFERENCES players(id)           ON DELETE CASCADE
-)`);
-// Usuarios del portal público de asistencia (login propio, sin acceso al admin).
-db.exec(`CREATE TABLE IF NOT EXISTS att_users (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  username   TEXT NOT NULL UNIQUE,
-  pass_hash  TEXT NOT NULL,
-  name       TEXT DEFAULT '',
-  active     INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL
-)`);
-// Bitácora de entrenamiento: una por entrenamiento (session). Datos ricos en JSON.
-db.exec(`CREATE TABLE IF NOT EXISTS training_logs (
-  session_id INTEGER PRIMARY KEY,
-  data       TEXT NOT NULL DEFAULT '{}',
-  author     TEXT DEFAULT '',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES training_sessions(id) ON DELETE CASCADE
-)`);
-
 // ===== Entrenamientos POR EQUIPO (modelo nuevo, ligado a la pizarra) =====
 // Cada entrenamiento pertenece a un equipo de la pizarra (pz_teams) y usa el
 // roster de ESE equipo (ids de roster como texto: 'gb<id>' o el uid del roster).
@@ -224,7 +186,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS tr_logs (
 
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
-const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club', 'asistencia'];
+const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
 
 // ---------- Liga LBO 2026 (fixture + resultados + tabla) ----------
 db.exec(`CREATE TABLE IF NOT EXISTS lbo_matches (
@@ -369,6 +331,34 @@ function settings() {
   // Su primer equipo: Green Bears, enlazado al plantel del sitio y compartido entre coaches.
   db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, shared, payload, sort, created_at, updated_at) VALUES (?,?,?,?,?,0,?,?)')
     .run(info.lastInsertRowid, 'Green Bears', 1, 1, '', ts, ts);
+})();
+
+// Migración única del modelo GLOBAL anterior (training_*) al nuevo por-equipo: se asigna
+// al equipo Green Bears y se convierten los ids de jugador a 'gb<id>'. Va DESPUÉS de sembrar
+// el equipo Green Bears para que exista. Luego retira las tablas viejas y att_users.
+(function migrateOldAttendance() {
+  try {
+    const hadOld = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='training_sessions'").get();
+    if (hadOld) {
+      const empty = db.prepare('SELECT COUNT(*) AS c FROM tr_sessions').get().c === 0;
+      const gb = db.prepare('SELECT id FROM pz_teams WHERE linked_plantel = 1 ORDER BY id LIMIT 1').get();
+      if (empty && gb) {
+        const insS = db.prepare('INSERT OR IGNORE INTO tr_sessions (id,team_id,date,place,start_time,end_time,notes,created_at) VALUES (?,?,?,?,?,?,?,?)');
+        const insA = db.prepare('INSERT OR IGNORE INTO tr_attendance (session_id,player_id,status) VALUES (?,?,?)');
+        const insL = db.prepare('INSERT OR IGNORE INTO tr_logs (session_id,data,author,created_at,updated_at) VALUES (?,?,?,?,?)');
+        db.transaction(() => {
+          db.prepare('SELECT * FROM training_sessions').all().forEach(s => {
+            insS.run(s.id, gb.id, s.date, s.place, s.start_time, s.end_time, s.notes, s.created_at);
+            db.prepare('SELECT player_id,status FROM training_attendance WHERE session_id=?').all(s.id).forEach(a => insA.run(s.id, 'gb' + a.player_id, a.status));
+            const lg = db.prepare('SELECT data,author,created_at,updated_at FROM training_logs WHERE session_id=?').get(s.id);
+            if (lg) insL.run(s.id, lg.data, lg.author, lg.created_at, lg.updated_at);
+          });
+        })();
+      }
+      db.exec('DROP TABLE IF EXISTS training_attendance; DROP TABLE IF EXISTS training_logs; DROP TABLE IF EXISTS training_sessions;');
+    }
+    db.exec('DROP TABLE IF EXISTS att_users;');
+  } catch (e) {}
 })();
 
 // Coach superadmin: puede abrir y revisar los equipos de todos los coaches (solo lectura).
@@ -576,98 +566,6 @@ function visitStats() {
   };
 }
 
-// ---------- Asistencia a entrenamientos: funciones ----------
-// Jugadores a controlar: activos y que NO son cuerpo técnico.
-function trainingPlayers() {
-  return db.prepare("SELECT id, name, number FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name").all();
-}
-function listTrainingSessions() {
-  return db.prepare(`SELECT s.*,
-    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'present')   AS present,
-    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'justified') AS justified,
-    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id AND a.status = 'absent')    AS absent,
-    (SELECT COUNT(*) FROM training_attendance a WHERE a.session_id = s.id)                            AS marcados,
-    (SELECT COUNT(*) FROM training_logs g WHERE g.session_id = s.id)                                  AS haslog
-    FROM training_sessions s ORDER BY s.date DESC`).all();
-}
-function getTrainingSession(id) { return db.prepare('SELECT * FROM training_sessions WHERE id = ?').get(id); }
-// Crea (o actualiza si ya existe ese día) un entrenamiento y devuelve su id.
-function createTrainingSession(o) {
-  o = o || {};
-  const date = String(o.date || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Fecha inválida (usa AAAA-MM-DD).');
-  db.prepare(`INSERT INTO training_sessions (date, place, start_time, end_time, notes, created_at)
-    VALUES (@date, @place, @start, @end, @notes, @ts)
-    ON CONFLICT(date) DO UPDATE SET place = excluded.place, start_time = excluded.start_time, end_time = excluded.end_time, notes = excluded.notes`)
-    .run({ date, place: o.place || '', start: o.start || '', end: o.end || '', notes: o.notes || '', ts: new Date().toISOString() });
-  return db.prepare('SELECT id FROM training_sessions WHERE date = ?').get(date).id;
-}
-function deleteTrainingSession(id) { db.prepare('DELETE FROM training_sessions WHERE id = ?').run(id); }
-// Estado por jugador de un entrenamiento: { player_id: 'present'|'absent'|'justified' }
-function attendanceMap(sessionId) {
-  const m = {};
-  db.prepare('SELECT player_id, status FROM training_attendance WHERE session_id = ?').all(sessionId).forEach(r => { m[r.player_id] = r.status; });
-  return m;
-}
-const _saveAttendanceTx = db.transaction((sessionId, entries) => {
-  db.prepare('DELETE FROM training_attendance WHERE session_id = ?').run(sessionId);
-  const ins = db.prepare('INSERT INTO training_attendance (session_id, player_id, status) VALUES (?,?,?)');
-  entries.forEach(e => { if (['present', 'absent', 'justified'].indexOf(e.status) >= 0) ins.run(sessionId, e.player_id, e.status); });
-});
-function saveAttendance(sessionId, entries) { _saveAttendanceTx(sessionId, entries || []); }
-// Resumen por jugador: presentes/justificados/ausentes y % de asistencia sobre el total de entrenamientos.
-function attendanceSummary() {
-  const total = db.prepare('SELECT COUNT(*) AS c FROM training_sessions').get().c;
-  const rows = trainingPlayers().map(p => {
-    const r = db.prepare(`SELECT
-      SUM(status = 'present')   AS present,
-      SUM(status = 'justified') AS justified,
-      SUM(status = 'absent')    AS absent
-      FROM training_attendance WHERE player_id = ?`).get(p.id);
-    const present = r.present || 0, justified = r.justified || 0, absent = r.absent || 0;
-    return { player: p, present, justified, absent, pct: total ? Math.round((present / total) * 100) : 0 };
-  });
-  return { totalSessions: total, rows };
-}
-
-// Usuarios del portal de asistencia. Crear/actualizar (upsert por username) e ingresar.
-function createAttUser(username, password, name) {
-  const u = String(username || '').trim().toLowerCase();
-  if (!u) throw new Error('El usuario no puede estar vacío.');
-  if (String(password || '').length < 4) throw new Error('La clave es muy corta.');
-  const hash = bcrypt.hashSync(String(password), 10);
-  db.prepare(`INSERT INTO att_users (username, pass_hash, name, active, created_at)
-    VALUES (?,?,?,1,?)
-    ON CONFLICT(username) DO UPDATE SET pass_hash = excluded.pass_hash, name = excluded.name, active = 1`)
-    .run(u, hash, name || '', new Date().toISOString());
-  return true;
-}
-function verifyAttUser(username, password) {
-  const u = db.prepare('SELECT * FROM att_users WHERE username = ? AND active = 1').get(String(username || '').trim().toLowerCase());
-  if (!u) return null;
-  try { if (!bcrypt.compareSync(String(password || ''), u.pass_hash)) return null; } catch (e) { return null; }
-  return { id: u.id, username: u.username, name: u.name };
-}
-function listAttUsers() { return db.prepare('SELECT id, username, name, active, created_at FROM att_users ORDER BY username').all(); }
-
-// ---------- Bitácora de entrenamiento ----------
-function getTrainingLog(sessionId) {
-  const r = db.prepare('SELECT data, author, updated_at FROM training_logs WHERE session_id = ?').get(sessionId);
-  if (!r) return null;
-  let data = {}; try { data = JSON.parse(r.data || '{}') || {}; } catch (e) {}
-  return { data, author: r.author, updated_at: r.updated_at };
-}
-function hasTrainingLog(sessionId) { return !!db.prepare('SELECT 1 FROM training_logs WHERE session_id = ?').get(sessionId); }
-function saveTrainingLog(sessionId, data, author) {
-  const json = JSON.stringify(data || {});
-  const ts = new Date().toISOString();
-  db.prepare(`INSERT INTO training_logs (session_id, data, author, created_at, updated_at)
-    VALUES (@id, @data, @author, @ts, @ts)
-    ON CONFLICT(session_id) DO UPDATE SET data = excluded.data, author = excluded.author, updated_at = excluded.updated_at`)
-    .run({ id: sessionId, data: json, author: author || '', ts });
-  return true;
-}
-
 // ---------- Entrenamientos POR EQUIPO (modelo nuevo) ----------
 function listTeamTrainings(teamId) {
   return db.prepare(`SELECT s.*,
@@ -799,9 +697,6 @@ module.exports = {
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
   listTeamVersions, getTeamVersion, restoreTeamVersion,
-  trainingPlayers, listTrainingSessions, getTrainingSession, createTrainingSession, deleteTrainingSession, attendanceMap, saveAttendance, attendanceSummary,
-  createAttUser, verifyAttUser, listAttUsers,
-  getTrainingLog, hasTrainingLog, saveTrainingLog,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };
