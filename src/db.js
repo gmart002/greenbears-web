@@ -134,6 +134,12 @@ addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/ed
 addColumn('coaches', 'role', "TEXT NOT NULL DEFAULT 'coach'"); // 'super' ve/revisa todos los equipos
 // Green Bears (enlazado al plantel) es compartido entre coaches.
 db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
+// El equipo Green Bears (plantel del sitio) pertenece a la cuenta 'greenbears': así solo
+// esa cuenta puede editarlo/llevar sus estadísticas (los demás lo ven en solo lectura).
+try {
+  const _gb = db.prepare("SELECT id FROM coaches WHERE lower(username) = 'greenbears'").get();
+  if (_gb) db.prepare('UPDATE pz_teams SET coach_id = ? WHERE linked_plantel = 1 AND coach_id <> ?').run(_gb.id, _gb.id);
+} catch (e) {}
 // Historial de versiones de cada equipo: antes de sobrescribir un payload se archiva
 // el anterior aquí. Así ninguna sobrescritura es definitiva y todo es recuperable.
 db.exec(`CREATE TABLE IF NOT EXISTS pz_team_versions (

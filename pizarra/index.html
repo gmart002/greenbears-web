@@ -440,7 +440,19 @@
     if(clubLogo && !localStorage.getItem('pizarra.logo')){ _set('pizarra.logo',clubLogo); }
     if(plantel&&plantel.length){
       var r=[]; try{ r=JSON.parse(localStorage.getItem('pizarra.roster')||'[]'); }catch(e){}
-      if(!r.length){ _set('pizarra.roster',JSON.stringify(plantel.map(function(pl,i){return {id:'gb'+i,name:pl.name,num:(pl.number||'')};}))); }
+      if(!Array.isArray(r)) r=[];
+      // Sincroniza (aditivo) el plantel oficial del sitio: agrega los que falten (por id
+      // estable gb<idJugador> o por nombre), sin borrar los agregados a mano ni reordenar.
+      var norm=function(s){ return String(s||'').trim().toLowerCase(); };
+      var haveId={}, haveName={};
+      r.forEach(function(x){ if(x&&x.id) haveId[x.id]=1; if(x&&x.name) haveName[norm(x.name)]=1; });
+      plantel.forEach(function(pl){
+        var id='gb'+pl.id;
+        if(haveId[id] || haveName[norm(pl.name)]) return;   // ya está (oficial, legado o manual con ese nombre)
+        r.push({id:id, name:pl.name, num:(pl.number||'')});
+        haveId[id]=1; haveName[norm(pl.name)]=1;
+      });
+      _set('pizarra.roster', JSON.stringify(r));
     }
   }
 

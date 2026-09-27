@@ -8,7 +8,7 @@ const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
 // Plantel del sitio para los equipos enlazados (Green Bears).
 function sitePlantel() {
-  return db.prepare("SELECT name, number FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name").all();
+  return db.prepare("SELECT id, name, number FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name").all();
 }
 
 module.exports = function (checkCsrf) {
