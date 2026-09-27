@@ -185,6 +185,38 @@ db.exec(`CREATE TABLE IF NOT EXISTS tr_logs (
   FOREIGN KEY (session_id) REFERENCES tr_sessions(id) ON DELETE CASCADE
 )`);
 
+// ===== Partidos + CITACIONES POR EQUIPO =====
+// Cada partido pertenece a un equipo de la pizarra. Sobre el partido se arma una
+// "nómina" (los citados) y a cada citado se le marca su asistencia con 4 estados:
+//   a_tiempo (asiste a la hora) · atrasado (llega tarde) · justifica · no_asiste.
+// La nómina sale del roster del equipo + jugadores agregados a mano (aún sin plantel).
+db.exec(`CREATE TABLE IF NOT EXISTS pz_matches (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_id     INTEGER NOT NULL,
+  date        TEXT NOT NULL,
+  time        TEXT DEFAULT '',
+  rival       TEXT DEFAULT '',
+  place       TEXT DEFAULT '',
+  home        INTEGER NOT NULL DEFAULT 1,
+  competition TEXT DEFAULT '',
+  our_score   INTEGER,
+  opp_score   INTEGER,
+  notes       TEXT DEFAULT '',
+  created_at  TEXT NOT NULL,
+  FOREIGN KEY (team_id) REFERENCES pz_teams(id) ON DELETE CASCADE
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_pz_matches_team ON pz_matches(team_id, date)');
+db.exec(`CREATE TABLE IF NOT EXISTS pz_call (
+  match_id    INTEGER NOT NULL,
+  player_id   TEXT NOT NULL,
+  player_name TEXT DEFAULT '',
+  num         TEXT DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'a_tiempo',
+  note        TEXT DEFAULT '',
+  PRIMARY KEY (match_id, player_id),
+  FOREIGN KEY (match_id) REFERENCES pz_matches(id) ON DELETE CASCADE
+)`);
+
 // Permisos por módulo para usuarios editores (CSV de claves de módulo).
 addColumn('users', 'perms', "TEXT DEFAULT ''");
 const ADMIN_MODULE_KEYS = ['noticias', 'jugadores', 'partidos', 'lbo', 'galeria', 'highlights', 'patrocinadores', 'mensajes', 'club'];
@@ -627,6 +659,78 @@ function saveTrLog(sessionId, data, author) {
   return true;
 }
 
+// ---------- Partidos + citaciones POR EQUIPO ----------
+const CALL_STATES = ['a_tiempo', 'atrasado', 'justifica', 'no_asiste'];
+// "Presente" a efectos de estadística = asistió (a tiempo o atrasado).
+function listTeamMatches(teamId) {
+  return db.prepare(`SELECT m.*,
+    (SELECT COUNT(*) FROM pz_call c WHERE c.match_id=m.id)                                                   AS cited,
+    (SELECT COUNT(*) FROM pz_call c WHERE c.match_id=m.id AND c.status IN ('a_tiempo','atrasado'))           AS present,
+    (SELECT COUNT(*) FROM pz_call c WHERE c.match_id=m.id AND c.status='no_asiste')                          AS absent
+    FROM pz_matches m WHERE m.team_id=? ORDER BY m.date DESC, m.id DESC`).all(teamId);
+}
+function getMatch(id) { return db.prepare('SELECT * FROM pz_matches WHERE id = ?').get(id); }
+function createTeamMatch(teamId, o) {
+  o = o || {};
+  const date = String(o.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Fecha inválida (usa AAAA-MM-DD).');
+  const info = db.prepare(`INSERT INTO pz_matches (team_id, date, time, rival, place, home, competition, notes, created_at)
+    VALUES (@t,@date,@time,@rival,@place,@home,@comp,@notes,@ts)`)
+    .run({ t: teamId, date, time: o.time || '', rival: (o.rival || '').trim(), place: (o.place || '').trim(),
+      home: o.home ? 1 : 0, comp: (o.competition || '').trim(), notes: (o.notes || '').trim(), ts: new Date().toISOString() });
+  return info.lastInsertRowid;
+}
+function updateTeamMatch(id, o) {
+  o = o || {};
+  const cur = getMatch(id); if (!cur) return;
+  const date = String(o.date || cur.date).trim();
+  const num = v => (v === '' || v == null) ? null : (Number.isFinite(+v) ? Math.max(0, parseInt(v, 10)) : null);
+  db.prepare(`UPDATE pz_matches SET date=@date, time=@time, rival=@rival, place=@place, home=@home,
+    competition=@comp, our_score=@os, opp_score=@ps, notes=@notes WHERE id=@id`)
+    .run({ id, date, time: o.time || '', rival: (o.rival || '').trim(), place: (o.place || '').trim(),
+      home: o.home ? 1 : 0, comp: (o.competition || '').trim(),
+      os: num(o.our_score), ps: num(o.opp_score), notes: (o.notes || '').trim() });
+}
+function deleteMatch(id) { db.prepare('DELETE FROM pz_matches WHERE id = ?').run(id); }
+function matchCall(matchId) {
+  return db.prepare('SELECT player_id, player_name, num, status, note FROM pz_call WHERE match_id = ? ORDER BY CAST(num AS INTEGER), player_name').all(matchId);
+}
+const _saveMatchCallTx = db.transaction((matchId, entries) => {
+  db.prepare('DELETE FROM pz_call WHERE match_id = ?').run(matchId);
+  const ins = db.prepare('INSERT OR IGNORE INTO pz_call (match_id, player_id, player_name, num, status, note) VALUES (?,?,?,?,?,?)');
+  entries.forEach(e => {
+    const st = CALL_STATES.indexOf(e.status) >= 0 ? e.status : 'a_tiempo';
+    ins.run(matchId, String(e.player_id), (e.player_name || '').trim(), String(e.num || ''), st, (e.note || '').trim());
+  });
+});
+function saveMatchCall(matchId, entries) { _saveMatchCallTx(matchId, entries || []); }
+// Resumen de asistencia a partidos por jugador (roster + citados a mano).
+function teamMatchSummary(teamId, roster) {
+  const total = db.prepare('SELECT COUNT(*) AS c FROM pz_matches WHERE team_id = ?').get(teamId).c;
+  const agg = db.prepare(`SELECT c.player_id, c.player_name, c.num,
+      SUM(c.status='a_tiempo')  AS a_tiempo,
+      SUM(c.status='atrasado')  AS atrasado,
+      SUM(c.status='justifica') AS justifica,
+      SUM(c.status='no_asiste') AS no_asiste,
+      COUNT(*) AS cited
+    FROM pz_call c JOIN pz_matches m ON m.id = c.match_id
+    WHERE m.team_id = ? GROUP BY c.player_id`).all(teamId);
+  const byId = {}; agg.forEach(a => { byId[a.player_id] = a; });
+  const seen = {};
+  const mk = (id, name, num, a) => {
+    const a_tiempo = (a && a.a_tiempo) || 0, atrasado = (a && a.atrasado) || 0;
+    const justifica = (a && a.justifica) || 0, no_asiste = (a && a.no_asiste) || 0;
+    const cited = (a && a.cited) || 0, present = a_tiempo + atrasado;
+    return { player: { id, name, num }, a_tiempo, atrasado, justifica, no_asiste, cited, present,
+      pct: cited ? Math.round((present / cited) * 100) : 0 };
+  };
+  // 1) jugadores del roster (en orden), enlazando su agregado si fueron citados.
+  const rows = (roster || []).map(p => { seen[String(p.id)] = 1; return mk(String(p.id), p.name, p.num || '', byId[String(p.id)]); });
+  // 2) citados a mano que no están en el roster.
+  agg.forEach(a => { if (!seen[a.player_id]) rows.push(mk(a.player_id, a.player_name || '(sin nombre)', a.num || '', a)); });
+  return { totalMatches: total, rows };
+}
+
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
 function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
@@ -699,5 +803,6 @@ module.exports = {
   teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam,
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
+  listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
   lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
 };

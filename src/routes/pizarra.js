@@ -3,7 +3,9 @@ const path = require('path');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam, listTeamVersions, restoreTeamVersion,
-  listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog } = require('../db');
+  listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
+  listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
+  lboGBUpcoming } = require('../db');
 
 const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
@@ -53,6 +55,28 @@ const TR_PLACE = 'Ex Supermercado 45', TR_START = '21:00', TR_END = '22:00';
 // Plantel del sitio para los equipos enlazados (Green Bears).
 function sitePlantel() {
   return db.prepare("SELECT id, name, number FROM players WHERE active = 1 AND staff = 0 ORDER BY sort, CAST(number AS INTEGER), name").all();
+}
+
+// Citaciones: los 4 estados de asistencia a un partido y su etiqueta.
+const CALL_STATES = [
+  ['a_tiempo', 'A la hora'], ['atrasado', 'Atrasado'], ['justifica', 'Justifica'], ['no_asiste', 'No asiste']
+];
+// Partidos ya creados en el calendario del sitio (para importar en equipos enlazados = Green Bears).
+function siteUpcomingMatches() {
+  const out = [];
+  try {
+    db.prepare("SELECT id, opponent, date, location, home FROM matches WHERE status='upcoming' ORDER BY date").all().forEach(m => {
+      const d = String(m.date || '');
+      out.push({ key: 'm' + m.id, date: d.slice(0, 10), time: (d.slice(11, 16) || ''), rival: m.opponent || '', place: m.location || '', home: m.home ? 1 : 0, label: (d.slice(0, 10) + '  vs ' + (m.opponent || '') + (m.location ? ' · ' + m.location : '')) });
+    });
+  } catch (e) {}
+  try {
+    (lboGBUpcoming() || []).forEach(m => {
+      const d = String(m.date || '');
+      out.push({ key: 'l' + m.id, date: d.slice(0, 10), time: (d.slice(11, 16) || ''), rival: m.opponent || '', place: m.location || '', home: m.home ? 1 : 0, label: (d.slice(0, 10) + '  vs ' + (m.opponent || '') + ' · LBO') });
+    });
+  } catch (e) {}
+  return out;
 }
 
 module.exports = function (checkCsrf) {
@@ -151,6 +175,72 @@ module.exports = function (checkCsrf) {
   router.get('/t/:tid/entrenos/:sid/bitacora/print', gate, loadTeam, loadSess, (req, res) => {
     const log = getTrLog(req.sess.id);
     res.render('entrenos-bitacora-print', { team: req.team, session: req.sess, data: (log && log.data) || {}, areas: EVAL_AREAS, log });
+  });
+
+  // ---------------- Partidos + citaciones POR EQUIPO ----------------
+  function loadMatch(req, res, next) {
+    const m = getMatch(Number(req.params.mid));
+    if (!m || m.team_id !== req.team.id) return res.status(404).send('Partido no encontrado. <a href="/pizarra/t/' + req.team.id + '/partidos">Volver</a>');
+    req.match = m; next();
+  }
+
+  router.get('/t/:tid/partidos', gate, loadTeam, (req, res) => {
+    res.render('partidos-list', {
+      team: req.team, canEdit: req.canEdit, coach: req.session.coach,
+      matches: listTeamMatches(req.team.id), summary: teamMatchSummary(req.team.id, teamRoster(req.team)),
+      hoy: nextFridayISO(), states: CALL_STATES,
+      calendar: req.team.linked_plantel ? siteUpcomingMatches() : []
+    });
+  });
+  router.post('/t/:tid/partidos', gate, loadTeam, requireEdit, checkCsrf, (req, res) => {
+    try {
+      const id = createTeamMatch(req.team.id, {
+        date: req.body.date, time: req.body.time, rival: req.body.rival, place: req.body.place,
+        home: req.body.home === '1' || req.body.home === 'on', competition: req.body.competition
+      });
+      res.redirect('/pizarra/t/' + req.team.id + '/partidos/' + id);
+    } catch (e) { res.status(400).send(e.message + ' — <a href="/pizarra/t/' + req.team.id + '/partidos">volver</a>'); }
+  });
+  router.post('/t/:tid/partidos/:mid/eliminar', gate, loadTeam, loadMatch, requireEdit, checkCsrf, (req, res) => {
+    deleteMatch(req.match.id); res.redirect('/pizarra/t/' + req.team.id + '/partidos');
+  });
+
+  // Nómina de citados + asistencia (los 4 estados) del partido, en una sola página.
+  router.get('/t/:tid/partidos/:mid', gate, loadTeam, loadMatch, (req, res) => {
+    const call = matchCall(req.match.id);
+    const marks = {}; call.forEach(c => { marks[c.player_id] = c; });
+    const roster = teamRoster(req.team);
+    const rosterIds = {}; roster.forEach(p => { rosterIds[String(p.id)] = 1; });
+    const extras = call.filter(c => !rosterIds[c.player_id]);   // citados a mano (fuera del roster)
+    res.render('partidos-nomina', {
+      team: req.team, canEdit: req.canEdit, coach: req.session.coach,
+      match: req.match, roster, marks, extras, states: CALL_STATES
+    });
+  });
+  router.post('/t/:tid/partidos/:mid', gate, loadTeam, loadMatch, requireEdit, checkCsrf, (req, res) => {
+    const b = req.body;
+    const roster = teamRoster(req.team);
+    const entries = [];
+    // Roster: se cita al que tenga marcada la casilla "citar".
+    roster.forEach(p => {
+      if (b['cite_' + p.id]) entries.push({ player_id: p.id, player_name: p.name, num: p.num || '', status: b['st_' + p.id] || 'a_tiempo' });
+    });
+    // Agregados a mano: filas axname_<n>/axnum_<n>/axst_<n>/axid_<n> (id opcional si ya existía).
+    Object.keys(b).forEach(k => {
+      const mm = /^axname_(.+)$/.exec(k); if (!mm) return;
+      const n = mm[1], name = String(b[k] || '').trim();
+      if (!name) return;
+      const pid = String(b['axid_' + n] || '').trim() || ('x' + Date.now() + n);
+      entries.push({ player_id: pid, player_name: name, num: b['axnum_' + n] || '', status: b['axst_' + n] || 'a_tiempo' });
+    });
+    saveMatchCall(req.match.id, entries);
+    // Marcador / detalle del partido (opcional).
+    updateTeamMatch(req.match.id, {
+      date: b.date || req.match.date, time: b.time, rival: b.rival, place: b.place,
+      home: b.home === '1' || b.home === 'on', competition: b.competition,
+      our_score: b.our_score, opp_score: b.opp_score, notes: b.notes
+    });
+    res.redirect('/pizarra/t/' + req.team.id + '/partidos/' + req.match.id + '?ok=1');
   });
 
   // ---------------- API de equipos (JSON, protegida por sesión de coach) ----------------

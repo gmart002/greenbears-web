@@ -12,12 +12,13 @@
 <body class="admin">
 <header class="adm-head">
   <div class="wrap adm-head-inner">
-    <a class="brand" href="/pizarra/t/<%= team.id %>/entrenos">
+    <a class="brand" href="/pizarra">
       <span class="brand-mark"><svg viewBox="0 0 48 48"><g fill="currentColor"><ellipse cx="24" cy="31" rx="11" ry="9"/><ellipse cx="12" cy="19" rx="4" ry="5.5"/><ellipse cx="20" cy="14" rx="4" ry="6"/><ellipse cx="28" cy="14" rx="4" ry="6"/><ellipse cx="36" cy="19" rx="4" ry="5.5"/></g></svg></span>
-      <span class="brand-txt"><b>Entrenos</b><small><%= team.name %></small></span>
+      <span class="brand-txt"><b><%= team.name %></b><small><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Pizarra' %></small></span>
     </a>
     <nav class="adm-nav">
-      <a href="/pizarra/t/<%= team.id %>/entrenos">Entrenamientos</a>
+      <a href="/pizarra/t/<%= team.id %>/entrenos">Entrenos</a>
+      <a href="/pizarra/t/<%= team.id %>/partidos">Partidos</a>
       <a href="/pizarra">← Pizarra</a>
       <% if (typeof coach !== 'undefined' && coach) { %><span class="adm-user"><%= coach.name || coach.username %></span><% } %>
       <form method="post" action="/pizarra/logout" style="display:inline"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn ghost sm">Salir</button></form>

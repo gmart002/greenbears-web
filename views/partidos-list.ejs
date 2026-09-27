@@ -1,0 +1,108 @@
+<% var pageTitle = 'Partidos' %>
+<%- include('partials/entrenos-head') %>
+<%
+  function fechaLarga(iso){
+    if(!iso) return '';
+    var d=new Date(iso+'T12:00:00');
+    var dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var mes=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return dias[d.getDay()]+' '+d.getDate()+' '+mes[d.getMonth()]+' '+d.getFullYear();
+  }
+%>
+<div class="form-card" style="max-width:980px">
+  <h1>Partidos · <%= team.name %></h1>
+  <p class="hint">Cita a los jugadores para cada partido y toma la asistencia (a la hora · atrasado · justifica · no asiste). Las estadísticas salen de esa citación.</p>
+
+  <% if (canEdit) { %>
+  <h2 style="margin-top:16px">Crear un partido</h2>
+  <% if (calendar && calendar.length) { %>
+  <label style="display:flex;flex-direction:column;gap:4px;max-width:520px;margin-bottom:10px">Traer del calendario
+    <select id="calpick" style="padding:8px;border:1px solid var(--line);border-radius:8px">
+      <option value="">— Elegir un partido del calendario del sitio —</option>
+      <% calendar.forEach(function(c){ %>
+      <option value="1" data-date="<%= c.date %>" data-time="<%= c.time %>" data-rival="<%= c.rival %>" data-place="<%= c.place %>" data-home="<%= c.home %>"><%= c.label %></option>
+      <% }) %>
+    </select>
+  </label>
+  <% } %>
+  <form method="post" action="/pizarra/t/<%= team.id %>/partidos" id="mform" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:6px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label style="display:flex;flex-direction:column;gap:4px">Fecha<input type="date" name="date" id="f_date" value="<%= hoy %>" required style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px">Hora<input type="time" name="time" id="f_time" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">Rival<input type="text" name="rival" id="f_rival" placeholder="Equipo rival" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px">Lugar<input type="text" name="place" id="f_place" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px">Condición
+      <select name="home" id="f_home" style="padding:8px;border:1px solid var(--line);border-radius:8px"><option value="1">Local</option><option value="0">Visita</option></select>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:4px">Torneo<input type="text" name="competition" placeholder="Amistoso, LBO…" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <button class="btn primary">Crear y citar</button>
+  </form>
+  <% } %>
+
+  <h2 style="margin-top:22px">Partidos</h2>
+  <% if (!matches.length) { %>
+    <p class="muted">Aún no hay partidos<%= canEdit ? '. Crea el primero arriba.' : '.' %></p>
+  <% } else { %>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Fecha</th><th>Rival</th><th>Marcador</th><th>Citados</th><th>Asist.</th><th></th></tr></thead>
+      <tbody>
+        <% matches.forEach(function(m){ %>
+        <tr>
+          <td><b><%= fechaLarga(m.date) %></b><br><span class="muted sm"><%= (m.home?'Local':'Visita') %><%= m.time?(' · '+m.time):'' %><%= m.competition?(' · '+m.competition):'' %></span></td>
+          <td><%= m.rival || '—' %><% if(m.place){ %><br><span class="muted sm"><%= m.place %></span><% } %></td>
+          <td class="muted"><% if(m.our_score!=null&&m.opp_score!=null){ %><b><%= m.our_score %></b> – <%= m.opp_score %><% } else { %>—<% } %></td>
+          <td><b><%= m.cited %></b></td>
+          <td class="muted"><%= m.present %>/<%= m.cited %></td>
+          <td><div class="actions">
+            <a class="btn primary sm" href="/pizarra/t/<%= team.id %>/partidos/<%= m.id %>">Citación</a>
+            <% if (canEdit) { %>
+            <form method="post" action="/pizarra/t/<%= team.id %>/partidos/<%= m.id %>/eliminar" data-confirm="¿Eliminar este partido y su citación?">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button>
+            </form>
+            <% } %>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <h2 style="margin-top:24px">Asistencia a partidos por jugador</h2>
+  <p class="hint">Sobre <b><%= summary.totalMatches %></b> partido(s). % = asistió (a la hora + atrasado) sobre veces citado.</p>
+  <% if (!summary.rows.length) { %>
+    <p class="muted">Aún no hay jugadores citados.</p>
+  <% } else { %>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>#</th><th>Jugador</th><th>Citado</th><th>A la hora</th><th>Atrasado</th><th>Justifica</th><th>No asiste</th><th>% Asist.</th></tr></thead>
+      <tbody>
+        <% summary.rows.forEach(function(r){ %>
+        <tr><td class="muted"><%= r.player.num || '' %></td><td><%= r.player.name %></td>
+          <td><b><%= r.cited %></b></td>
+          <td><%= r.a_tiempo %></td><td class="muted"><%= r.atrasado %></td><td class="muted"><%= r.justifica %></td><td class="muted"><%= r.no_asiste %></td>
+          <td><b style="color:<%= r.pct>=75?'#1f9b57':(r.pct>=50?'#f0982a':'#e0453f') %>"><%= r.cited?(r.pct+'%'):'—' %></b></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<% if (canEdit && calendar && calendar.length) { %>
+<script>
+(function(){
+  var sel=document.getElementById('calpick'); if(!sel) return;
+  sel.addEventListener('change',function(){
+    var o=sel.options[sel.selectedIndex]; if(!o||!o.value) return;
+    var g=function(a){return o.getAttribute(a)||'';};
+    if(g('data-date')) document.getElementById('f_date').value=g('data-date');
+    document.getElementById('f_time').value=g('data-time');
+    document.getElementById('f_rival').value=g('data-rival');
+    document.getElementById('f_place').value=g('data-place');
+    document.getElementById('f_home').value=(g('data-home')==='0')?'0':'1';
+  });
+})();
+</script>
+<% } %>
+<%- include('partials/asist-foot') %>

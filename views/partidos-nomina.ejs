@@ -1,0 +1,126 @@
+<% var pageTitle = 'Citación' %>
+<%- include('partials/entrenos-head') %>
+<%
+  function fechaLarga(iso){
+    if(!iso) return '';
+    var d=new Date(iso+'T12:00:00');
+    var dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var mes=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return dias[d.getDay()]+' '+d.getDate()+' de '+mes[d.getMonth()]+' '+d.getFullYear();
+  }
+  var ro = !canEdit ? 'disabled' : '';
+%>
+<a class="link-back" href="/pizarra/t/<%= team.id %>/partidos">← Volver a partidos</a>
+
+<div class="form-card" style="max-width:840px">
+  <h1>Citación · <%= match.rival ? ('vs '+match.rival) : fechaLarga(match.date) %></h1>
+  <p class="hint"><%= fechaLarga(match.date) %><% if(match.time){ %> · <%= match.time %><% } %> · <%= match.home?'Local':'Visita' %><% if(match.place){ %> · <%= match.place %><% } %><% if(match.competition){ %> · <%= match.competition %><% } %></p>
+  <div id="okMsg" class="hint" style="display:none;color:#1f9b57;font-weight:700">✓ Citación guardada.</div>
+
+  <form method="post" action="/pizarra/t/<%= team.id %>/partidos/<%= match.id %>">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="date" value="<%= match.date %>">
+    <input type="hidden" name="time" value="<%= match.time || '' %>">
+    <input type="hidden" name="rival" value="<%= match.rival || '' %>">
+    <input type="hidden" name="place" value="<%= match.place || '' %>">
+    <input type="hidden" name="home" value="<%= match.home?1:0 %>">
+    <input type="hidden" name="competition" value="<%= match.competition || '' %>">
+
+    <% if (canEdit) { %>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px">
+      <button type="button" class="btn ghost sm" id="citeAll">Citar a todos</button>
+      <button type="button" class="btn ghost sm" id="citeNone">Ninguno</button>
+    </div>
+    <% } %>
+
+    <h2 style="margin-top:6px">Plantel</h2>
+    <% if (!roster.length) { %>
+      <p class="muted">Este equipo no tiene jugadores en su roster<% if (!team.linked_plantel) { %> (agrégalos en la pizarra o abajo, como invitados)<% } %>.</p>
+    <% } else { %>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead><tr><th style="text-align:center">Citar</th><th>#</th><th>Jugador</th><th>Asistencia</th></tr></thead>
+        <tbody>
+          <% roster.forEach(function(p){ var c = marks[String(p.id)]; var cited = !!c; var st = c ? c.status : 'a_tiempo'; %>
+          <tr>
+            <td style="text-align:center"><input type="checkbox" class="cite-cb" name="cite_<%= p.id %>" <%= cited?'checked':'' %> <%= ro %>></td>
+            <td class="muted"><%= p.num || '' %></td><td><%= p.name %></td>
+            <td>
+              <select name="st_<%= p.id %>" <%= ro %> style="padding:6px;border:1px solid var(--line);border-radius:8px">
+                <% states.forEach(function(s){ %><option value="<%= s[0] %>" <%= st===s[0]?'selected':'' %>><%= s[1] %></option><% }) %>
+              </select>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+
+    <h2 style="margin-top:22px">Invitados <span class="muted sm">(aún no están en el plantel)</span></h2>
+    <div style="overflow-x:auto">
+      <table class="tbl" id="extraTbl">
+        <thead><tr><th>Nombre</th><th>#</th><th>Asistencia</th><% if (canEdit) { %><th></th><% } %></tr></thead>
+        <tbody id="extraBody">
+          <% extras.forEach(function(c, i){ %>
+          <tr>
+            <td><input type="hidden" name="axid_e<%= i %>" value="<%= c.player_id %>"><input type="text" name="axname_e<%= i %>" value="<%= c.player_name %>" <%= ro %> style="padding:6px;border:1px solid var(--line);border-radius:8px;width:100%"></td>
+            <td><input type="text" name="axnum_e<%= i %>" value="<%= c.num || '' %>" <%= ro %> style="padding:6px;border:1px solid var(--line);border-radius:8px;width:60px"></td>
+            <td><select name="axst_e<%= i %>" <%= ro %> style="padding:6px;border:1px solid var(--line);border-radius:8px">
+              <% states.forEach(function(s){ %><option value="<%= s[0] %>" <%= c.status===s[0]?'selected':'' %>><%= s[1] %></option><% }) %>
+            </select></td>
+            <% if (canEdit) { %><td><button type="button" class="btn danger sm rm-row">×</button></td><% } %>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (canEdit) { %>
+    <div style="margin-top:8px"><button type="button" class="btn ghost sm" id="addExtra">+ Agregar invitado</button></div>
+
+    <h2 style="margin-top:22px">Marcador <span class="muted sm">(opcional)</span></h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <label style="display:flex;flex-direction:column;gap:4px">Nosotros<input type="number" name="our_score" min="0" value="<%= match.our_score!=null?match.our_score:'' %>" style="padding:8px;border:1px solid var(--line);border-radius:8px;width:90px"></label>
+      <label style="display:flex;flex-direction:column;gap:4px"><%= match.rival||'Rival' %><input type="number" name="opp_score" min="0" value="<%= match.opp_score!=null?match.opp_score:'' %>" style="padding:8px;border:1px solid var(--line);border-radius:8px;width:90px"></label>
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
+      <button class="btn primary">Guardar citación</button>
+      <a class="btn ghost" href="/pizarra/t/<%= team.id %>/partidos">Volver</a>
+    </div>
+    <% } %>
+  </form>
+</div>
+
+<% if (canEdit) { %>
+<template id="extraTpl">
+  <tr>
+    <td><input type="hidden" name="axid_@N@" value=""><input type="text" name="axname_@N@" placeholder="Nombre" style="padding:6px;border:1px solid var(--line);border-radius:8px;width:100%"></td>
+    <td><input type="text" name="axnum_@N@" style="padding:6px;border:1px solid var(--line);border-radius:8px;width:60px"></td>
+    <td><select name="axst_@N@" style="padding:6px;border:1px solid var(--line);border-radius:8px">
+      <% states.forEach(function(s){ %><option value="<%= s[0] %>"><%= s[1] %></option><% }) %>
+    </select></td>
+    <td><button type="button" class="btn danger sm rm-row">×</button></td>
+  </tr>
+</template>
+<script>
+(function(){
+  var body=document.getElementById('extraBody'), tpl=document.getElementById('extraTpl'), n=0;
+  var add=document.getElementById('addExtra');
+  if(add) add.addEventListener('click',function(){
+    var frag=tpl.content.cloneNode(true), tr=frag.querySelector('tr'), idx='n'+(n++);
+    [].forEach.call(tr.querySelectorAll('[name]'),function(el){ el.name=el.name.replace(/@N@/g,idx); });
+    body.appendChild(tr);
+  });
+  document.addEventListener('click',function(e){
+    var b=e.target.closest?e.target.closest('.rm-row'):null; if(!b) return;
+    var tr=b.closest('tr'); if(tr) tr.parentNode.removeChild(tr);
+  });
+  var all=document.getElementById('citeAll'), none=document.getElementById('citeNone');
+  function setAll(v){ [].forEach.call(document.querySelectorAll('.cite-cb'),function(c){ c.checked=v; }); }
+  if(all) all.addEventListener('click',function(){ setAll(true); });
+  if(none) none.addEventListener('click',function(){ setAll(false); });
+})();
+</script>
+<% } %>
+<%- include('partials/asist-foot') %>
