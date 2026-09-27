@@ -364,6 +364,7 @@
   var cur=null; try{cur=JSON.parse(localStorage.getItem(TEAM_KEY)||'null');}catch(e){}
   try{ window.__pzTeam = cur; }catch(e){}   // el nombre/equipo actual, para la marca de arriba
   var readonly=!!(cur && cur.owned===0);   // equipo compartido que no es propio: solo lectura
+  var isSuperUser=false;                    // se resuelve en init(); el switch de equipo es solo para superadmin
   var _set=localStorage.setItem.bind(localStorage);
   var _rm=localStorage.removeItem.bind(localStorage);
   var timer=null;
@@ -502,10 +503,22 @@
     }).catch(function(){ o.querySelector('#pzList').innerHTML='<div style="color:#c66;padding:8px 4px">Sin conexión con el servidor.</div>'; });
   }
 
-  function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo')+(readonly?' · solo lectura':'');
-    b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:'+(readonly?'#3a2a12':'#101613')+';color:#eaf2ec;border:1px solid '+(readonly?'#6b4e1e':'#2b3a31')+';border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
-    b.onclick=function(){ showPicker(true); }; document.body.appendChild(b);
-    // Acceso a Entrenos (asistencia + bitácora) del equipo actual.
+  function floatBtn(){
+    if(isSuperUser){
+      // Cambiar de equipo: SOLO superadmin (los coaches quedan en su propio equipo).
+      var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo')+(readonly?' · revisión':'');
+      b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:#101613;color:#eaf2ec;border:1px solid #2b3a31;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
+      b.onclick=function(){ showPicker(true); }; document.body.appendChild(b);
+    } else {
+      // Coach normal: solo muestra su equipo y un botón para salir (sin cambiar de equipo).
+      var chip=document.createElement('div'); chip.textContent=(cur?cur.name:'Equipo')+(readonly?' · solo lectura':'');
+      chip.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:'+(readonly?'#3a2a12':'#101613')+';color:#eaf2ec;border:1px solid '+(readonly?'#6b4e1e':'#2b3a31')+';border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
+      document.body.appendChild(chip);
+      var lo=document.createElement('a'); lo.textContent='Salir'; lo.href='/pizarra/logout';
+      lo.style.cssText='position:fixed;left:10px;bottom:94px;z-index:9000;background:#101613;color:#9fb0a5;border:1px solid #2b3a31;border-radius:999px;padding:6px 12px;font-size:.78rem;font-weight:700;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif;text-decoration:none';
+      document.body.appendChild(lo);
+    }
+    // Acceso a Entrenos (asistencia + bitácora) del equipo actual (todos).
     if(cur&&cur.id){ var e=document.createElement('a'); e.textContent='📋 Entrenos'; e.href='/pizarra/t/'+cur.id+'/entrenos';
       e.style.cssText='position:fixed;left:10px;bottom:52px;z-index:9000;background:#1f9b57;color:#fff;border:0;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif;text-decoration:none';
       document.body.appendChild(e); } }
@@ -516,7 +529,23 @@
     d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9200;background:#f0982a;color:#221a08;font:600 .8rem system-ui,sans-serif;text-align:center;padding:6px 10px';
     document.body.appendChild(d); document.body.style.paddingTop='28px'; }
 
-  function init(){ if(!cur||!cur.id){ readonly=false; showPicker(false); } else { floatBtn(); if(readonly) roBanner(); } }
+  function render(){ if(!cur||!cur.id){ readonly=false; showPicker(false); } else { floatBtn(); if(readonly) roBanner(); } }
+  function init(){
+    // Valida el equipo cacheado contra el servidor: con el aislamiento por cuenta, un equipo
+    // que ya no es accesible (p.ej. Green Bears en la cuenta de un coach) se limpia y se re-elige.
+    api('/teams').then(function(r){ if(r.status===401){ location.href='/pizarra/login'; return null; } return r.json(); }).then(function(d){
+      if(!d){ return; }
+      isSuperUser=!!d.super;
+      var teams=d.teams||[];
+      var ok = cur && cur.id && (isSuperUser || teams.some(function(t){ return String(t.id)===String(cur.id); }));
+      if(cur && cur.id && !ok){                 // equipo cacheado ya no accesible: limpiar
+        KEYS.forEach(function(k){ try{_rm(k);}catch(e){} });
+        try{_rm('pizarra.game.bak');}catch(e){} try{_rm(TEAM_KEY);}catch(e){}
+        cur=null; readonly=false; try{ window.__pzTeam=null; }catch(e){}
+      }
+      render();
+    }).catch(function(){ render(); });   // sin conexión: usa lo cacheado
+  }
   if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
 })();
 </script>
