@@ -504,7 +504,11 @@
 
   function floatBtn(){ var b=document.createElement('button'); b.textContent='⇄ '+(cur?cur.name:'Equipo')+(readonly?' · solo lectura':'');
     b.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9000;background:'+(readonly?'#3a2a12':'#101613')+';color:#eaf2ec;border:1px solid '+(readonly?'#6b4e1e':'#2b3a31')+';border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif';
-    b.onclick=function(){ showPicker(true); }; document.body.appendChild(b); }
+    b.onclick=function(){ showPicker(true); }; document.body.appendChild(b);
+    // Acceso a Entrenos (asistencia + bitácora) del equipo actual.
+    if(cur&&cur.id){ var e=document.createElement('a'); e.textContent='📋 Entrenos'; e.href='/pizarra/t/'+cur.id+'/entrenos';
+      e.style.cssText='position:fixed;left:10px;bottom:52px;z-index:9000;background:#1f9b57;color:#fff;border:0;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif;text-decoration:none';
+      document.body.appendChild(e); } }
   function roBanner(){ var d=document.createElement('div');
     d.textContent = (cur&&cur.review)
       ? ('Revisando “'+(cur?cur.name:'')+'” como superadmin · solo lectura — no se guardan cambios.')

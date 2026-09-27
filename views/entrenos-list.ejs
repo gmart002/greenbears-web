@@ -1,0 +1,77 @@
+<% var pageTitle = 'Entrenamientos' %>
+<%- include('partials/entrenos-head') %>
+<%
+  function fechaLarga(iso){
+    if(!iso) return '';
+    var d=new Date(iso+'T12:00:00');
+    var dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var mes=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return dias[d.getDay()]+' '+d.getDate()+' '+mes[d.getMonth()]+' '+d.getFullYear();
+  }
+%>
+<div class="form-card" style="max-width:960px">
+  <h1>Entrenamientos · <%= team.name %></h1>
+  <p class="hint">Asistencia y bitácora del equipo. Se usa el plantel de <b><%= team.name %></b><% if (team.linked_plantel) { %> (plantel del sitio)<% } %>.</p>
+
+  <% if (canEdit) { %>
+  <h2 style="margin-top:16px">Registrar un entrenamiento</h2>
+  <form method="post" action="/pizarra/t/<%= team.id %>/entrenos" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:6px">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label style="display:flex;flex-direction:column;gap:4px">Fecha<input type="date" name="date" value="<%= hoy %>" required style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px">Lugar<input type="text" name="place" value="<%= def.place %>" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px">Desde<input type="time" name="start" value="<%= def.start %>" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <label style="display:flex;flex-direction:column;gap:4px">Hasta<input type="time" name="end" value="<%= def.end %>" style="padding:8px;border:1px solid var(--line);border-radius:8px"></label>
+    <button class="btn primary">Crear y tomar asistencia</button>
+  </form>
+  <p class="hint">Si ya existe un entrenamiento de esa fecha, se abre para editar (no se duplica).</p>
+  <% } %>
+
+  <h2 style="margin-top:22px">Entrenamientos</h2>
+  <% if (!sessions.length) { %>
+    <p class="muted">Aún no hay entrenamientos<%= canEdit ? '. Crea el primero arriba.' : '.' %></p>
+  <% } else { %>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Fecha</th><th>Lugar</th><th>Pres.</th><th>Just.</th><th>Aus.</th><th></th></tr></thead>
+      <tbody>
+        <% sessions.forEach(function(sn){ %>
+        <tr>
+          <td><b><%= fechaLarga(sn.date) %></b><br><span class="muted sm"><%= (sn.start_time||'') %><%= sn.end_time?('–'+sn.end_time):'' %></span></td>
+          <td class="muted"><%= sn.place || '' %></td>
+          <td><b><%= sn.present %></b></td><td class="muted"><%= sn.justified %></td><td class="muted"><%= sn.absent %></td>
+          <td><div class="actions">
+            <a class="btn primary sm" href="/pizarra/t/<%= team.id %>/entrenos/<%= sn.id %>/asistencia">Asistencia</a>
+            <a class="btn ghost sm" href="/pizarra/t/<%= team.id %>/entrenos/<%= sn.id %>/bitacora"><%= sn.haslog ? 'Bitácora ✓' : 'Bitácora' %></a>
+            <% if (canEdit) { %>
+            <form method="post" action="/pizarra/t/<%= team.id %>/entrenos/<%= sn.id %>/eliminar" data-confirm="¿Eliminar este entrenamiento, su asistencia y su bitácora?">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn danger sm">×</button>
+            </form>
+            <% } %>
+          </div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <h2 style="margin-top:24px">Resumen por jugador</h2>
+  <p class="hint">Sobre <b><%= summary.totalSessions %></b> entrenamiento(s).</p>
+  <% if (!summary.rows.length) { %>
+    <p class="muted">Este equipo no tiene jugadores en su roster todavía<% if (!team.linked_plantel) { %> (agrégalos en la pizarra, sección Estadísticas/Plantel)<% } %>.</p>
+  <% } else { %>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>#</th><th>Jugador</th><th>Pres.</th><th>Just.</th><th>Aus.</th><th>% Asist.</th></tr></thead>
+      <tbody>
+        <% summary.rows.forEach(function(r){ %>
+        <tr><td class="muted"><%= r.player.num || '' %></td><td><%= r.player.name %></td>
+          <td><b><%= r.present %></b></td><td class="muted"><%= r.justified %></td><td class="muted"><%= r.absent %></td>
+          <td><b style="color:<%= r.pct>=75?'#1f9b57':(r.pct>=50?'#f0982a':'#e0453f') %>"><%= r.pct %>%</b></td></tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</div>
+<%- include('partials/asist-foot') %>
