@@ -132,10 +132,11 @@ addColumn('players', 'staff', 'INTEGER NOT NULL DEFAULT 0');   // 0 = jugador, 1
 addColumn('players', 'staff_role', "TEXT DEFAULT ''");         // ej. Entrenador, Asistente
 addColumn('pz_teams', 'shared', 'INTEGER NOT NULL DEFAULT 0'); // 1 = visible/editable por todos los coaches
 addColumn('coaches', 'role', "TEXT NOT NULL DEFAULT 'coach'"); // 'super' ve/revisa todos los equipos
-// Green Bears (enlazado al plantel) es compartido entre coaches.
-db.exec('UPDATE pz_teams SET shared = 1 WHERE linked_plantel = 1 AND shared = 0');
-// El equipo Green Bears (plantel del sitio) pertenece a la cuenta 'greenbears': así solo
-// esa cuenta puede editarlo/llevar sus estadísticas (los demás lo ven en solo lectura).
+// Aislamiento por equipo: cada cuenta ve/edita SOLO su equipo. Green Bears deja de ser
+// compartido (antes lo veían todos los coaches). El superadmin sigue pudiendo revisar.
+db.exec('UPDATE pz_teams SET shared = 0 WHERE linked_plantel = 1 AND shared = 1');
+// El equipo Green Bears (plantel del sitio) pertenece a la cuenta 'greenbears': solo esa
+// cuenta lo ve y lo edita/lleva sus estadísticas.
 try {
   const _gb = db.prepare("SELECT id FROM coaches WHERE lower(username) = 'greenbears'").get();
   if (_gb) db.prepare('UPDATE pz_teams SET coach_id = ? WHERE linked_plantel = 1 AND coach_id <> ?').run(_gb.id, _gb.id);
@@ -328,9 +329,9 @@ function settings() {
   const ts = new Date().toISOString();
   const info = db.prepare('INSERT INTO coaches (username, pass_hash, name, active, created_at) VALUES (?,?,?,1,?)')
     .run(uname, bcrypt.hashSync(pass, 10), 'Green Bears', ts);
-  // Su primer equipo: Green Bears, enlazado al plantel del sitio y compartido entre coaches.
+  // Su primer equipo: Green Bears, enlazado al plantel del sitio y privado (aislado por equipo).
   db.prepare('INSERT INTO pz_teams (coach_id, name, linked_plantel, shared, payload, sort, created_at, updated_at) VALUES (?,?,?,?,?,0,?,?)')
-    .run(info.lastInsertRowid, 'Green Bears', 1, 1, '', ts, ts);
+    .run(info.lastInsertRowid, 'Green Bears', 1, 0, '', ts, ts);
 })();
 
 // Migración única del modelo GLOBAL anterior (training_*) al nuevo por-equipo: se asigna
