@@ -791,6 +791,31 @@ function lboShapeGB(m) {
     rnd: m.rnd, icsUrl: '/lbo/' + m.id + '.ics'
   };
 }
+// Normaliza un nombre de club para cruzar la LBO oficial (lbo.greenbears.cl)
+// con el fixture local (que usa nombres cortos). Sin acentos, por alias.
+function lboNorm(name) {
+  const s = String(name || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  if (/UBC/.test(s)) return 'UBC';
+  if (/PARROTS/.test(s)) return 'PARROTS';
+  if (/CHAMOS/.test(s)) return 'LOSCHAMOS';
+  if (/OLD.?S?\s*MAGIC/.test(s)) return 'OLDSMAGIC';
+  if (/O.?HIGGINS/.test(s)) return 'OHIGGINS';
+  if (/PESTA/.test(s)) return 'PESTANAS';
+  if (/SANTA\s*CRUZ/.test(s)) return 'SANTACRUZ';
+  if (/PATRIOTAS/.test(s)) return 'PATRIOTAS';
+  if (/PLACILLA/.test(s)) return 'PLACILLA';
+  if (/UNCA/.test(s)) return 'UNCA';
+  if (/GREEN\s*BEARS/.test(s)) return 'GREENBEARS';
+  if (/\bCAF\b|RANCAGUA\s*CAF/.test(s)) return 'CAF';
+  return s.replace(/[^A-Z0-9]/g, '');
+}
+// Busca el partido local que corresponde a (home, away[, fecha]) de la LBO oficial.
+function lboFindMatchByTeams(home, away, mdate) {
+  const h = lboNorm(home), a = lboNorm(away);
+  const cand = lboAll().filter(m => lboNorm(m.home) === h && lboNorm(m.away) === a);
+  if (mdate) { const byDate = cand.find(m => m.mdate === mdate); if (byDate) return byDate.id; }
+  return cand.length ? cand[0].id : null;
+}
 function lboGBGames() { return lboAll().filter(m => m.home === LBO_TEAM || m.away === LBO_TEAM).map(lboShapeGB); }
 function lboGBUpcoming(limit) { const a = lboGBGames().filter(x => x.status === 'upcoming'); return limit ? a.slice(0, limit) : a; }
 function lboGBLast(limit) { const a = lboGBGames().filter(x => x.status === 'played').reverse(); return limit ? a.slice(0, limit) : a; }
@@ -804,5 +829,6 @@ module.exports = {
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
-  lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB
+  lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB,
+  lboNorm, lboFindMatchByTeams
 };

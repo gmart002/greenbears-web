@@ -115,3 +115,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => console.log('Green Bears web escuchando en :' + PORT));
+
+// Sincroniza resultados desde la LBO oficial si se configuró LBO_FEED_URL (dormido si no).
+try { require('./lbo-sync').startLboSync(); } catch (e) {}
