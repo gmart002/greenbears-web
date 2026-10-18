@@ -149,6 +149,7 @@
     font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;color:var(--ink);min-height:40px}
   .mini svg{width:15px;height:15px}
   .mini.pri{background:var(--amber);color:#1a1206;border-color:transparent}
+  .mini.load{background:rgba(31,155,87,.16);border-color:#2f7d4e;color:#7ee6a6;font-weight:700}
   .swatches{display:flex;gap:8px;margin-top:2px}
   .sw{width:30px;height:30px;border-radius:50%;border:2px solid #0000}
   .sw.on{border-color:#fff;box-shadow:0 0 0 2px #000}
@@ -667,6 +668,7 @@
       <div class="stats-top">
         <div class="game-meta">
           <label class="fld"><span>Rival</span><input id="rivalInput" placeholder="Nombre del rival" maxlength="40"></label>
+          <button class="mini load" id="btnLoadMatch" title="Elegir un partido del calendario">📅 Cargar partido</button>
           <div class="score"><span class="lbl3">Green Bears</span><b id="scoreUs">0</b><span class="dash">–</span><b id="scoreThem">0</b><span class="lbl3" id="rivalName">Rival</span></div>
         </div>
         <div class="game-actions">
@@ -2190,7 +2192,7 @@
     const nm=function(p){ return (p.num?'#'+p.num+' ':'')+p.name; };
     const rankUs=us>them?'ganó':(us<them?'perdió':'empató');
     const teamName=(window.__pzTeam&&window.__pzTeam.name)||'Green Bears';
-    const dstr=(function(){ try{ return new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return ''; } })();
+    const dstr=(function(){ try{ const base=game.date?new Date(game.date+'T12:00:00'):new Date(); return base.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return ''; } })();
 
     const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
       +'<title>Informe — '+esc(teamName)+' vs '+esc(game.rival||'Rival')+'</title>'
@@ -2245,6 +2247,50 @@
     const w=window.open('','_blank');
     if(!w){ toast('Permite las ventanas emergentes para ver el informe'); return; }
     w.document.open(); w.document.write(html); w.document.close();
+  }
+
+  // ---- Cargar partido del calendario (fixture LBO + partidos del equipo) ----
+  function openMatchPicker(){
+    const tid=curTeamId(); if(!tid){ toast('Primero elige un equipo'); return; }
+    let ov=document.getElementById('mpOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='mpOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(8,12,10,.9);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,-apple-system,sans-serif';
+    document.body.appendChild(ov);
+    ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:620px;width:100%;color:#eaf2ec;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+      +'<div style="padding:14px 18px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.15rem">Cargar partido del calendario</b><button id="mpX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+      +'<div id="mpBody" style="padding:6px 16px 14px;overflow:auto"><div style="color:#8aa;padding:16px 4px">Cargando calendario…</div></div></div>';
+    ov.querySelector('#mpX').onclick=function(){ ov.remove(); };
+    function fmtD(d){ if(!d) return ''; try{ return new Date(d+'T12:00:00').toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'short'}); }catch(e){ return d; } }
+    const body=ov.querySelector('#mpBody');
+    api('/teams/'+tid+'/matches').then(function(r){ return r.json(); }).then(function(d){
+      const ms=(d&&d.matches)||[];
+      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos en el calendario de este equipo.</div>'; return; }
+      body.innerHTML=ms.map(function(m,i){
+        const loc=m.home?'Local':'Visita';
+        const extra=(m.competition||'')+' · '+loc+(m.played?' <span style="color:#8aa">· jugado</span>':'');
+        return '<button data-i="'+i+'" style="width:100%;text-align:left;background:#121a15;border:1px solid #23312a;border-radius:10px;padding:9px 11px;margin:6px 0;color:#eaf2ec;cursor:pointer;display:flex;align-items:center;gap:10px">'
+          +'<span style="color:#8aa;font-size:.76rem;width:92px;flex:0 0 auto">'+fmtD(m.date)+(m.time?(' · '+m.time):'')+'</span>'
+          +'<b style="flex:1;min-width:0">vs '+escapeHtml(m.opponent||'Rival')+'</b>'
+          +'<span style="color:#8aa;font-size:.72rem;text-align:right">'+extra+'</span>'
+        +'</button>';
+      }).join('');
+      [].forEach.call(body.querySelectorAll('[data-i]'),function(b){ b.onclick=function(){
+        applyPickedMatch(ms[+b.getAttribute('data-i')]); ov.remove();
+      }; });
+    }).catch(function(){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">No se pudo cargar el calendario. Revisa la conexión y reintenta.</div>'; });
+  }
+  function applyPickedMatch(m){
+    if(gameHasData()){
+      if(confirm('Hay estadísticas en pantalla. ¿Reiniciar para anotar "vs '+(m.opponent||'Rival')+'" desde cero?\n\nAceptar = empezar de cero · Cancelar = solo cambiar el rival y la fecha')){
+        stopTick();
+        game={rival:'',themPts:0,stats:{},log:[],shots:[],period:1,themQ:{},secs:{},pm:{},starters:null,oncourt:null,clock:{q:1,remain:qLenMs(1),running:false,base:null}}; viewPeriod=1; selPlayer=null;
+      }
+    }
+    game.rival=m.opponent||''; if(m.date) game.date=m.date;
+    const ri=document.getElementById('rivalInput'); if(ri) ri.value=game.rival;
+    const rn=document.getElementById('rivalName'); if(rn) rn.textContent=game.rival||'Rival';
+    saveGame(); renderStats();
+    toast('Partido cargado · vs '+(game.rival||'Rival'));
   }
 
   // ---- Historial de partidos guardados ----
@@ -2576,7 +2622,7 @@
     if(game.clock&&game.clock.running) pauseClock();
     let hist=[]; try{ hist=JSON.parse(localStorage.getItem(HIST_KEY))||[]; }catch(e){}
     const pres=presentRoster();
-    hist.push({date:new Date().toISOString(), rival:game.rival||'', us:usScore(), them:game.themPts||0,
+    hist.push({date:(game.date?new Date(game.date+'T12:00:00').toISOString():new Date().toISOString()), rival:game.rival||'', us:usScore(), them:game.themPts||0,
       stats:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp,c:cnt(p.id)})),
       roster:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp})),
       log:(game.log||[]).slice(), shots:(game.shots||[]).slice(), themQ:Object.assign({},game.themQ||{}), period:game.period||1,
@@ -2624,6 +2670,7 @@
   $('#rivalInput').addEventListener('input',()=>{ game.rival=$('#rivalInput').value; document.getElementById('rivalName').textContent=game.rival||'Rival'; saveGame(); });
   $('#btnUndo').onclick=undo;
   $('#btnPlantel').onclick=openPlantel;
+  $('#btnLoadMatch').onclick=openMatchPicker;
   $('#btnShots').onclick=openShots;
   $('#btnHistory').onclick=openHistory;
   $('#btnReport').onclick=openReport;

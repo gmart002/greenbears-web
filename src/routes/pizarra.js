@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam, listTeamVersions, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
-  lboGBUpcoming } = require('../db');
+  lboGBUpcoming, lboGBGames } = require('../db');
 
 const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
@@ -319,6 +319,35 @@ module.exports = function (checkCsrf) {
   api.delete('/teams/:id', (req, res) => {
     deleteTeam(Number(req.params.id), req.coachId);
     res.json({ ok: true });
+  });
+
+  // Calendario del equipo para la planilla de Estadísticas: permite elegir el
+  // partido a anotar (precarga rival y fecha) en vez de escribir el rival a mano.
+  // Para el equipo vinculado al plantel del sitio (Green Bears) incluye el fixture
+  // oficial de la LBO; además suma los partidos del módulo "Partidos" del equipo.
+  api.get('/teams/:id/matches', (req, res) => {
+    const t = getTeam(Number(req.params.id), req.coachId, req.isSuper);
+    if (!t) return res.status(404).json({ error: 'not-found' });
+    const out = [];
+    if (t.linked_plantel) {
+      lboGBGames().forEach(m => {
+        const parts = String(m.date || '').split('T');
+        out.push({
+          date: parts[0] || '', time: (parts[1] || '').slice(0, 5), opponent: m.opponent || '',
+          home: m.home ? 1 : 0, competition: 'LBO 2026', rnd: m.rnd || null, played: m.status === 'played', source: 'lbo'
+        });
+      });
+    }
+    try {
+      listTeamMatches(t.id).forEach(m => {
+        out.push({
+          date: m.date || '', time: m.time || '', opponent: m.rival || '',
+          home: m.home ? 1 : 0, competition: m.competition || '', place: m.place || '', source: 'equipo'
+        });
+      });
+    } catch (e) {}
+    out.sort((a, b) => ((a.date + 'T' + (a.time || '99:99')) < (b.date + 'T' + (b.time || '99:99')) ? -1 : 1));
+    res.json({ matches: out });
   });
 
   // Errores del API en JSON (p. ej. payload demasiado grande → 413).

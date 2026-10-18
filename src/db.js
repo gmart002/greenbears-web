@@ -844,6 +844,6 @@ module.exports = {
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
-  lboAll, lboGet, lboSaveResult, lboStandings, lboGBUpcoming, lboGBLast, lboShapeGB,
+  lboAll, lboGet, lboSaveResult, lboStandings, lboGBGames, lboGBUpcoming, lboGBLast, lboShapeGB,
   lboNorm, lboFindMatchByTeams
 };
