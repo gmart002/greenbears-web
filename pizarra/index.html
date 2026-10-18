@@ -2264,7 +2264,7 @@
     const body=ov.querySelector('#mpBody');
     api('/teams/'+tid+'/matches').then(function(r){ return r.json(); }).then(function(d){
       const ms=(d&&d.matches)||[];
-      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos en el calendario de este equipo.</div>'; return; }
+      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos próximos en el calendario.</div>'; return; }
       body.innerHTML=ms.map(function(m,i){
         const loc=m.home?'Local':'Visita';
         const extra=(m.competition||'')+' · '+loc+(m.played?' <span style="color:#8aa">· jugado</span>':'');

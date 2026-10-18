@@ -328,6 +328,10 @@ module.exports = function (checkCsrf) {
   api.get('/teams/:id/matches', (req, res) => {
     const t = getTeam(Number(req.params.id), req.coachId, req.isSuper);
     if (!t) return res.status(404).json({ error: 'not-found' });
+    // Solo próximos y los de hoy (fecha de Chile). Un partido sin fecha se mantiene.
+    const cl = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    const z = n => String(n).padStart(2, '0');
+    const today = cl.getFullYear() + '-' + z(cl.getMonth() + 1) + '-' + z(cl.getDate());
     const out = [];
     if (t.linked_plantel) {
       lboGBGames().forEach(m => {
@@ -346,8 +350,9 @@ module.exports = function (checkCsrf) {
         });
       });
     } catch (e) {}
-    out.sort((a, b) => ((a.date + 'T' + (a.time || '99:99')) < (b.date + 'T' + (b.time || '99:99')) ? -1 : 1));
-    res.json({ matches: out });
+    const next = out.filter(m => !m.date || m.date >= today);
+    next.sort((a, b) => ((a.date + 'T' + (a.time || '99:99')) < (b.date + 'T' + (b.time || '99:99')) ? -1 : 1));
+    res.json({ matches: next });
   });
 
   // Errores del API en JSON (p. ej. payload demasiado grande → 413).
