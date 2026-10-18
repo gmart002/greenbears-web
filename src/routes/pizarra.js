@@ -330,7 +330,18 @@ module.exports = function (checkCsrf) {
   router.use('/api', api);
 
   // Recursos de la app (sw.js, manifest, íconos): públicos, no sensibles.
-  router.use(express.static(PIZARRA_DIR, { index: false, maxAge: '7d' }));
+  // sw.js y manifest se sirven SIN caché para que el navegador detecte al
+  // instante una versión nueva del service worker (y así baje la app nueva);
+  // el resto (íconos) se puede cachear.
+  router.use(express.static(PIZARRA_DIR, {
+    index: false,
+    maxAge: '7d',
+    setHeaders: (res, filePath) => {
+      if (/sw\.js$|manifest\.webmanifest$/.test(filePath)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 
   return router;
 };
