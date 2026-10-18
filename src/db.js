@@ -231,78 +231,93 @@ db.exec(`CREATE TABLE IF NOT EXISTS lbo_matches (
   wo INTEGER NOT NULL DEFAULT 0,          -- 0 normal, 1 gana local por W.O., 2 gana visita por W.O.
   sort INTEGER NOT NULL DEFAULT 0
 );`);
+// Fixture OFICIAL de la LBO 2026/2027 entregado por la liga: 11 fechas x 5
+// partidos (un equipo libre por jornada). Nombres cortos como en la tabla local.
+const LBO_REAL = [
+  [1,"2026-09-27","10:00","OLD'S MAGIC","LOS CHAMOS"],
+  [1,"2026-09-27","11:30","PARROTS","PLACILLA"],
+  [1,"2026-09-27","13:00","UNCA","PATRIOTAS"],
+  [1,"2026-09-27","14:30","PESTAÑAS","GREEN BEARS"],
+  [1,"2026-09-27","16:00","UBC","O'HIGGINS"],
+  [2,"2026-10-10","13:00","OLD'S MAGIC","UNCA"],
+  [2,"2026-10-10","14:30","PLACILLA","UBC"],
+  [2,"2026-10-10","16:00","O'HIGGINS","PARROTS"],
+  [2,"2026-10-10","17:30","SANTA CRUZ","PESTAÑAS"],
+  [2,"2026-10-10","19:00","LOS CHAMOS","GREEN BEARS"],
+  [3,"2026-10-18","10:00","PESTAÑAS","O'HIGGINS"],
+  [3,"2026-10-18","11:30","UBC","PATRIOTAS"],
+  [3,"2026-10-18","13:00","PARROTS","OLD'S MAGIC"],
+  [3,"2026-10-18","14:30","GREEN BEARS","SANTA CRUZ"],
+  [3,"2026-10-18","16:00","UNCA","LOS CHAMOS"],
+  [4,"2026-10-24","13:00","LOS CHAMOS","SANTA CRUZ"],
+  [4,"2026-10-24","14:30","PLACILLA","PESTAÑAS"],
+  [4,"2026-10-24","16:00","PATRIOTAS","PARROTS"],
+  [4,"2026-10-24","17:30","OLD'S MAGIC","UBC"],
+  [4,"2026-10-24","19:00","O'HIGGINS","GREEN BEARS"],
+  [5,"2026-11-07","13:00","LOS CHAMOS","PARROTS"],
+  [5,"2026-11-07","14:30","UBC","UNCA"],
+  [5,"2026-11-07","16:00","PESTAÑAS","PATRIOTAS"],
+  [5,"2026-11-07","17:30","PLACILLA","GREEN BEARS"],
+  [5,"2026-11-07","19:00","O'HIGGINS","SANTA CRUZ"],
+  [6,"2026-11-14","13:00","PATRIOTAS","GREEN BEARS"],
+  [6,"2026-11-14","14:30","UNCA","PARROTS"],
+  [6,"2026-11-14","16:00","OLD'S MAGIC","PESTAÑAS"],
+  [6,"2026-11-14","17:30","PLACILLA","SANTA CRUZ"],
+  [6,"2026-11-14","19:00","LOS CHAMOS","O'HIGGINS"],
+  [7,"2026-11-21","13:00","PESTAÑAS","UNCA"],
+  [7,"2026-11-21","14:30","OLD'S MAGIC","GREEN BEARS"],
+  [7,"2026-11-21","16:00","O'HIGGINS","PLACILLA"],
+  [7,"2026-11-21","17:30","UBC","LOS CHAMOS"],
+  [7,"2026-11-21","19:00","SANTA CRUZ","PATRIOTAS"],
+  [8,"2026-11-28","13:00","UNCA","GREEN BEARS"],
+  [8,"2026-11-28","14:30","UBC","PARROTS"],
+  [8,"2026-11-28","16:00","OLD'S MAGIC","SANTA CRUZ"],
+  [8,"2026-11-28","17:30","PATRIOTAS","O'HIGGINS"],
+  [8,"2026-11-28","19:00","LOS CHAMOS","PLACILLA"],
+  [9,"2026-12-05","13:00","OLD'S MAGIC","O'HIGGINS"],
+  [9,"2026-12-05","14:30","SANTA CRUZ","UNCA"],
+  [9,"2026-12-05","16:00","GREEN BEARS","PARROTS"],
+  [9,"2026-12-05","17:30","PESTAÑAS","UBC"],
+  [9,"2026-12-05","19:00","PLACILLA","PATRIOTAS"],
+  [10,"2026-12-12","13:00","PARROTS","PESTAÑAS"],
+  [10,"2026-12-12","14:30","LOS CHAMOS","PATRIOTAS"],
+  [10,"2026-12-12","16:00","OLD'S MAGIC","PLACILLA"],
+  [10,"2026-12-12","17:30","UNCA","O'HIGGINS"],
+  [10,"2026-12-12","19:00","UBC","SANTA CRUZ"],
+  [11,"2026-12-19","13:00","PARROTS","SANTA CRUZ"],
+  [11,"2026-12-19","14:30","PLACILLA","UNCA"],
+  [11,"2026-12-19","16:00","LOS CHAMOS","PESTAÑAS"],
+  [11,"2026-12-19","17:30","GREEN BEARS","UBC"],
+  [11,"2026-12-19","19:00","OLD'S MAGIC","PATRIOTAS"]
+];
 (function seedLbo() {
   if (db.prepare('SELECT COUNT(*) AS c FROM lbo_matches').get().c > 0) return;
-  const LBO_SEED = [
-    [1,"2026-09-27","10:00","OLD'S MAGIC","LOS CHAMOS"],
-    [1,"2026-09-27","11:30","RANCAGUA CAF","PLACILLA"],
-    [1,"2026-09-27","13:00","UNCA","PATRIOTAS"],
-    [1,"2026-09-27","14:30","PESTAÑAS","GREEN BEARS"],
-    [1,"2026-09-27","16:00","PARROTS","SANTA CRUZ"],
-    [1,"2026-09-27","17:30","UBC","O'HIGGINS"],
-    [2,"2026-10-03","13:00","OLD'S MAGIC","UNCA"],
-    [2,"2026-10-03","14:30","PATRIOTAS","RANCAGUA CAF"],
-    [2,"2026-10-03","16:00","PLACILLA","UBC"],
-    [2,"2026-10-03","17:30","O'HIGGINS","PARROTS"],
-    [2,"2026-10-03","19:00","SANTA CRUZ","PESTAÑAS"],
-    [2,"2026-10-03","20:30","LOS CHAMOS","GREEN BEARS"],
-    [3,"2026-10-10","13:00","PESTAÑAS","O'HIGGINS"],
-    [3,"2026-10-10","14:30","UBC","PATRIOTAS"],
-    [3,"2026-10-10","16:00","PARROTS","PLACILLA"],
-    [3,"2026-10-10","17:30","OLD'S MAGIC","RANCAGUA CAF"],
-    [3,"2026-10-10","19:00","GREEN BEARS","SANTA CRUZ"],
-    [3,"2026-10-10","20:30","UNCA","LOS CHAMOS"],
-    [4,"2026-10-18","10:00","LOS CHAMOS","SANTA CRUZ"],
-    [4,"2026-10-18","11:30","UNCA","RANCAGUA CAF"],
-    [4,"2026-10-18","13:00","PLACILLA","PESTAÑAS"],
-    [4,"2026-10-18","14:30","PATRIOTAS","PARROTS"],
-    [4,"2026-10-18","16:00","OLD'S MAGIC","UBC"],
-    [4,"2026-10-18","17:30","O'HIGGINS","GREEN BEARS"],
-    [5,"2026-10-24","13:00","OLD'S MAGIC","PARROTS"],
-    [5,"2026-10-24","14:30","UBC","UNCA"],
-    [5,"2026-10-24","16:00","PESTAÑAS","PATRIOTAS"],
-    [5,"2026-10-24","17:30","PLACILLA","GREEN BEARS"],
-    [5,"2026-10-24","19:00","O'HIGGINS","SANTA CRUZ"],
-    [5,"2026-10-24","20:30","RANCAGUA CAF","LOS CHAMOS"],
-    [6,"2026-11-07","13:00","PATRIOTAS","GREEN BEARS"],
-    [6,"2026-11-07","14:30","UNCA","PARROTS"],
-    [6,"2026-11-07","16:00","RANCAGUA CAF","UBC"],
-    [6,"2026-11-07","17:30","OLD'S MAGIC","PESTAÑAS"],
-    [6,"2026-11-07","19:00","PLACILLA","SANTA CRUZ"],
-    [6,"2026-11-07","20:30","LOS CHAMOS","O'HIGGINS"],
-    [7,"2026-11-14","13:00","PARROTS","RANCAGUA CAF"],
-    [7,"2026-11-14","14:30","PESTAÑAS","UNCA"],
-    [7,"2026-11-14","16:00","OLD'S MAGIC","GREEN BEARS"],
-    [7,"2026-11-14","17:30","O'HIGGINS","PLACILLA"],
-    [7,"2026-11-14","19:00","UBC","LOS CHAMOS"],
-    [7,"2026-11-14","20:30","SANTA CRUZ","PATRIOTAS"],
-    [8,"2026-11-21","13:00","UNCA","GREEN BEARS"],
-    [8,"2026-11-21","14:30","RANCAGUA CAF","PESTAÑAS"],
-    [8,"2026-11-21","16:00","UBC","PARROTS"],
-    [8,"2026-11-21","17:30","OLD'S MAGIC","SANTA CRUZ"],
-    [8,"2026-11-21","19:00","PATRIOTAS","O'HIGGINS"],
-    [8,"2026-11-21","20:30","LOS CHAMOS","PLACILLA"],
-    [9,"2026-12-05","13:00","OLD'S MAGIC","O'HIGGINS"],
-    [9,"2026-12-05","14:30","SANTA CRUZ","UNCA"],
-    [9,"2026-12-05","16:00","GREEN BEARS","RANCAGUA CAF"],
-    [9,"2026-12-05","17:30","PESTAÑAS","UBC"],
-    [9,"2026-12-05","19:00","PLACILLA","PATRIOTAS"],
-    [9,"2026-12-05","20:30","PARROTS","LOS CHAMOS"],
-    [10,"2026-12-12","13:00","PARROTS","PESTAÑAS"],
-    [10,"2026-12-12","14:30","LOS CHAMOS","PATRIOTAS"],
-    [10,"2026-12-12","16:00","OLD'S MAGIC","PLACILLA"],
-    [10,"2026-12-12","17:30","UNCA","O'HIGGINS"],
-    [10,"2026-12-12","19:00","UBC","GREEN BEARS"],
-    [10,"2026-12-12","20:30","SANTA CRUZ","RANCAGUA CAF"],
-    [11,"2026-12-19","13:00","PARROTS","GREEN BEARS"],
-    [11,"2026-12-19","14:30","PLACILLA","UNCA"],
-    [11,"2026-12-19","16:00","O'HIGGINS","RANCAGUA CAF"],
-    [11,"2026-12-19","17:30","SANTA CRUZ","UBC"],
-    [11,"2026-12-19","19:00","OLD'S MAGIC","PATRIOTAS"],
-    [11,"2026-12-19","20:30","PESTAÑAS","LOS CHAMOS"]
-  ];
   const ins = db.prepare('INSERT INTO lbo_matches (rnd, mdate, mtime, home, away, sort) VALUES (?,?,?,?,?,?)');
-  LBO_SEED.forEach((g, i) => ins.run(g[0], g[1], g[2], g[3], g[4], i));
+  LBO_REAL.forEach((g, i) => ins.run(g[0], g[1], g[2], g[3], g[4], i));
+  db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('lbo_fixture_v2', '1')").run();
+})();
+// Migración única: reemplaza el fixture de EJEMPLO cargado en bases anteriores
+// por el OFICIAL. Preserva resultados ya ingresados cuando el emparejamiento
+// (local/visita) coincide. Marca 'lbo_fixture_v2' para no repetirse.
+(function migrateLboReal() {
+  try {
+    const done = db.prepare("SELECT value FROM settings WHERE key = 'lbo_fixture_v2'").get();
+    if (done && done.value) return;
+    const prev = {};
+    db.prepare('SELECT home, away, home_pts, away_pts, wo FROM lbo_matches').all().forEach(m => {
+      if (m.home_pts != null || m.wo) prev[lboNorm(m.home) + '|' + lboNorm(m.away)] = { hp: m.home_pts, ap: m.away_pts, wo: m.wo };
+    });
+    const tx = db.transaction(() => {
+      db.prepare('DELETE FROM lbo_matches').run();
+      const ins = db.prepare('INSERT INTO lbo_matches (rnd, mdate, mtime, home, away, home_pts, away_pts, wo, sort) VALUES (?,?,?,?,?,?,?,?,?)');
+      LBO_REAL.forEach((g, i) => {
+        const p = prev[lboNorm(g[3]) + '|' + lboNorm(g[4])];
+        ins.run(g[0], g[1], g[2], g[3], g[4], p ? p.hp : null, p ? p.ap : null, p ? p.wo : 0, i);
+      });
+      db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('lbo_fixture_v2', '1')").run();
+    });
+    tx();
+  } catch (e) { /* no romper el arranque */ }
 })();
 // Editores existentes sin permisos definidos: darles todo el contenido (no romper lo que ya tenían).
 db.prepare("UPDATE users SET perms = ? WHERE role = 'editor' AND (perms = '' OR perms IS NULL)").run(ADMIN_MODULE_KEYS.join(','));
