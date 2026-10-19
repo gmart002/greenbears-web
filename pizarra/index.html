@@ -2262,9 +2262,10 @@
     ov.querySelector('#mpX').onclick=function(){ ov.remove(); };
     function fmtD(d){ if(!d) return ''; try{ return new Date(d+'T12:00:00').toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'short'}); }catch(e){ return d; } }
     const body=ov.querySelector('#mpBody');
-    api('/teams/'+tid+'/matches').then(function(r){ return r.json(); }).then(function(d){
+    api('/teams/'+tid+'/matches').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
+      if(d&&d.error){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">'+(d.error==='no-auth'?'Tu sesión expiró. Cierra y vuelve a entrar a la pizarra.':'No se pudo cargar ('+d.error+').')+'</div>'; return; }
       const ms=(d&&d.matches)||[];
-      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos próximos en el calendario.</div>'; return; }
+      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos próximos en el calendario de este equipo.</div>'; return; }
       body.innerHTML=ms.map(function(m,i){
         const loc=m.home?'Local':'Visita';
         const extra=(m.competition||'')+' · '+loc+(m.played?' <span style="color:#8aa">· jugado</span>':'');
@@ -2277,7 +2278,7 @@
       [].forEach.call(body.querySelectorAll('[data-i]'),function(b){ b.onclick=function(){
         applyPickedMatch(ms[+b.getAttribute('data-i')]); ov.remove();
       }; });
-    }).catch(function(){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">No se pudo cargar el calendario. Revisa la conexión y reintenta.</div>'; });
+    }).catch(function(err){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">No se pudo cargar el calendario'+(err&&err.message?(' ('+err.message+')'):'')+'. Revisa la conexión y reintenta.</div>'; });
   }
   function applyPickedMatch(m){
     if(gameHasData()){

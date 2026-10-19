@@ -2,7 +2,7 @@
    Deja la app disponible sin conexión: cachea el "app shell" y, en tiempo de
    ejecución, las fuentes de Google y el logo. Navegación: red primero (para
    recibir actualizaciones) con respaldo a caché cuando no hay conexión. */
-const CACHE = 'greenbears-v7';
+const CACHE = 'greenbears-v8';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'
@@ -47,6 +47,10 @@ self.addEventListener('fetch', (e) => {
 
   // Solo gestionamos el mismo origen de aquí en adelante.
   if (url.origin !== self.location.origin) return;
+
+  // La API (datos dinámicos y con sesión) SIEMPRE va a la red: no interceptar
+  // ni cachear. Si se cacheara, la lista de partidos quedaría vieja o no cargaría.
+  if (url.pathname.indexOf('/pizarra/api/') === 0) return;
 
   // Navegación (abrir la app): red primero con TIMEOUT de 3s → respaldo a
   // caché. Así offline o con red lenta la app abre al instante.
