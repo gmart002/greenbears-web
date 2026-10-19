@@ -1861,23 +1861,24 @@
     {id:'x3',label:'3P',small:'fallado',cls:'bad',inc:{a3:1}},
     {id:'mft',label:'TL',small:'anotado',cls:'good',inc:{mft:1,aft:1}},
     {id:'xft',label:'TL',small:'fallado',cls:'bad',inc:{aft:1}},
-    {id:'rebd',label:'Rebote',small:'defensivo',inc:{reb:1,rebd:1}},
-    {id:'rebo',label:'Rebote',small:'ofensivo',inc:{reb:1,rebo:1}},
+    {id:'reb',label:'Rebote',small:'REB',choose:true},                    // abre selector Def/Of
+    {id:'rebd',label:'Rebote',small:'defensivo',inc:{reb:1,rebd:1},hidden:true},
+    {id:'rebo',label:'Rebote',small:'ofensivo',inc:{reb:1,rebo:1},hidden:true},
     {id:'ast',label:'Asist.',small:'AST',inc:{ast:1}},
     {id:'stl',label:'Robo',small:'ROB',inc:{stl:1}},
     {id:'blk',label:'Tapa',small:'TAP',inc:{blk:1}},
     {id:'tov',label:'Pérdida',small:'PÉR',inc:{tov:1}},
     {id:'pf',label:'Falta',small:'FAL',inc:{pf:1}}
   ];
-  const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
+  const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['rd','RD'],['ro','RO'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
   // Estadísticas de EQUIPO (contadores en vivo). Tipos de jugada para la matriz bien/mal.
-  const TEAM_PLAYS=[['slow','Ofensiva lenta'],['fast','Ofensiva rápida'],['baseline','Salida de fondo'],['side','Salida lateral']];
+  const TEAM_PLAYS=[['slow','Ofensiva 5x5'],['fast','Ofensiva rápida'],['baseline','Salida de fondo'],['side','Salida lateral']];
   const TEAM_LABELS={
     pick_ok:'Pick bien defendido', pick_bad:'Pick mal defendido',
     layup_left:'Bandeja mano izquierda', coast:'Punto costa a costa',
     corner_goal:'Esquina llega a la pelota con gol', last_ok:'Buen LAST',
-    def24:'Defensa posesión 24s', def8_ok:'Buena defensa 8s', turn8:'Pérdida por los 8s',
-    play_slow_ok:'Jugada bien · ofensiva lenta', play_slow_bad:'Jugada mal · ofensiva lenta',
+    def24:'Defensa posesión 24s', def8_ok:'Buena defensa 8s', turn8:'Pérdida por los 8s', passout:'Pase de salida',
+    play_slow_ok:'Jugada bien · ofensiva 5x5', play_slow_bad:'Jugada mal · ofensiva 5x5',
     play_fast_ok:'Jugada bien · ofensiva rápida', play_fast_bad:'Jugada mal · ofensiva rápida',
     play_baseline_ok:'Jugada bien · salida de fondo', play_baseline_bad:'Jugada mal · salida de fondo',
     play_side_ok:'Jugada bien · salida lateral', play_side_bad:'Jugada mal · salida lateral'
@@ -2060,7 +2061,7 @@
       +grp('Pick defendido','<div class="tgrid2">'+box('pick_ok','Bien','ok')+box('pick_bad','Mal','bad')+'</div>')
       +grp('Ataque','<div class="tgrid2">'+box('layup_left','Bandeja izq.')+box('coast','Costa a costa')+box('corner_goal','Esquina → gol')+box('last_ok','Buen LAST')+'</div>')
       +grp('Defensa','<div class="tgrid2">'+box('def24','Posesión 24s','ok')+box('def8_ok','8 seg','ok')+'</div>')
-      +grp('Pérdidas','<div class="tgrid1">'+box('turn8','Pérdida por los 8s','bad')+'</div>')
+      +grp('Pérdidas','<div class="tgrid2">'+box('turn8','Pérdida por los 8s','bad')+box('passout','Pase de salida','bad')+'</div>')
       +grp('Jugadas realizadas','<div class="tplays">'+plays+'</div>')
       +'<div class="ts-note" style="margin-top:2px">Totales del partido · toca para sumar · “−” para descontar.</div>'
       +'</div>';
@@ -2241,7 +2242,7 @@
         +row('Bandeja mano izquierda',tval('layup_left'))+row('Punto costa a costa',tval('coast'))
         +row('Esquina llega con gol',tval('corner_goal'))+row('Buen LAST',tval('last_ok'))
         +row('Defensa posesión 24s',tval('def24'))+row('Buena defensa 8s',tval('def8_ok'))
-        +row('Pérdida por los 8s',tval('turn8'));
+        +row('Pérdida por los 8s',tval('turn8'))+row('Pase de salida',tval('passout'));
       const plays='<table class="rep" style="margin-top:10px"><thead><tr><th class="l">Jugadas realizadas</th><th>Bien</th><th>Mal</th></tr></thead><tbody>'
         +TEAM_PLAYS.map(function(t){ return '<tr><td class="l">'+esc(t[1])+'</td><td>'+tval('play_'+t[0]+'_ok')+'</td><td>'+tval('play_'+t[0]+'_bad')+'</td></tr>'; }).join('')
         +'</tbody></table>';
@@ -2316,12 +2317,15 @@
       +'.tsrow{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ecefec;padding:6px 2px;font-size:13.5px}.tsrow b{color:'+GREEN+';font-variant-numeric:tabular-nums}'
       +'.empty{color:#8a988e;font-size:13px;padding:8px}.printbtn{position:fixed;right:16px;bottom:16px;background:'+GREEN+';color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px #000;font-family:"Barlow",sans-serif}'
       +'svg.court{width:100%;height:auto;border-radius:10px;display:block}'
-      +'@media print{.printbtn{display:none}body{background:#fff}}'
+      +'@page{size:A4 landscape;margin:8mm}'
+      +'@media print{.printbtn{display:none}body{background:#fff}.wrap{max-width:100%;padding:4px}'
+        +'.card{box-shadow:none;break-inside:avoid;margin-top:10px}.repwrap{overflow:visible!important}'
+        +'table.rep{font-size:8.5px;width:100%}table.rep th,table.rep td{padding:3px 2px}}'
       +'</style></head><body><div class="wrap">'
       +'<div class="head"><div><h1>'+esc(teamName)+' <span style="opacity:.6">vs</span> '+esc(game.rival||'Rival')+'</h1><div class="sub">Informe del partido · '+esc(dstr)+'</div></div>'
       +'<div class="score"><div class="r">'+esc(teamName)+' '+rankUs+'</div>'+us+' – '+them+'</div></div>'
       +'<div class="card"><h2>Marcador por cuarto</h2>'+quarterChart()+'<div class="legend"><span><i style="background:'+GREEN+'"></i>'+esc(teamName)+'</span><span><i style="background:'+AMBER+'"></i>Rival</span></div></div>'
-      +'<div class="card"><h2>Planilla completa</h2><div style="overflow-x:auto">'+tb+'</div>'
+      +'<div class="card"><h2>Planilla completa</h2><div class="repwrap" style="overflow-x:auto">'+tb+'</div>'
       +'<div class="note"><b>Valoración (FIBA):</b> (PTS + REB + AST + ROB + TAP) − (tiros de campo fallados + tiros libres fallados + pérdidas + faltas). <b>Nota</b> (1,0–7,0) orientativa: 4,0 + 0,22 × valoración. '
         +'<b>+/−:</b> diferencial del marcador con el jugador en cancha. <b>TS%:</b> eficiencia real de tiro (2, 3 y libres). <b>eFG%:</b> tiro de campo dando más peso al triple. <b>A/TO:</b> asistencias por pérdida. ★ = titular.</div></div>'
       +'<div class="grid2">'
@@ -2509,11 +2513,31 @@
   function applyAction(a){
     if(!selPlayer){ toast('Elige un jugador primero'); return; }
     const pid=selPlayer;
+    if(a.choose==='reb' || (a.id==='reb' && a.choose)){ pickRebound(pid); return; }
     if(SHOT2.indexOf(a.id)>=0 || SHOT3.indexOf(a.id)>=0){
       pickShotLocation(a,pid,function(xy){ applyCounter(a,pid,xy); });
     } else {
       applyCounter(a,pid,null);
     }
+  }
+  // Selector Defensivo / Ofensivo para el rebote (un solo botón que pregunta).
+  function pickRebound(pid){
+    const p=roster.find(x=>x.id===pid);
+    let ov=document.getElementById('rebOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='rebOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9700;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif';
+    ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:420px;width:100%;color:#eaf2ec;overflow:hidden;box-shadow:0 30px 60px -20px #000">'
+      +'<div style="padding:12px 16px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center"><b style="font-size:1.05rem">Rebote · '+escapeHtml((p&&p.num?'#'+p.num+' ':'')+(p?p.name:''))+'</b><button id="rbX" style="background:none;border:0;color:#8aa;font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div>'
+      +'<div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      +'<button id="rbDef" style="background:#13331f;border:1px solid #2f7d4e;color:#7ee6a6;border-radius:12px;padding:20px 10px;font-weight:800;font-size:1.05rem;cursor:pointer">Defensivo</button>'
+      +'<button id="rbOf" style="background:#1a2740;border:1px solid #3a63a8;color:#9cc3ff;border-radius:12px;padding:20px 10px;font-weight:800;font-size:1.05rem;cursor:pointer">Ofensivo</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    const close=function(){ ov.remove(); };
+    ov.querySelector('#rbX').onclick=close;
+    ov.onclick=function(e){ if(e.target===ov) close(); };
+    ov.querySelector('#rbDef').onclick=function(){ close(); applyCounter(ACTIONS.find(x=>x.id==='rebd'),pid,null); };
+    ov.querySelector('#rbOf').onclick=function(){ close(); applyCounter(ACTIONS.find(x=>x.id==='rebo'),pid,null); };
   }
   // Overlay de media cancha para ubicar el lanzamiento (o saltar la ubicación).
   function pickShotLocation(a,pid,cb){
@@ -2655,6 +2679,7 @@
   function renderActionPad(){
     const pad=document.getElementById('actionPad'); pad.innerHTML='';
     ACTIONS.forEach(a=>{
+      if(a.hidden) return;                               // rebd/rebo se registran desde el selector
       const b=document.createElement('button');
       if(a.cls) b.className=a.cls;
       b.innerHTML=`${a.label}<small>${a.small||''}</small>`;
@@ -2706,11 +2731,11 @@
     pres.forEach(p=>{ const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]);
       h+='<tr><td><span class="pnum">'+(p.num||'–')+'</span><span class="pname">'+escapeHtml(p.name)+'</span></td>'
         +'<td>'+c.m2+'/'+c.a2+'</td><td>'+c.m3+'/'+c.a3+'</td><td>'+c.mft+'/'+c.aft+'</td>'
-        +'<td>'+c.reb+'</td><td>'+c.ast+'</td><td>'+c.stl+'</td><td>'+c.blk+'</td><td>'+c.tov+'</td><td>'+c.pf+'</td>'
+        +'<td>'+c.reb+'</td><td>'+(c.rebd||0)+'</td><td>'+(c.rebo||0)+'</td><td>'+c.ast+'</td><td>'+c.stl+'</td><td>'+c.blk+'</td><td>'+c.tov+'</td><td>'+c.pf+'</td>'
         +'<td class="pts">'+ptsOf(c)+'</td></tr>'; });
     if(pres.length){ h+='<tr class="tot"><td>TOTAL</td>'
       +'<td>'+tot.m2+'/'+tot.a2+'</td><td>'+tot.m3+'/'+tot.a3+'</td><td>'+tot.mft+'/'+tot.aft+'</td>'
-      +'<td>'+tot.reb+'</td><td>'+tot.ast+'</td><td>'+tot.stl+'</td><td>'+tot.blk+'</td><td>'+tot.tov+'</td><td>'+tot.pf+'</td>'
+      +'<td>'+tot.reb+'</td><td>'+(tot.rebd||0)+'</td><td>'+(tot.rebo||0)+'</td><td>'+tot.ast+'</td><td>'+tot.stl+'</td><td>'+tot.blk+'</td><td>'+tot.tov+'</td><td>'+tot.pf+'</td>'
       +'<td class="pts">'+ptsOf(tot)+'</td></tr>'; }
     h+='</tbody></table>';
     const per=(viewPeriod&&viewPeriod!==0)?((PERIODS.find(x=>x[0]===viewPeriod)||[0,''])[1]):'Total';
