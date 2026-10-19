@@ -304,7 +304,9 @@
   .ts-tile span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
   .ts-note{font-size:11px;color:var(--faint);text-align:center}
   /* Estadísticas de equipo (contadores en vivo, panel derecho) */
-  .tstats{margin-top:12px;display:flex;flex-direction:column;gap:9px}
+  .ts-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;font-weight:800;font-size:14px;letter-spacing:.03em;color:var(--ink);cursor:pointer;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase}
+  .ts-btn:active{transform:scale(.99)}
+  .tstats{margin-top:10px;display:flex;flex-direction:column;gap:9px}
   .tstats .ts-h{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:16px;color:var(--ink);letter-spacing:.02em}
   .tgrp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
   .tgh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px}
@@ -2648,22 +2650,35 @@
     updatePadHint();
   }
   // Panel derecho: tarjetas con % del equipo (2P, 3P, TL) + acumulados.
-  function renderSheet(){
-    const el=document.getElementById('teamStats'); if(!el) return;
+  // Los % y totales del equipo (2P/3P/TL, puntos, rebotes…) salen del panel y se
+  // ven en un modal, para dejar todo el espacio a los contadores de equipo.
+  function teamTotalsHtml(){
     const pres=presentRoster();
-    if(!pres.length){ el.innerHTML='<div class="ts-note" style="padding:22px 8px">Convoca jugadores para ver las estadísticas del equipo.</div>'; return; }
     const tot=emptyCnt(); pres.forEach(p=>{ const c=viewCnt(p.id); CNT.forEach(k=>tot[k]+=c[k]); });
     const pct=(m,a)=>a?Math.round(m/a*100):0;
     const fgM=tot.m2+tot.m3, fgA=tot.a2+tot.a3;
     const shot=(lbl,m,a)=>'<div class="ts-shot"><div class="lbl">'+lbl+'</div><div class="pct">'+pct(m,a)+'%</div><div class="mk">'+m+'/'+a+'</div><div class="barwrap"><div class="bar" style="width:'+pct(m,a)+'%"></div></div></div>';
     const tile=(v,l)=>'<div class="ts-tile"><b>'+v+'</b><span>'+l+'</span></div>';
     const per=(viewPeriod&&viewPeriod!==0)?((PERIODS.find(x=>x[0]===viewPeriod)||[0,''])[1]):'Total';
-    el.innerHTML=
-      '<div class="ts-shots">'+shot('2 puntos',tot.m2,tot.a2)+shot('3 puntos',tot.m3,tot.a3)+shot('Tiros libres',tot.mft,tot.aft)+'</div>'
-      +'<div class="ts-tiles">'+tile(ptsOf(tot),'Puntos')+tile(pct(fgM,fgA)+'%','Tiro camp.')+tile(tot.reb,'Rebotes')+tile(tot.ast,'Asist.')
+    return '<div class="ts-shots">'+shot('2 puntos',tot.m2,tot.a2)+shot('3 puntos',tot.m3,tot.a3)+shot('Tiros libres',tot.mft,tot.aft)+'</div>'
+      +'<div class="ts-tiles" style="margin-top:10px">'+tile(ptsOf(tot),'Puntos')+tile(pct(fgM,fgA)+'%','Tiro camp.')+tile(tot.reb,'Rebotes')+tile(tot.ast,'Asist.')
         +tile(tot.stl,'Robos')+tile(tot.blk,'Tapas')+tile(tot.tov,'Pérdidas')+tile(tot.pf,'Faltas')+'</div>'
-      +'<div class="ts-note">Equipo · '+escapeHtml(per)+' · toca “Tabla” para el detalle por jugador.</div>'
-      +teamStatsHtml();
+      +'<div class="ts-note" style="margin-top:10px">Equipo · '+escapeHtml(per)+' · toca “Tabla” para el detalle por jugador.</div>';
+  }
+  function openTeamTotals(){
+    let ov=document.getElementById('tpOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='tpOv'; ov.className='tblmodal-bg';
+    ov.innerHTML='<div class="tblmodal"><div class="hd"><b style="font-size:1.1rem">% y totales del equipo</b><button id="tpX" style="background:none;border:0;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1">&times;</button></div><div class="bd" style="padding:16px">'+teamTotalsHtml()+'</div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#tpX').onclick=function(){ ov.remove(); };
+    ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  }
+  function renderSheet(){
+    const el=document.getElementById('teamStats'); if(!el) return;
+    const pres=presentRoster();
+    if(!pres.length){ el.innerHTML='<div class="ts-note" style="padding:22px 8px">Convoca jugadores para ver las estadísticas del equipo.</div>'; return; }
+    el.innerHTML='<button class="ts-btn" id="btnTeamPct">📊 Ver % y totales del equipo</button>'+teamStatsHtml();
+    document.getElementById('btnTeamPct').onclick=openTeamTotals;
     [].forEach.call(el.querySelectorAll('[data-tadd]'),function(b){ b.onclick=function(ev){ ev.preventDefault(); tAdd(b.getAttribute('data-tadd')); }; });
   }
   // Tabla completa por jugador en un modal.
