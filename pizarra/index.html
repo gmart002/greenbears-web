@@ -303,6 +303,25 @@
   .ts-tile b{font-family:"Barlow Condensed";font-weight:800;font-size:22px;color:var(--ink);display:block;line-height:1}
   .ts-tile span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
   .ts-note{font-size:11px;color:var(--faint);text-align:center}
+  /* Estadísticas de equipo (contadores en vivo, panel derecho) */
+  .tstats{margin-top:12px;display:flex;flex-direction:column;gap:9px}
+  .tstats .ts-h{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:16px;color:var(--ink);letter-spacing:.02em}
+  .tgrp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+  .tgh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px}
+  .tgrid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .tgrid1{display:grid;grid-template-columns:1fr;gap:6px}
+  .tbox{background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:8px 10px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;text-align:left}
+  .tbox .tlbl{font-size:12.5px;font-weight:600;line-height:1.12}
+  .tbox .tnum{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:21px;flex:0 0 auto}
+  .tbox:active{transform:scale(.97)}
+  .tbox.ok{border-color:#2f7d4e} .tbox.ok .tnum{color:#7ee6a6}
+  .tbox.bad{border-color:#8a3330} .tbox.bad .tnum{color:#f0908b}
+  .tplays{display:flex;flex-direction:column;gap:6px}
+  .tprow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
+  .tpl{font-size:12.5px;font-weight:600}
+  .tmini{border-radius:9px;padding:8px 10px;font-weight:800;font-size:13px;cursor:pointer;min-width:54px;font-variant-numeric:tabular-nums;border:1px solid var(--line2);background:var(--bg2);color:var(--ink)}
+  .tmini.ok{border-color:#2f7d4e;color:#7ee6a6} .tmini.bad{border-color:#8a3330;color:#f0908b}
+  .tmini:active{transform:scale(.95)}
   /* Roster: en cancha (fila) + banca */
   .rgroup-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:2px 2px -2px}
   .rgroup-lbl.court{color:var(--team-green)}
@@ -1842,6 +1861,18 @@
     {id:'pf',label:'Falta',small:'FAL',inc:{pf:1}}
   ];
   const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
+  // Estadísticas de EQUIPO (contadores en vivo). Tipos de jugada para la matriz bien/mal.
+  const TEAM_PLAYS=[['slow','Ofensiva lenta'],['fast','Ofensiva rápida'],['baseline','Salida de fondo'],['side','Salida lateral']];
+  const TEAM_LABELS={
+    pick_ok:'Pick bien defendido', pick_bad:'Pick mal defendido',
+    layup_left:'Bandeja mano izquierda', coast:'Punto costa a costa',
+    corner_goal:'Esquina llega a la pelota con gol', last_ok:'Buen LAST',
+    def24:'Defensa posesión 24s', def8_ok:'Buena defensa 8s', turn8:'Pérdida por los 8s',
+    play_slow_ok:'Jugada bien · ofensiva lenta', play_slow_bad:'Jugada mal · ofensiva lenta',
+    play_fast_ok:'Jugada bien · ofensiva rápida', play_fast_bad:'Jugada mal · ofensiva rápida',
+    play_baseline_ok:'Jugada bien · salida de fondo', play_baseline_bad:'Jugada mal · salida de fondo',
+    play_side_ok:'Jugada bien · salida lateral', play_side_bad:'Jugada mal · salida lateral'
+  };
   let roster=[], game=null, selPlayer=null;
   let viewPeriod=1;                                   // cuarto que se ve/registra (5 = TE, 0 = Total)
   const PERIODS=[[1,'C1'],[2,'C2'],[3,'C3'],[4,'C4'],[5,'TE'],[0,'Total']];
@@ -1992,6 +2023,32 @@
   }
   // Contador a mostrar según el cuarto en vista (0 = total del partido)
   function viewCnt(id){ return (viewPeriod && viewPeriod!==0) ? periodCnt(id,viewPeriod) : cnt(id); }
+
+  // ----- Estadísticas de EQUIPO (contadores en vivo, totales del partido) -----
+  function tval(id){ return (game.team&&game.team[id])||0; }
+  function tAdd(id){
+    if(!game.team) game.team={};
+    game.team[id]=(game.team[id]||0)+1;
+    game.log.push({team:id, q:game.period});           // entra al Deshacer global
+    saveGame(); renderSheet(); updateUndo();
+    toast('Equipo · '+(TEAM_LABELS[id]||id));
+  }
+  function teamStatsHtml(){
+    function box(id,label,cls){ return '<button class="tbox '+(cls||'')+'" data-tadd="'+id+'"><span class="tlbl">'+label+'</span><b class="tnum">'+tval(id)+'</b></button>'; }
+    function grp(title,inner){ return '<div class="tgrp"><div class="tgh">'+title+'</div>'+inner+'</div>'; }
+    let plays='';
+    TEAM_PLAYS.forEach(function(t){ plays+='<div class="tprow"><span class="tpl">'+t[1]+'</span>'
+      +'<button class="tmini ok" data-tadd="play_'+t[0]+'_ok">✓ '+tval('play_'+t[0]+'_ok')+'</button>'
+      +'<button class="tmini bad" data-tadd="play_'+t[0]+'_bad">✗ '+tval('play_'+t[0]+'_bad')+'</button></div>'; });
+    return '<div class="tstats"><div class="ts-h">Estadísticas de equipo</div>'
+      +grp('Pick defendido','<div class="tgrid2">'+box('pick_ok','Bien','ok')+box('pick_bad','Mal','bad')+'</div>')
+      +grp('Ataque','<div class="tgrid2">'+box('layup_left','Bandeja izq.')+box('coast','Costa a costa')+box('corner_goal','Esquina → gol')+box('last_ok','Buen LAST')+'</div>')
+      +grp('Defensa','<div class="tgrid2">'+box('def24','Posesión 24s','ok')+box('def8_ok','8 seg','ok')+'</div>')
+      +grp('Pérdidas','<div class="tgrid1">'+box('turn8','Pérdida por los 8s','bad')+'</div>')
+      +grp('Jugadas realizadas','<div class="tplays">'+plays+'</div>')
+      +'<div class="ts-note" style="margin-top:2px">Totales del partido · toca para sumar · “Deshacer” corrige.</div>'
+      +'</div>';
+  }
   function renderPeriodBar(){
     const bar=document.getElementById('periodBar'); if(!bar) return;
     bar.innerHTML=PERIODS.map(function(p){ return '<button class="pbtn2'+(viewPeriod===p[0]?' on':'')+(p[0]===game.period&&p[0]!==0?' cur':'')+'" data-p="'+p[0]+'">'+p[1]+'</button>'; }).join('');
@@ -2123,7 +2180,7 @@
     const stats={};
     (g.stats||[]).forEach(function(p,idx){ const id=p.id||(roster[idx]&&roster[idx].id); if(!id) return;
       const c=emptyCnt(); const src=p.c||{}; for(const k in c) c[k]=src[k]||0; stats[id]=c; });
-    game={ rival:g.rival||'', themPts:g.them||0, stats:stats, log:(g.log||[]).slice(), shots:(g.shots||[]).slice(),
+    game={ rival:g.rival||'', themPts:g.them||0, stats:stats, log:(g.log||[]).slice(), shots:(g.shots||[]).slice(), team:Object.assign({},g.team||{}), date:g.date||'',
       themQ:Object.assign({},g.themQ||{}), period:g.period||1, present:roster.map(function(p){return p.id;}),
       secs:Object.assign({},g.secs||{}), pm:Object.assign({},g.pm||{}), starters:(g.starters&&g.starters.length)?g.starters.slice():null,
       oncourt:(g.starters&&g.starters.length)?g.starters.slice(0,5):null, clock:{q:1,remain:qLenMs(1),running:false,base:null} };
@@ -2160,6 +2217,19 @@
       const mx=Math.max(1,Math.max.apply(null,qUs.concat(qThem)));
       return '<div class="qchart">'+QS.map(function(q,i){ const a=qUs[i], b=qThem[i];
         return '<div class="qcol"><div class="qbars"><span class="qb" style="height:'+(a/mx*100)+'%;background:'+GREEN+'" title="Nosotros '+a+'"></span><span class="qb" style="height:'+(b/mx*100)+'%;background:'+AMBER+'" title="Rival '+b+'"></span></div><div class="qn">'+a+'–'+b+'</div><div class="ql">'+q[1]+'</div></div>'; }).join('')+'</div>';
+    }
+    // Estadísticas de equipo (contadores en vivo)
+    function teamReportHtml(){
+      function row(lab,val){ return '<div class="tsrow"><span>'+esc(lab)+'</span><b>'+val+'</b></div>'; }
+      const simple=row('Pick bien defendido',tval('pick_ok'))+row('Pick mal defendido',tval('pick_bad'))
+        +row('Bandeja mano izquierda',tval('layup_left'))+row('Punto costa a costa',tval('coast'))
+        +row('Esquina llega con gol',tval('corner_goal'))+row('Buen LAST',tval('last_ok'))
+        +row('Defensa posesión 24s',tval('def24'))+row('Buena defensa 8s',tval('def8_ok'))
+        +row('Pérdida por los 8s',tval('turn8'));
+      const plays='<table class="rep" style="margin-top:10px"><thead><tr><th class="l">Jugadas realizadas</th><th>Bien</th><th>Mal</th></tr></thead><tbody>'
+        +TEAM_PLAYS.map(function(t){ return '<tr><td class="l">'+esc(t[1])+'</td><td>'+tval('play_'+t[0]+'_ok')+'</td><td>'+tval('play_'+t[0]+'_bad')+'</td></tr>'; }).join('')
+        +'</tbody></table>';
+      return '<div class="tsgrid">'+simple+'</div>'+plays;
     }
     // Tabla
     // Métricas avanzadas
@@ -2226,6 +2296,8 @@
       +'.qb{width:22px;border-radius:5px 5px 0 0;min-height:2px}.qn{font-size:11px;color:#3a4a40;font-weight:700}.ql{font-family:"Barlow Condensed";font-weight:800;color:#6b7a70}'
       +'.legend{display:flex;gap:16px;font-size:12px;color:#3a4a40;margin-top:6px}.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}'
       +'.note{font-size:12.5px;color:#4a5a50;background:#f3f6f3;border-left:3px solid '+GREEN+';padding:10px 12px;border-radius:0 8px 8px 0;margin-top:8px}'
+      +'.tsgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px}@media(max-width:720px){.tsgrid{grid-template-columns:1fr}}'
+      +'.tsrow{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ecefec;padding:6px 2px;font-size:13.5px}.tsrow b{color:'+GREEN+';font-variant-numeric:tabular-nums}'
       +'.empty{color:#8a988e;font-size:13px;padding:8px}.printbtn{position:fixed;right:16px;bottom:16px;background:'+GREEN+';color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px #000;font-family:"Barlow",sans-serif}'
       +'svg.court{width:100%;height:auto;border-radius:10px;display:block}'
       +'@media print{.printbtn{display:none}body{background:#fff}}'
@@ -2241,12 +2313,25 @@
         +'<div class="card"><h2>Valoración por jugador</h2>'+barsH(byVal.map(function(r){return {l:nm(r.p),v:r.val,c:r.val>=0?GREEN:RED};}))+'</div>'
       +'</div>'
       +'<div class="card"><h2>Minutos jugados</h2>'+barsH(byMin.map(function(r){return {l:nm(r.p),v:Math.round(r.min/60*10)/10,c:AMBER};}),'′')+'</div>'
+      +'<div class="card"><h2>Estadísticas de equipo</h2>'+teamReportHtml()+'</div>'
       +((game.shots&&game.shots.length)?('<div class="card"><h2>Mapa de lanzamientos</h2><svg class="court" viewBox="0 0 500 470">'+HALFCOURT+'<g>'+game.shots.map(function(s){ var x=(s.x*500).toFixed(1),y=(s.y*470).toFixed(1); return s.made?'<circle cx="'+x+'" cy="'+y+'" r="8" fill="'+GREEN+'" stroke="#0a3b22" stroke-width="1.5"/>':'<path d="M'+(x-7)+' '+(y-7)+' l14 14 M'+(+x+7)+' '+(y-7)+' l-14 14" stroke="'+RED+'" stroke-width="3" stroke-linecap="round"/>'; }).join('')+'</g></svg><div class="legend"><span><i style="background:'+GREEN+'"></i>anotado</span><span><i style="background:'+RED+'"></i>fallado</span></div></div>'):'')
       +'</div><button class="printbtn" onclick="window.print()">Imprimir / PDF</button></body></html>';
 
-    const w=window.open('','_blank');
-    if(!w){ toast('Permite las ventanas emergentes para ver el informe'); return; }
-    w.document.open(); w.document.write(html); w.document.close();
+    // Mostrar el informe DENTRO de la app (no en una pestaña nueva), con botón
+    // "Volver". Se usa un iframe aislado (srcdoc) para no chocar con los estilos.
+    let ov=document.getElementById('repOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='repOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9800;background:#0b0f0d;display:flex;flex-direction:column';
+    ov.innerHTML='<div style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px;background:#101613;border-bottom:1px solid #26332b">'
+      +'<button id="repBack" style="background:#1f9b57;border:0;color:#fff;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:15px">‹ Volver a estadísticas</button>'
+      +'<b style="color:#eaf2ec;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Informe · '+esc(teamName)+' vs '+esc(game.rival||'Rival')+'</b>'
+      +'<button id="repPrint" style="background:#0c120f;border:1px solid #33443a;color:#eaf2ec;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer">Imprimir / PDF</button>'
+      +'</div>'
+      +'<iframe id="repFrame" title="Informe del partido" style="flex:1;border:0;width:100%;background:#eef1ee"></iframe>';
+    document.body.appendChild(ov);
+    const fr=ov.querySelector('#repFrame'); fr.srcdoc=html;
+    ov.querySelector('#repBack').onclick=function(){ ov.remove(); };
+    ov.querySelector('#repPrint').onclick=function(){ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast('No se pudo abrir la impresión'); } };
   }
 
   // ---- Cargar partido del calendario (fixture LBO + partidos del equipo) ----
@@ -2436,6 +2521,7 @@
   }
   function undo(){
     const last=game.log.pop(); if(!last) return;
+    if(last.team){ if(game.team&&game.team[last.team]) game.team[last.team]=Math.max(0,game.team[last.team]-1); saveGame(); renderSheet(); updateUndo(); return; }
     const a=ACTIONS.find(x=>x.id===last.a); const c=cnt(last.p);
     if(a) for(const k in a.inc) c[k]=Math.max(0,c[k]-a.inc[k]);
     if(PMPTS[last.a]) pmAdd(-PMPTS[last.a]);           // deshacer también el +/- (a los que están ahora en cancha)
@@ -2576,7 +2662,9 @@
       '<div class="ts-shots">'+shot('2 puntos',tot.m2,tot.a2)+shot('3 puntos',tot.m3,tot.a3)+shot('Tiros libres',tot.mft,tot.aft)+'</div>'
       +'<div class="ts-tiles">'+tile(ptsOf(tot),'Puntos')+tile(pct(fgM,fgA)+'%','Tiro camp.')+tile(tot.reb,'Rebotes')+tile(tot.ast,'Asist.')
         +tile(tot.stl,'Robos')+tile(tot.blk,'Tapas')+tile(tot.tov,'Pérdidas')+tile(tot.pf,'Faltas')+'</div>'
-      +'<div class="ts-note">Equipo · '+escapeHtml(per)+' · toca “Tabla” para el detalle por jugador.</div>';
+      +'<div class="ts-note">Equipo · '+escapeHtml(per)+' · toca “Tabla” para el detalle por jugador.</div>'
+      +teamStatsHtml();
+    [].forEach.call(el.querySelectorAll('[data-tadd]'),function(b){ b.onclick=function(ev){ ev.preventDefault(); tAdd(b.getAttribute('data-tadd')); }; });
   }
   // Tabla completa por jugador en un modal.
   function openTable(){
@@ -2626,7 +2714,7 @@
     hist.push({date:(game.date?new Date(game.date+'T12:00:00').toISOString():new Date().toISOString()), rival:game.rival||'', us:usScore(), them:game.themPts||0,
       stats:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp,c:cnt(p.id)})),
       roster:pres.map(p=>({id:p.id,name:p.name,num:p.num,height:p.height,birth:p.birth,tmp:p.tmp})),
-      log:(game.log||[]).slice(), shots:(game.shots||[]).slice(), themQ:Object.assign({},game.themQ||{}), period:game.period||1,
+      log:(game.log||[]).slice(), shots:(game.shots||[]).slice(), team:Object.assign({},game.team||{}), themQ:Object.assign({},game.themQ||{}), period:game.period||1,
       secs:Object.assign({},game.secs||{}), pm:Object.assign({},game.pm||{}), starters:(game.starters||[]).slice()});
     try{ localStorage.setItem(HIST_KEY,JSON.stringify(hist)); }catch(e){}
     game={rival:'',themPts:0,stats:{},log:[],shots:[],period:1,themQ:{},secs:{},pm:{},starters:null,oncourt:null,clock:{q:1,remain:qLenMs(1),running:false,base:null}}; viewPeriod=1; stopTick(); saveGame(); selPlayer=null; renderStats();
