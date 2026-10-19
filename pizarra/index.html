@@ -2317,10 +2317,11 @@
       +'.tsrow{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #ecefec;padding:6px 2px;font-size:13.5px}.tsrow b{color:'+GREEN+';font-variant-numeric:tabular-nums}'
       +'.empty{color:#8a988e;font-size:13px;padding:8px}.printbtn{position:fixed;right:16px;bottom:16px;background:'+GREEN+';color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;cursor:pointer;box-shadow:0 10px 26px -8px #000;font-family:"Barlow",sans-serif}'
       +'svg.court{width:100%;height:auto;border-radius:10px;display:block}'
-      +'@page{size:A4 landscape;margin:8mm}'
-      +'@media print{.printbtn{display:none}body{background:#fff}.wrap{max-width:100%;padding:4px}'
-        +'.card{box-shadow:none;break-inside:avoid;margin-top:10px}.repwrap{overflow:visible!important}'
-        +'table.rep{font-size:8.5px;width:100%}table.rep th,table.rep td{padding:3px 2px}}'
+      +'@page{size:A4;margin:8mm}'
+      +'@media print{.printbtn{display:none}body{background:#fff}.wrap{max-width:100%;padding:0}'
+        +'.card{box-shadow:none;break-inside:avoid;margin-top:9px;padding:10px 12px}.repwrap{overflow:visible!important}'
+        +'table.rep{font-size:8px}table.rep th,table.rep td{padding:2px 2px;letter-spacing:0}'
+        +'.head{padding:12px 14px}.head h1{font-size:1.4rem}.score{font-size:1.9rem}}'
       +'</style></head><body><div class="wrap">'
       +'<div class="head"><div><h1>'+esc(teamName)+' <span style="opacity:.6">vs</span> '+esc(game.rival||'Rival')+'</h1><div class="sub">Informe del partido · '+esc(dstr)+'</div></div>'
       +'<div class="score"><div class="r">'+esc(teamName)+' '+rankUs+'</div>'+us+' – '+them+'</div></div>'
@@ -2367,23 +2368,35 @@
     ov.querySelector('#mpX').onclick=function(){ ov.remove(); };
     function fmtD(d){ if(!d) return ''; try{ return new Date(d+'T12:00:00').toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'short'}); }catch(e){ return d; } }
     const body=ov.querySelector('#mpBody');
-    api('/teams/'+tid+'/matches').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
-      if(d&&d.error){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">'+(d.error==='no-auth'?'Tu sesión expiró. Cierra y vuelve a entrar a la pizarra.':'No se pudo cargar ('+d.error+').')+'</div>'; return; }
-      const ms=(d&&d.matches)||[];
-      if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos próximos en el calendario de este equipo.</div>'; return; }
-      body.innerHTML=ms.map(function(m,i){
-        const loc=m.home?'Local':'Visita';
-        const extra=(m.competition||'')+' · '+loc+(m.played?' <span style="color:#8aa">· jugado</span>':'');
-        return '<button data-i="'+i+'" style="width:100%;text-align:left;background:#121a15;border:1px solid #23312a;border-radius:10px;padding:9px 11px;margin:6px 0;color:#eaf2ec;cursor:pointer;display:flex;align-items:center;gap:10px">'
-          +'<span style="color:#8aa;font-size:.76rem;width:92px;flex:0 0 auto">'+fmtD(m.date)+(m.time?(' · '+m.time):'')+'</span>'
-          +'<b style="flex:1;min-width:0">vs '+escapeHtml(m.opponent||'Rival')+'</b>'
-          +'<span style="color:#8aa;font-size:.72rem;text-align:right">'+extra+'</span>'
-        +'</button>';
-      }).join('');
-      [].forEach.call(body.querySelectorAll('[data-i]'),function(b){ b.onclick=function(){
-        applyPickedMatch(ms[+b.getAttribute('data-i')]); ov.remove();
-      }; });
-    }).catch(function(err){ body.innerHTML='<div style="color:#e0605a;padding:16px 4px">No se pudo cargar el calendario'+(err&&err.message?(' ('+err.message+')'):'')+'. Revisa la conexión y reintenta.</div>'; });
+    function errBox(msg){
+      body.innerHTML='<div style="color:#e0605a;padding:16px 4px">'+msg+'</div><div style="padding:0 4px 10px"><button id="mpRetry" style="background:#1f9b57;border:0;color:#fff;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer">Reintentar</button></div>';
+      const rb=body.querySelector('#mpRetry'); if(rb) rb.onclick=load;
+    }
+    function load(){
+      body.innerHTML='<div style="color:#8aa;padding:16px 4px">Cargando calendario…</div>';
+      const ctrl=('AbortController' in window)?new AbortController():null;
+      const to=setTimeout(function(){ if(ctrl) ctrl.abort(); }, 8000);   // no quedar colgado
+      fetch('/pizarra/api/teams/'+tid+'/matches',{credentials:'same-origin',cache:'no-store',headers:{'x-pizarra':'1'},signal:ctrl?ctrl.signal:undefined}).then(function(r){ clearTimeout(to); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(d){
+        if(d&&d.error){ errBox(d.error==='no-auth'?'Tu sesión expiró. Cierra y vuelve a entrar a la pizarra.':'No se pudo cargar ('+d.error+').'); return; }
+        const ms=(d&&d.matches)||[];
+        if(!ms.length){ body.innerHTML='<div style="color:#8aa;padding:16px 4px">No hay partidos próximos en el calendario de este equipo.</div>'; return; }
+        body.innerHTML=ms.map(function(m,i){
+          const loc=m.home?'Local':'Visita';
+          const extra=(m.competition||'')+' · '+loc+(m.played?' <span style="color:#8aa">· jugado</span>':'');
+          return '<button data-i="'+i+'" style="width:100%;text-align:left;background:#121a15;border:1px solid #23312a;border-radius:10px;padding:9px 11px;margin:6px 0;color:#eaf2ec;cursor:pointer;display:flex;align-items:center;gap:10px">'
+            +'<span style="color:#8aa;font-size:.76rem;width:92px;flex:0 0 auto">'+fmtD(m.date)+(m.time?(' · '+m.time):'')+'</span>'
+            +'<b style="flex:1;min-width:0">vs '+escapeHtml(m.opponent||'Rival')+'</b>'
+            +'<span style="color:#8aa;font-size:.72rem;text-align:right">'+extra+'</span>'
+          +'</button>';
+        }).join('');
+        [].forEach.call(body.querySelectorAll('[data-i]'),function(b){ b.onclick=function(){
+          applyPickedMatch(ms[+b.getAttribute('data-i')]); ov.remove();
+        }; });
+      }).catch(function(err){ clearTimeout(to);
+        errBox((err&&err.name==='AbortError')?'Tardó demasiado en responder (revisa la conexión).':('No se pudo cargar el calendario'+(err&&err.message?(' ('+err.message+')'):'')+'.'));
+      });
+    }
+    load();
   }
   function applyPickedMatch(m){
     if(gameHasData()){
@@ -2869,7 +2882,9 @@
   // permitido; se ignora silenciosamente).
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
+      navigator.serviceWorker.register('sw.js').then(function(reg){
+        try { reg.update(); } catch(e) {}                 // busca la versión nueva al abrir
+      }).catch(()=>{});
     });
   }
 
