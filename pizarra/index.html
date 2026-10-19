@@ -1853,7 +1853,7 @@
   var storageWarned=false;
   function warnStorage(){ try{ toast('⚠ El dispositivo no pudo guardar (memoria llena)'); }catch(e){}
     if(!storageWarned){ storageWarned=true; try{ alert('Atención: el navegador no pudo guardar los datos en este dispositivo (almacenamiento lleno). Para no perder el partido: usa un logo más liviano y guarda el partido. Si hay conexión, los datos igual se envían al servidor.'); }catch(e){} } }
-  const CNT=['m2','a2','m3','a3','mft','aft','reb','ast','stl','blk','tov','pf'];
+  const CNT=['m2','a2','m3','a3','mft','aft','reb','rebd','rebo','ast','stl','blk','tov','pf'];
   const ACTIONS=[
     {id:'m2',label:'2P',small:'anotado',cls:'good',inc:{m2:1,a2:1}},
     {id:'x2',label:'2P',small:'fallado',cls:'bad',inc:{a2:1}},
@@ -1861,7 +1861,8 @@
     {id:'x3',label:'3P',small:'fallado',cls:'bad',inc:{a3:1}},
     {id:'mft',label:'TL',small:'anotado',cls:'good',inc:{mft:1,aft:1}},
     {id:'xft',label:'TL',small:'fallado',cls:'bad',inc:{aft:1}},
-    {id:'reb',label:'Rebote',small:'REB',inc:{reb:1}},
+    {id:'rebd',label:'Rebote',small:'defensivo',inc:{reb:1,rebd:1}},
+    {id:'rebo',label:'Rebote',small:'ofensivo',inc:{reb:1,rebo:1}},
     {id:'ast',label:'Asist.',small:'AST',inc:{ast:1}},
     {id:'stl',label:'Robo',small:'ROB',inc:{stl:1}},
     {id:'blk',label:'Tapa',small:'TAP',inc:{blk:1}},
