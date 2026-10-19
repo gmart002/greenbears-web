@@ -312,18 +312,23 @@
   .tgh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px}
   .tgrid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .tgrid1{display:grid;grid-template-columns:1fr;gap:6px}
-  .tbox{background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:8px 10px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;text-align:left}
+  .tbox{position:relative;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;padding:8px 10px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;text-align:left}
   .tbox .tlbl{font-size:12.5px;font-weight:600;line-height:1.12}
   .tbox .tnum{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:21px;flex:0 0 auto}
   .tbox:active{transform:scale(.97)}
   .tbox.ok{border-color:#2f7d4e} .tbox.ok .tnum{color:#7ee6a6}
   .tbox.bad{border-color:#8a3330} .tbox.bad .tnum{color:#f0908b}
+  .tdec{position:absolute;top:-9px;left:-9px;width:26px;height:26px;border-radius:50%;background:#241d16;border:1px solid var(--line2);color:#f0c04a;font-weight:800;font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .tdec:active{transform:scale(.9)}
   .tplays{display:flex;flex-direction:column;gap:6px}
   .tprow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center}
   .tpl{font-size:12.5px;font-weight:600}
-  .tmini{border-radius:9px;padding:8px 10px;font-weight:800;font-size:13px;cursor:pointer;min-width:54px;font-variant-numeric:tabular-nums;border:1px solid var(--line2);background:var(--bg2);color:var(--ink)}
+  .tmg{display:inline-flex;align-items:center;gap:3px}
+  .tmini{border-radius:9px;padding:8px 10px;font-weight:800;font-size:13px;cursor:pointer;min-width:52px;font-variant-numeric:tabular-nums;border:1px solid var(--line2);background:var(--bg2);color:var(--ink)}
   .tmini.ok{border-color:#2f7d4e;color:#7ee6a6} .tmini.bad{border-color:#8a3330;color:#f0908b}
   .tmini:active{transform:scale(.95)}
+  .tmdec{width:26px;height:34px;border-radius:8px;border:1px solid var(--line2);background:#241d16;color:#f0c04a;font-weight:800;font-size:16px;line-height:1;cursor:pointer}
+  .tmdec:active{transform:scale(.9)}
   /* Roster: en cancha (fila) + banca */
   .rgroup-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:2px 2px -2px}
   .rgroup-lbl.court{color:var(--team-green)}
@@ -2036,20 +2041,27 @@
     saveGame(); renderSheet(); updateUndo();
     toast('Equipo · '+(TEAM_LABELS[id]||id));
   }
+  function tSub(id){
+    if(!game.team || !game.team[id]) return;            // nada que descontar
+    game.team[id]=Math.max(0,game.team[id]-1);
+    for(var i=game.log.length-1;i>=0;i--){ if(game.log[i] && game.log[i].team===id){ game.log.splice(i,1); break; } } // quita la última del log
+    saveGame(); renderSheet(); updateUndo();
+    toast('− '+(TEAM_LABELS[id]||id));
+  }
   function teamStatsHtml(){
-    function box(id,label,cls){ return '<button class="tbox '+(cls||'')+'" data-tadd="'+id+'"><span class="tlbl">'+label+'</span><b class="tnum">'+tval(id)+'</b></button>'; }
+    function box(id,label,cls){ return '<button class="tbox '+(cls||'')+'" data-tadd="'+id+'"><span class="tlbl">'+label+'</span><b class="tnum">'+tval(id)+'</b><span class="tdec" data-tsub="'+id+'" aria-label="restar">−</span></button>'; }
     function grp(title,inner){ return '<div class="tgrp"><div class="tgh">'+title+'</div>'+inner+'</div>'; }
+    function mini(id,sym,cls){ return '<span class="tmg"><button class="tmini '+cls+'" data-tadd="'+id+'">'+sym+' '+tval(id)+'</button><button class="tmdec" data-tsub="'+id+'" aria-label="restar">−</button></span>'; }
     let plays='';
     TEAM_PLAYS.forEach(function(t){ plays+='<div class="tprow"><span class="tpl">'+t[1]+'</span>'
-      +'<button class="tmini ok" data-tadd="play_'+t[0]+'_ok">✓ '+tval('play_'+t[0]+'_ok')+'</button>'
-      +'<button class="tmini bad" data-tadd="play_'+t[0]+'_bad">✗ '+tval('play_'+t[0]+'_bad')+'</button></div>'; });
+      +mini('play_'+t[0]+'_ok','✓','ok')+mini('play_'+t[0]+'_bad','✗','bad')+'</div>'; });
     return '<div class="tstats"><div class="ts-h">Estadísticas de equipo</div>'
       +grp('Pick defendido','<div class="tgrid2">'+box('pick_ok','Bien','ok')+box('pick_bad','Mal','bad')+'</div>')
       +grp('Ataque','<div class="tgrid2">'+box('layup_left','Bandeja izq.')+box('coast','Costa a costa')+box('corner_goal','Esquina → gol')+box('last_ok','Buen LAST')+'</div>')
       +grp('Defensa','<div class="tgrid2">'+box('def24','Posesión 24s','ok')+box('def8_ok','8 seg','ok')+'</div>')
       +grp('Pérdidas','<div class="tgrid1">'+box('turn8','Pérdida por los 8s','bad')+'</div>')
       +grp('Jugadas realizadas','<div class="tplays">'+plays+'</div>')
-      +'<div class="ts-note" style="margin-top:2px">Totales del partido · toca para sumar · “Deshacer” corrige.</div>'
+      +'<div class="ts-note" style="margin-top:2px">Totales del partido · toca para sumar · “−” para descontar.</div>'
       +'</div>';
   }
   function renderPeriodBar(){
@@ -2679,6 +2691,7 @@
     const pres=presentRoster();
     if(!pres.length){ el.innerHTML='<div class="ts-note" style="padding:22px 8px">Convoca jugadores para ver las estadísticas del equipo.</div>'; return; }
     el.innerHTML=teamStatsHtml();
+    [].forEach.call(el.querySelectorAll('[data-tsub]'),function(b){ b.addEventListener('click',function(ev){ ev.stopPropagation(); ev.preventDefault(); tSub(b.getAttribute('data-tsub')); }); });
     [].forEach.call(el.querySelectorAll('[data-tadd]'),function(b){ b.onclick=function(ev){ ev.preventDefault(); tAdd(b.getAttribute('data-tadd')); }; });
   }
   // Tabla completa por jugador en un modal.
