@@ -695,7 +695,7 @@
         <div class="game-meta">
           <label class="fld"><span>Rival</span><input id="rivalInput" placeholder="Nombre del rival" maxlength="40"></label>
           <button class="mini load" id="btnLoadMatch" title="Elegir un partido del calendario">📅 Cargar partido</button>
-          <div class="score"><span class="lbl3">Green Bears</span><b id="scoreUs">0</b><span class="dash">–</span><b id="scoreThem">0</b><span class="lbl3" id="rivalName">Rival</span></div>
+          <div class="score"><span class="lbl3" id="usName">Green Bears</span><b id="scoreUs">0</b><span class="dash">–</span><b id="scoreThem">0</b><span class="lbl3" id="rivalName">Rival</span></div>
         </div>
         <div class="game-actions">
           <button class="mini" id="btnThemMinus">Rival −1</button>
@@ -2585,6 +2585,7 @@
   function updateScore(){
     document.getElementById('scoreUs').textContent=usScore();
     document.getElementById('scoreThem').textContent=game.themPts||0;
+    const un=document.getElementById('usName'); if(un) un.textContent=(window.__pzTeam&&window.__pzTeam.name)||'Mi equipo';
   }
 
   // Divide el nombre en dos líneas: nombres arriba, apellidos abajo.
@@ -2769,7 +2770,7 @@
     const rows=presentRoster().map(p=>{ const c=cnt(p.id); return [p.name,p.num||'',c.m2,c.a2,c.m3,c.a3,c.mft,c.aft,c.reb,c.ast,c.stl,c.blk,c.tov,c.pf,ptsOf(c)]; });
     const esc=v=>{ v=String(v); return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
     let csv=head.join(';')+'\n'+rows.map(r=>r.map(esc).join(';')).join('\n');
-    csv+=`\n\nGreen Bears;${usScore()};;Rival (${(game.rival||'')});${game.themPts||0}`;
+    csv+=`\n\n${(window.__pzTeam&&window.__pzTeam.name)||'Mi equipo'};${usScore()};;Rival (${(game.rival||'')});${game.themPts||0}`;
     saveFile('estadisticas-'+((game.rival||'partido').replace(/[^\w-]+/g,'_'))+'.csv', '﻿'+csv);
   }
   function finishGame(){
