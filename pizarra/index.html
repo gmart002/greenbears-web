@@ -706,6 +706,7 @@
           <button class="mini" id="btnReport">Informe</button>
           <button class="mini" id="btnStatExport">Exportar CSV</button>
           <button class="mini" id="btnStatFinish">Guardar partido</button>
+          <button class="mini" id="btnTeamPct">% Equipo</button>
           <button class="mini warn" id="btnStatReset">Reiniciar</button>
         </div>
       </div>
@@ -2677,8 +2678,7 @@
     const el=document.getElementById('teamStats'); if(!el) return;
     const pres=presentRoster();
     if(!pres.length){ el.innerHTML='<div class="ts-note" style="padding:22px 8px">Convoca jugadores para ver las estadísticas del equipo.</div>'; return; }
-    el.innerHTML='<button class="ts-btn" id="btnTeamPct">📊 Ver % y totales del equipo</button>'+teamStatsHtml();
-    document.getElementById('btnTeamPct').onclick=openTeamTotals;
+    el.innerHTML=teamStatsHtml();
     [].forEach.call(el.querySelectorAll('[data-tadd]'),function(b){ b.onclick=function(ev){ ev.preventDefault(); tAdd(b.getAttribute('data-tadd')); }; });
   }
   // Tabla completa por jugador en un modal.
@@ -2779,6 +2779,7 @@
   $('#btnHistory').onclick=openHistory;
   $('#btnReport').onclick=openReport;
   $('#btnTable').onclick=openTable;
+  $('#btnTeamPct').onclick=openTeamTotals;
   $('#clkToggle').onclick=toggleClock;
   $('#clkReset').onclick=resetClock;
   $('#btnStatExport').onclick=exportStatsCSV;
