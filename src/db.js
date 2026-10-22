@@ -757,6 +757,12 @@ function lboSaveResult(id, hp, ap, wo) {
   const a = (ap === '' || ap == null) ? null : Math.max(0, parseInt(ap, 10) || 0);
   db.prepare('UPDATE lbo_matches SET home_pts = ?, away_pts = ?, wo = 0 WHERE id = ?').run(h, a, id);
 }
+// Alinea fecha/hora/jornada de un partido con la LBO oficial (sync del fixture).
+function lboUpdateSchedule(id, rnd, mdate, mtime) {
+  const r = parseInt(rnd, 10);
+  db.prepare('UPDATE lbo_matches SET rnd = ?, mdate = ?, mtime = ? WHERE id = ?')
+    .run(Number.isFinite(r) && r > 0 ? r : (lboGet(id).rnd), String(mdate || ''), String(mtime || ''), id);
+}
 function lboResolve(m) {
   // Devuelve {played, hp, ap} aplicando W.O. (20-0) si corresponde.
   if (m.wo === 1) return { played: true, hp: 20, ap: 0, wo: true };
@@ -844,6 +850,6 @@ module.exports = {
   listTeamVersions, getTeamVersion, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
-  lboAll, lboGet, lboSaveResult, lboStandings, lboGBGames, lboGBUpcoming, lboGBLast, lboShapeGB,
+  lboAll, lboGet, lboSaveResult, lboUpdateSchedule, lboStandings, lboGBGames, lboGBUpcoming, lboGBLast, lboShapeGB,
   lboNorm, lboFindMatchByTeams
 };
