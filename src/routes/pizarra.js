@@ -5,7 +5,9 @@ const rateLimit = require('express-rate-limit');
 const { db, settings, verifyCoach, teamsForCoach, createTeam, getTeam, renameTeam, saveTeamPayload, deleteTeam, listTeamVersions, restoreTeamVersion,
   listTeamTrainings, getTraining, createTeamTraining, deleteTraining, trAttendanceMap, saveTrAttendance, teamAttendanceSummary, getTrLog, saveTrLog,
   listTeamMatches, getMatch, createTeamMatch, updateTeamMatch, deleteMatch, matchCall, saveMatchCall, teamMatchSummary,
-  lboGBUpcoming, lboGBGames } = require('../db');
+  lboGBUpcoming, lboGBGames,
+  vaSessions, vaSession, vaCreateSession, vaUpdateSession, vaDeleteSession,
+  vaTags, vaAddTag, vaGetTag, vaUpdateTag, vaDeleteTag, vaButtons, vaSetButtons } = require('../db');
 
 const PIZARRA_DIR = path.join(__dirname, '..', '..', 'pizarra');
 
@@ -117,6 +119,21 @@ module.exports = function (checkCsrf) {
   const sendApp = (req, res) => res.sendFile(path.join(PIZARRA_DIR, 'index.html'));
   router.get('/', gate, sendApp);
   router.get('/index.html', gate, sendApp);
+
+  // Módulo Video / Análisis (tipo Nacsport). CSP propia que permite incrustar
+  // YouTube (iframe + API) y reproducir video por URL; el resto queda restringido.
+  router.get('/video', gate, (req, res) => {
+    res.setHeader('Content-Security-Policy',
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+      "font-src 'self' https://fonts.gstatic.com; " +
+      "img-src 'self' data: blob: https://i.ytimg.com https://*.ytimg.com; " +
+      "media-src 'self' blob: https:; " +
+      "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; " +
+      "connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'self'");
+    res.sendFile(path.join(PIZARRA_DIR, 'video.html'));
+  });
 
   // ---------------- Entrenos: asistencia + bitácora POR EQUIPO (páginas) ----------------
   // Carga el equipo y valida acceso del coach (dueño o compartido/super).
@@ -354,6 +371,42 @@ module.exports = function (checkCsrf) {
     next.sort((a, b) => ((a.date + 'T' + (a.time || '99:99')) < (b.date + 'T' + (b.time || '99:99')) ? -1 : 1));
     res.json({ matches: next });
   });
+
+  // ---------------- Video / Análisis (tipo Nacsport) ----------------
+  api.get('/va/sessions', (req, res) => res.json({ sessions: vaSessions(req.coachId) }));
+  api.post('/va/sessions', (req, res) => {
+    const id = vaCreateSession(req.coachId, req.body || {});
+    res.json({ id, session: vaSession(id, req.coachId) });
+  });
+  api.get('/va/sessions/:id', (req, res) => {
+    const s = vaSession(Number(req.params.id), req.coachId);
+    if (!s) return res.status(404).json({ error: 'not-found' });
+    res.json({ session: s, tags: vaTags(s.id), buttons: vaButtons(req.coachId) });
+  });
+  api.put('/va/sessions/:id', (req, res) => {
+    if (!vaUpdateSession(Number(req.params.id), req.coachId, req.body || {})) return res.status(404).json({ error: 'not-found' });
+    res.json({ ok: true, session: vaSession(Number(req.params.id), req.coachId) });
+  });
+  api.delete('/va/sessions/:id', (req, res) => {
+    if (!vaDeleteSession(Number(req.params.id), req.coachId)) return res.status(404).json({ error: 'not-found' });
+    res.json({ ok: true });
+  });
+  api.post('/va/sessions/:id/tags', (req, res) => {
+    const s = vaSession(Number(req.params.id), req.coachId);
+    if (!s) return res.status(404).json({ error: 'not-found' });
+    const id = vaAddTag(s.id, req.body || {});
+    res.json({ id, tag: vaGetTag(id) });
+  });
+  // Verifica que la etiqueta pertenezca a una sesión del coach.
+  function ownTag(req, res, next) {
+    const t = vaGetTag(Number(req.params.tid));
+    if (!t || !vaSession(t.session_id, req.coachId)) return res.status(404).json({ error: 'not-found' });
+    req.vaTag = t; next();
+  }
+  api.put('/va/tags/:tid', ownTag, (req, res) => { vaUpdateTag(req.vaTag.id, req.body || {}); res.json({ ok: true, tag: vaGetTag(req.vaTag.id) }); });
+  api.delete('/va/tags/:tid', ownTag, (req, res) => { vaDeleteTag(req.vaTag.id); res.json({ ok: true }); });
+  api.get('/va/buttons', (req, res) => res.json({ buttons: vaButtons(req.coachId) }));
+  api.put('/va/buttons', (req, res) => res.json({ buttons: vaSetButtons(req.coachId, (req.body && req.body.buttons) || []) }));
 
   // Errores del API en JSON (p. ej. payload demasiado grande → 413).
   api.use((err, req, res, next) => {

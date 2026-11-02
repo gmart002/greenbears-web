@@ -552,6 +552,10 @@
         document.body.appendChild(e); };
       mkLink('📋 Entrenos','/pizarra/t/'+cur.id+'/entrenos',52);
       mkLink('🏀 Partidos','/pizarra/t/'+cur.id+'/partidos',94);
+      var mkVid=function(bottom){ var e=document.createElement('a'); e.textContent='🎬 Video'; e.href='/pizarra/video';
+        e.style.cssText='position:fixed;left:10px;bottom:'+bottom+'px;z-index:9000;background:#6d28d9;color:#fff;border:0;border-radius:999px;padding:8px 14px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px #000;font-family:system-ui,sans-serif;text-decoration:none';
+        document.body.appendChild(e); };
+      mkVid(isSuperUser?136:178);
     } }
   function roBanner(){ var d=document.createElement('div');
     d.textContent = (cur&&cur.review)

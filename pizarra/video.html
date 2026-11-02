@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="robots" content="noindex">
+<title>Video / Análisis · Green Bears</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+  :root{--bg:#0b100d;--bg2:#0e1512;--panel:#101613;--line:#20302a;--line2:#2b3b34;--ink:#eaf2ec;--muted:#8aa;--faint:#6b7a70;--green:#1f9b57;--amber:#f0982a}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Barlow",system-ui,-apple-system,sans-serif;-webkit-text-size-adjust:100%}
+  a{color:#7ee6a6}
+  .top{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .top b{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:20px;letter-spacing:.03em;text-transform:uppercase}
+  .top .sp{flex:1}
+  .btn{background:var(--green);border:0;color:#fff;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;font-family:"Barlow",sans-serif;font-size:14px}
+  .btn.ghost{background:var(--bg2);border:1px solid var(--line2);color:var(--ink)}
+  .btn.sm{padding:6px 10px;font-size:13px}
+  .btn.warn{background:#7a2230}
+  .wrap{max-width:1500px;margin:0 auto;padding:14px}
+  /* ---- Lista de sesiones ---- */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+  .card h2{font-family:"Barlow Condensed";font-weight:800;margin:0 0 10px;color:#7ee6a6}
+  .form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .fld input{background:var(--bg);border:1px solid var(--line2);border-radius:9px;padding:9px 11px;color:var(--ink);font-size:14px;min-width:150px}
+  .fld.grow{flex:1 1 280px}
+  .fld.grow input{width:100%}
+  .slist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+  .scard{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer}
+  .scard:hover{border-color:var(--green)}
+  .scard .ttl{font-family:"Barlow Condensed";font-weight:800;font-size:1.1rem;line-height:1.1}
+  .scard .meta{font-size:12px;color:var(--muted)}
+  .scard .vtype{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;background:rgba(31,155,87,.16);color:#7ee6a6;border:1px solid #2f7d4e;width:max-content}
+  .scard .row{display:flex;gap:6px;margin-top:4px}
+  .empty{color:var(--muted);padding:16px 4px}
+  /* ---- Analizador ---- */
+  .anz{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start}
+  @media(max-width:900px){ .anz{grid-template-columns:1fr} }
+  .vbox{background:#000;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative;aspect-ratio:16/9}
+  .vbox iframe,.vbox video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+  .vctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .vtime{font-variant-numeric:tabular-nums;font-weight:800;font-family:"Barlow Condensed";font-size:1.2rem;min-width:84px}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+  @media(max-width:520px){ .pad{grid-template-columns:repeat(2,1fr)} }
+  .tagbtn{border:1px solid var(--line2);border-left-width:5px;border-radius:10px;background:var(--bg2);color:var(--ink);padding:12px 8px;font-weight:800;font-size:14px;cursor:pointer;min-height:56px;text-align:left;line-height:1.1}
+  .tagbtn small{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-top:3px}
+  .tagbtn:active{transform:scale(.97)}
+  .side h3{font-family:"Barlow Condensed";font-weight:800;margin:0 0 6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .chip{font-size:12px;font-weight:700;border:1px solid var(--line2);border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--ink);background:var(--bg2)}
+  .chip.off{opacity:.4}
+  .tl{display:flex;flex-direction:column;gap:5px;max-height:62vh;overflow:auto}
+  .tlrow{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--line2);border-left-width:5px;border-radius:9px;padding:7px 9px;cursor:pointer}
+  .tlrow:hover{border-color:var(--green)}
+  .tlrow .tt{font-variant-numeric:tabular-nums;font-weight:800;font-family:"Barlow Condensed";font-size:1rem}
+  .tlrow .nm{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tlrow .nm small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+  .tlrow .acts{display:flex;gap:4px}
+  .ic{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:3px 5px;border-radius:6px}
+  .ic:hover{background:var(--bg);color:var(--ink)}
+  .ov{position:fixed;inset:0;z-index:60;background:rgba(5,8,6,.86);display:flex;align-items:center;justify-content:center;padding:16px}
+  .ovbox{background:var(--panel);border:1px solid var(--line2);border-radius:16px;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .ovbox .hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .ovbox .bd{padding:14px 16px;overflow:auto}
+  .brow{display:grid;grid-template-columns:1fr 54px 54px 54px 30px;gap:6px;align-items:center;margin-bottom:6px}
+  .brow input{background:var(--bg);border:1px solid var(--line2);border-radius:8px;padding:7px 8px;color:var(--ink);font-size:13px;width:100%}
+  .brow .lab{font-size:10px;color:var(--muted);text-transform:uppercase}
+  .note{color:var(--faint);font-size:12.5px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="top">
+  <b>🎬 Video / Análisis</b>
+  <span id="subt" class="meta" style="color:var(--muted);font-size:13px"></span>
+  <span class="sp"></span>
+  <a class="btn ghost sm" href="/pizarra">‹ Pizarra</a>
+</div>
+<div class="wrap" id="app"><div class="empty">Cargando…</div></div>
+
+<script>
+(function(){
+  "use strict";
+  var API='/pizarra/api';
+  function api(p,opts){ opts=opts||{}; opts.credentials='same-origin';
+    opts.headers=Object.assign({'x-pizarra':'1'},opts.headers||{});
+    if(opts.body && typeof opts.body!=='string'){ opts.body=JSON.stringify(opts.body); opts.headers['content-type']='application/json'; }
+    return fetch(API+p,opts).then(function(r){ if(r.status===401){ location.href='/pizarra/login'; throw new Error('no-auth'); } return r; });
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmt(t){ t=Math.max(0,Math.floor(t||0)); var m=Math.floor(t/60), s=t%60; return m+':'+(s<10?'0':'')+s; }
+  function el(id){ return document.getElementById(id); }
+  var app=el('app');
+  function qs(){ var m=location.search.match(/[?&]s=(\d+)/); return m?Number(m[1]):0; }
+
+  // ===================== LISTA DE SESIONES =====================
+  function showList(){
+    el('subt').textContent='';
+    app.innerHTML='<div class="card"><h2>Nueva sesión de video</h2>'
+      +'<div class="form">'
+      +'<div class="fld grow"><span>Título</span><input id="nTitle" placeholder="Ej: LBO Fecha 5 vs Santa Cruz" maxlength="80"></div>'
+      +'<div class="fld"><span>Rival</span><input id="nRival" placeholder="Rival" maxlength="40"></div>'
+      +'<div class="fld"><span>Fecha</span><input id="nDate" type="date"></div>'
+      +'<div class="fld grow"><span>Enlace del video (YouTube o MP4)</span><input id="nUrl" placeholder="https://youtu.be/… o https://…/video.mp4"></div>'
+      +'<button class="btn" id="nCreate">Crear</button>'
+      +'</div><div class="note">El video no se sube: se guarda el enlace y tus etiquetas. Soporta YouTube y enlaces directos a video (MP4/WebM).</div></div>'
+      +'<div class="card"><h2>Mis sesiones</h2><div id="sl"><div class="empty">Cargando…</div></div></div>';
+    el('nCreate').onclick=function(){
+      var url=el('nUrl').value.trim();
+      if(!el('nTitle').value.trim() && !url){ alert('Pon al menos un título o un enlace.'); return; }
+      api('/va/sessions',{method:'POST',body:{title:el('nTitle').value,rival:el('nRival').value,vdate:el('nDate').value,url:url}})
+        .then(function(r){return r.json();}).then(function(d){ if(d.id) location.search='?s='+d.id; });
+    };
+    api('/va/sessions').then(function(r){return r.json();}).then(function(d){
+      var box=el('sl'); var ss=(d&&d.sessions)||[];
+      if(!ss.length){ box.innerHTML='<div class="empty">Aún no hay sesiones. Crea la primera arriba.</div>'; return; }
+      box.innerHTML='<ul class="slist">'+ss.map(function(s){
+        var vt=s.vtype==='yt'?'YouTube':(s.vtype==='vimeo'?'Vimeo':'Enlace');
+        return '<li class="scard" data-id="'+s.id+'">'
+          +'<span class="vtype">'+vt+'</span>'
+          +'<span class="ttl">'+esc(s.title)+'</span>'
+          +'<span class="meta">'+(s.vdate?esc(s.vdate)+' · ':'')+(s.rival?'vs '+esc(s.rival):'')+'</span>'
+          +'<div class="row"><button class="btn sm" data-open="'+s.id+'">Abrir</button><button class="btn ghost sm" data-del="'+s.id+'">Eliminar</button></div>'
+        +'</li>';
+      }).join('')+'</ul>';
+      [].forEach.call(box.querySelectorAll('[data-open],.scard'),function(n){ n.onclick=function(e){ if(e.target.getAttribute('data-del'))return; var id=n.getAttribute('data-open')||n.getAttribute('data-id'); if(id) location.search='?s='+id; }; });
+      [].forEach.call(box.querySelectorAll('[data-del]'),function(b){ b.onclick=function(e){ e.stopPropagation(); var id=b.getAttribute('data-del');
+        if(confirm('¿Eliminar esta sesión y todas sus etiquetas?')) api('/va/sessions/'+id,{method:'DELETE'}).then(function(){ showList(); }); }; });
+    });
+  }
+
+  // ===================== ANALIZADOR =====================
+  var S=null, TAGS=[], BTNS=[], player=null, isYT=false, filterOff={};
+  function showAnalyzer(id){
+    app.innerHTML='<div class="empty">Cargando sesión…</div>';
+    api('/va/sessions/'+id).then(function(r){ if(!r.ok) throw new Error('nf'); return r.json(); }).then(function(d){
+      S=d.session; TAGS=d.tags||[]; BTNS=d.buttons||[];
+      el('subt').textContent=S.title+(S.rival?' · vs '+S.rival:'');
+      renderAnalyzer();
+    }).catch(function(){ app.innerHTML='<div class="empty">No se pudo cargar la sesión. <a href="/pizarra/video">Volver</a></div>'; });
+  }
+  function renderAnalyzer(){
+    app.innerHTML=
+      '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">'
+        +'<a class="btn ghost sm" href="/pizarra/video">‹ Mis sesiones</a>'
+        +'<button class="btn ghost sm" id="btnCfg">⚙ Botones</button>'
+        +'<button class="btn ghost sm" id="btnCsv">Exportar CSV</button>'
+        +'<button class="btn ghost sm" id="btnXml">Exportar XML</button>'
+        +'<span class="sp" style="flex:1"></span>'
+      +'</div>'
+      +'<div class="anz">'
+        +'<div>'
+          +'<div class="vbox" id="vbox"></div>'
+          +'<div class="vctrl">'
+            +'<button class="btn sm" id="back10">« 10s</button>'
+            +'<button class="btn sm" id="fwd10">10s »</button>'
+            +'<span class="vtime" id="vtime">0:00</span>'
+            +'<span class="note" style="margin:0">Toca un botón para marcar en el momento actual.</span>'
+          +'</div>'
+          +'<div class="pad" id="pad"></div>'
+        +'</div>'
+        +'<div class="side">'
+          +'<h3>Registros (<span id="tcount">0</span>)</h3>'
+          +'<div class="chips" id="chips"></div>'
+          +'<div class="tl" id="tl"></div>'
+        +'</div>'
+      +'</div>';
+    el('btnCfg').onclick=openConfig;
+    el('btnCsv').onclick=exportCSV;
+    el('btnXml').onclick=exportXML;
+    el('back10').onclick=function(){ seek(Math.max(0,curTime()-10),true); };
+    el('fwd10').onclick=function(){ seek(curTime()+10,true); };
+    setupPlayer();
+    renderPad(); renderChips(); renderTL();
+  }
+
+  // ---- Reproductor ----
+  function setupPlayer(){
+    var box=el('vbox');
+    isYT = (S.vtype==='yt');
+    if(isYT){
+      box.innerHTML='<div id="ytp"></div>';
+      loadYT(function(){
+        player=new YT.Player('ytp',{ videoId: ytId(S.url), playerVars:{playsinline:1,modestbranding:1,rel:0}, events:{} });
+      });
+    } else {
+      box.innerHTML='<video id="vid" src="'+esc(S.url)+'" controls playsinline></video>';
+      player=el('vid');
+    }
+    tick();
+  }
+  function ytId(url){ var m=String(url||'').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/)|youtu\.be\/)([\w-]{6,})/); return m?m[1]:''; }
+  var ytReady=false;
+  function loadYT(cb){
+    if(window.YT && window.YT.Player){ cb(); return; }
+    window.onYouTubeIframeAPIReady=function(){ ytReady=true; cb(); };
+    if(!document.getElementById('ytapi')){ var s=document.createElement('script'); s.id='ytapi'; s.src='https://www.youtube.com/iframe_api'; document.head.appendChild(s); }
+  }
+  function curTime(){ try{ return isYT ? (player&&player.getCurrentTime?player.getCurrentTime():0) : (player?player.currentTime:0); }catch(e){ return 0; } }
+  function seek(t,play){ try{ if(isYT){ if(player&&player.seekTo){ player.seekTo(t,true); if(play&&player.playVideo)player.playVideo(); } } else if(player){ player.currentTime=t; if(play)player.play(); } }catch(e){} }
+  function tick(){ var v=el('vtime'); if(v) v.textContent=fmt(curTime()); requestAnimationFrame(function(){ setTimeout(tick,250); }); }
+
+  // ---- Botones de registro ----
+  function renderPad(){
+    var pad=el('pad');
+    pad.innerHTML=BTNS.map(function(b){ return '<button class="tagbtn" data-b="'+b.id+'" style="border-left-color:'+esc(b.color)+'">'+esc(b.name)+'<small>−'+b.pre+'s / +'+b.post+'s</small></button>'; }).join('');
+    [].forEach.call(pad.querySelectorAll('[data-b]'),function(btn){ btn.onclick=function(){ var b=BTNS.filter(function(x){return String(x.id)===btn.getAttribute('data-b');})[0]; if(b) addTag(b); }; });
+  }
+  function addTag(b){
+    var t=curTime();
+    var body={cat:b.name,label:'',color:b.color,tstart:Math.max(0,t-(b.pre||0)),tend:t+(b.post||0)};
+    api('/va/sessions/'+S.id+'/tags',{method:'POST',body:body}).then(function(r){return r.json();}).then(function(d){
+      if(d.tag){ TAGS.push(d.tag); TAGS.sort(function(x,y){return x.tstart-y.tstart;}); renderChips(); renderTL(); flash(b.name); }
+    });
+  }
+  var flashT=null;
+  function flash(msg){ var f=el('flash'); if(!f){ f=document.createElement('div'); f.id='flash'; f.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#13331f;border:1px solid #2f7d4e;color:#7ee6a6;font-weight:800;padding:8px 16px;border-radius:999px;z-index:80;transition:opacity .25s'; document.body.appendChild(f); } f.textContent='✓ '+msg; f.style.opacity='1'; clearTimeout(flashT); flashT=setTimeout(function(){ f.style.opacity='0'; },1100); }
+
+  // ---- Filtros + timeline ----
+  function cats(){ var seen={},out=[]; TAGS.forEach(function(t){ if(!seen[t.cat]){ seen[t.cat]=1; out.push({cat:t.cat,color:t.color}); } }); return out; }
+  function renderChips(){
+    var box=el('chips'); var cs=cats();
+    box.innerHTML=cs.map(function(c){ return '<span class="chip'+(filterOff[c.cat]?' off':'')+'" data-c="'+esc(c.cat)+'" style="border-left:4px solid '+esc(c.color||'#2f7d4e')+'">'+esc(c.cat)+'</span>'; }).join('');
+    [].forEach.call(box.querySelectorAll('[data-c]'),function(ch){ ch.onclick=function(){ var c=ch.getAttribute('data-c'); filterOff[c]=!filterOff[c]; renderChips(); renderTL(); }; });
+  }
+  function renderTL(){
+    var vis=TAGS.filter(function(t){ return !filterOff[t.cat]; });
+    el('tcount').textContent=vis.length;
+    var tl=el('tl');
+    if(!vis.length){ tl.innerHTML='<div class="empty">Sin registros'+(TAGS.length?' (filtrados)':' todavía')+'.</div>'; return; }
+    tl.innerHTML=vis.map(function(t){
+      return '<div class="tlrow" data-seek="'+t.tstart+'" data-id="'+t.id+'" style="border-left-color:'+esc(t.color||'#2f7d4e')+'">'
+        +'<span class="tt">'+fmt(t.tstart)+'</span>'
+        +'<span class="nm">'+esc(t.cat)+(t.label?'<small>'+esc(t.label)+'</small>':'')+'</span>'
+        +'<span class="acts"><button class="ic" data-lbl="'+t.id+'" title="Nota">✎</button><button class="ic" data-del="'+t.id+'" title="Eliminar">🗑</button></span>'
+      +'</div>';
+    }).join('');
+    [].forEach.call(tl.querySelectorAll('.tlrow'),function(row){ row.onclick=function(e){ if(e.target.closest('.acts'))return; seek(+row.getAttribute('data-seek'),true); }; });
+    [].forEach.call(tl.querySelectorAll('[data-del]'),function(b){ b.onclick=function(e){ e.stopPropagation(); var id=b.getAttribute('data-del');
+      api('/va/tags/'+id,{method:'DELETE'}).then(function(){ TAGS=TAGS.filter(function(x){return String(x.id)!==String(id);}); renderChips(); renderTL(); }); }; });
+    [].forEach.call(tl.querySelectorAll('[data-lbl]'),function(b){ b.onclick=function(e){ e.stopPropagation(); var id=b.getAttribute('data-lbl'); var tg=TAGS.filter(function(x){return String(x.id)===String(id);})[0]; if(!tg)return;
+      var v=prompt('Nota / jugador para este registro:', tg.label||''); if(v===null)return;
+      api('/va/tags/'+id,{method:'PUT',body:{label:v}}).then(function(r){return r.json();}).then(function(d){ if(d.tag){ tg.label=d.tag.label; renderTL(); } }); }; });
+  }
+
+  // ---- Config de botones ----
+  function openConfig(){
+    var rows=BTNS.map(function(b){ return b; });
+    var ov=document.createElement('div'); ov.className='ov'; ov.id='cfgov';
+    function draw(){
+      ov.innerHTML='<div class="ovbox"><div class="hd"><b style="font-family:Barlow Condensed;font-size:1.2rem">Botones de registro</b><button class="ic" id="cfgX" style="font-size:1.4rem">&times;</button></div>'
+        +'<div class="bd"><div class="brow"><span class="lab">Nombre</span><span class="lab">Color</span><span class="lab">Pre s</span><span class="lab">Post s</span><span></span></div>'
+        +rows.map(function(b,i){ return '<div class="brow" data-i="'+i+'">'
+          +'<input data-k="name" value="'+esc(b.name)+'">'
+          +'<input data-k="color" type="color" value="'+esc(b.color||'#1f9b57')+'" style="padding:2px;height:34px">'
+          +'<input data-k="pre" type="number" min="0" value="'+(b.pre||0)+'">'
+          +'<input data-k="post" type="number" min="0" value="'+(b.post||0)+'">'
+          +'<button class="ic" data-rm="'+i+'" title="Quitar">🗑</button></div>'; }).join('')
+        +'<button class="btn ghost sm" id="cfgAdd" style="margin-top:6px">+ Agregar botón</button>'
+        +'<div class="note">Pre/Post = segundos antes y después del momento marcado para formar la jugada.</div>'
+        +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn ghost sm" id="cfgCancel">Cancelar</button><button class="btn sm" id="cfgSave">Guardar</button></div>'
+        +'</div></div>';
+      function collect(){ rows=[].map.call(ov.querySelectorAll('.brow[data-i]'),function(r){ var o={}; [].forEach.call(r.querySelectorAll('[data-k]'),function(inp){ o[inp.getAttribute('data-k')]=inp.value; }); return o; }); }
+      ov.querySelector('#cfgX').onclick=function(){ ov.remove(); };
+      ov.querySelector('#cfgCancel').onclick=function(){ ov.remove(); };
+      ov.querySelector('#cfgAdd').onclick=function(){ collect(); rows.push({name:'Nuevo',color:'#1f9b57',pre:5,post:3}); draw(); };
+      [].forEach.call(ov.querySelectorAll('[data-rm]'),function(b){ b.onclick=function(){ collect(); rows.splice(+b.getAttribute('data-rm'),1); draw(); }; });
+      ov.querySelector('#cfgSave').onclick=function(){ collect();
+        api('/va/buttons',{method:'PUT',body:{buttons:rows}}).then(function(r){return r.json();}).then(function(d){ BTNS=d.buttons||[]; ov.remove(); renderPad(); }); };
+    }
+    draw(); document.body.appendChild(ov);
+  }
+
+  // ---- Export ----
+  function dl(name,text,mime){ var b=new Blob([text],{type:mime}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000); }
+  function slug(){ return (S.title||'sesion').replace(/[^\w\-]+/g,'_').slice(0,40); }
+  function exportCSV(){
+    var head=['inicio_seg','fin_seg','inicio','fin','categoria','nota'];
+    var rows=TAGS.map(function(t){ return [Math.round(t.tstart),Math.round(t.tend),fmt(t.tstart),fmt(t.tend),t.cat,(t.label||'')].map(function(v){ v=String(v); return /[",;\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }).join(';'); });
+    dl(slug()+'.csv', head.join(';')+'\n'+rows.join('\n'), 'text/csv');
+  }
+  function exportXML(){
+    // Formato estilo Nacsport (ALL_INSTANCES) para interoperar con otras herramientas.
+    var x='<?xml version="1.0" encoding="UTF-8"?>\n<file>\n <ALL_INSTANCES>\n';
+    TAGS.forEach(function(t,i){ x+='  <instance>\n   <ID>'+(i+1)+'</ID>\n   <start>'+t.tstart.toFixed(2)+'</start>\n   <end>'+t.tend.toFixed(2)+'</end>\n   <code>'+esc(t.cat)+'</code>\n'+(t.label?'   <label><group>nota</group><text>'+esc(t.label)+'</text></label>\n':'')+'  </instance>\n'; });
+    x+=' </ALL_INSTANCES>\n</file>\n';
+    dl(slug()+'.xml', x, 'application/xml');
+  }
+
+  // ===================== Arranque =====================
+  var sid=qs();
+  if(sid) showAnalyzer(sid); else showList();
+})();
+</script>
+</body>
+</html>

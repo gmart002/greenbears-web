@@ -841,8 +841,107 @@ function lboGBGames() { return lboAll().filter(m => m.home === LBO_TEAM || m.awa
 function lboGBUpcoming(limit) { const a = lboGBGames().filter(x => x.status === 'upcoming'); return limit ? a.slice(0, limit) : a; }
 function lboGBLast(limit) { const a = lboGBGames().filter(x => x.status === 'played').reverse(); return limit ? a.slice(0, limit) : a; }
 
+// ============== Video / Análisis (tipo Nacsport) — módulo y BD aparte ==============
+db.exec(`CREATE TABLE IF NOT EXISTS va_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  coach_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  rival TEXT DEFAULT '',
+  vdate TEXT DEFAULT '',
+  url TEXT DEFAULT '',
+  vtype TEXT DEFAULT 'file',
+  created_at TEXT, updated_at TEXT
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_va_sessions_coach ON va_sessions(coach_id)');
+db.exec(`CREATE TABLE IF NOT EXISTS va_tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id INTEGER NOT NULL,
+  cat TEXT DEFAULT '', label TEXT DEFAULT '', color TEXT DEFAULT '',
+  tstart REAL NOT NULL DEFAULT 0, tend REAL NOT NULL DEFAULT 0,
+  note TEXT DEFAULT '', created_at TEXT,
+  FOREIGN KEY (session_id) REFERENCES va_sessions(id) ON DELETE CASCADE
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_va_tags_session ON va_tags(session_id, tstart)');
+db.exec(`CREATE TABLE IF NOT EXISTS va_buttons (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  coach_id INTEGER NOT NULL,
+  name TEXT NOT NULL, color TEXT DEFAULT '#1f9b57',
+  pre INTEGER NOT NULL DEFAULT 6, post INTEGER NOT NULL DEFAULT 4,
+  sort INTEGER NOT NULL DEFAULT 0
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_va_buttons_coach ON va_buttons(coach_id)');
+
+const vaNow = () => new Date().toISOString();
+function vaDetectType(url) {
+  const u = String(url || '');
+  if (/youtu\.be\/|youtube\.com\//i.test(u)) return 'yt';
+  if (/vimeo\.com\//i.test(u)) return 'vimeo';
+  return 'file';
+}
+function vaYouTubeId(url) {
+  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+  return m ? m[1] : '';
+}
+function vaSessions(coachId) { return db.prepare("SELECT * FROM va_sessions WHERE coach_id=? ORDER BY COALESCE(vdate,'') DESC, id DESC").all(coachId); }
+function vaSession(id, coachId) { const s = db.prepare('SELECT * FROM va_sessions WHERE id=?').get(id); if (!s || s.coach_id !== coachId) return null; return s; }
+function vaCreateSession(coachId, o) {
+  o = o || {}; const url = String(o.url || '').trim();
+  const info = db.prepare('INSERT INTO va_sessions (coach_id,title,rival,vdate,url,vtype,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(coachId, String(o.title || '').trim() || 'Sesión de video', String(o.rival || '').trim(), String(o.vdate || '').trim(), url, vaDetectType(url), vaNow(), vaNow());
+  return info.lastInsertRowid;
+}
+function vaUpdateSession(id, coachId, o) {
+  const s = vaSession(id, coachId); if (!s) return false; o = o || {};
+  const url = o.url != null ? String(o.url).trim() : s.url;
+  db.prepare('UPDATE va_sessions SET title=?,rival=?,vdate=?,url=?,vtype=?,updated_at=? WHERE id=?')
+    .run(o.title != null ? String(o.title).trim() : s.title, o.rival != null ? String(o.rival).trim() : s.rival, o.vdate != null ? String(o.vdate).trim() : s.vdate, url, vaDetectType(url), vaNow(), id);
+  return true;
+}
+function vaDeleteSession(id, coachId) { const s = vaSession(id, coachId); if (!s) return false; db.prepare('DELETE FROM va_sessions WHERE id=?').run(id); return true; }
+function vaTags(sessionId) { return db.prepare('SELECT * FROM va_tags WHERE session_id=? ORDER BY tstart, id').all(sessionId); }
+function vaAddTag(sessionId, o) {
+  o = o || {};
+  const info = db.prepare('INSERT INTO va_tags (session_id,cat,label,color,tstart,tend,note,created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(sessionId, String(o.cat || '').trim(), String(o.label || '').trim(), String(o.color || '').trim(), Math.max(0, +o.tstart || 0), Math.max(0, +o.tend || 0), String(o.note || '').trim(), vaNow());
+  return info.lastInsertRowid;
+}
+function vaGetTag(id) { return db.prepare('SELECT * FROM va_tags WHERE id=?').get(id); }
+function vaUpdateTag(id, o) {
+  const t = vaGetTag(id); if (!t) return false; o = o || {};
+  db.prepare('UPDATE va_tags SET cat=?,label=?,color=?,tstart=?,tend=?,note=? WHERE id=?')
+    .run(o.cat != null ? String(o.cat).trim() : t.cat, o.label != null ? String(o.label).trim() : t.label, o.color != null ? String(o.color).trim() : t.color, o.tstart != null ? Math.max(0, +o.tstart) : t.tstart, o.tend != null ? Math.max(0, +o.tend) : t.tend, o.note != null ? String(o.note).trim() : t.note, id);
+  return true;
+}
+function vaDeleteTag(id) { db.prepare('DELETE FROM va_tags WHERE id=?').run(id); }
+const VA_DEFAULT_BTNS = [
+  ['Ataque posicional', '#2d6cdf', 6, 4], ['Transición', '#17a2b8', 4, 4], ['Pick & Roll', '#8e44ad', 6, 4],
+  ['Tiro 2', '#1f9b57', 5, 3], ['Tiro 3', '#e0982a', 5, 3], ['Tiro libre', '#6b7a70', 4, 3],
+  ['Rebote def.', '#2f7d4e', 4, 3], ['Rebote of.', '#d81b60', 4, 3], ['Pérdida', '#e0453f', 5, 4],
+  ['Robo', '#16a085', 4, 4], ['Defensa', '#2c3e50', 6, 4], ['Falta', '#a0522d', 4, 3]
+];
+function vaButtons(coachId) {
+  let rows = db.prepare('SELECT * FROM va_buttons WHERE coach_id=? ORDER BY sort,id').all(coachId);
+  if (!rows.length) {
+    const ins = db.prepare('INSERT INTO va_buttons (coach_id,name,color,pre,post,sort) VALUES (?,?,?,?,?,?)');
+    VA_DEFAULT_BTNS.forEach((b, i) => ins.run(coachId, b[0], b[1], b[2], b[3], i));
+    rows = db.prepare('SELECT * FROM va_buttons WHERE coach_id=? ORDER BY sort,id').all(coachId);
+  }
+  return rows;
+}
+function vaSetButtons(coachId, list) {
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM va_buttons WHERE coach_id=?').run(coachId);
+    const ins = db.prepare('INSERT INTO va_buttons (coach_id,name,color,pre,post,sort) VALUES (?,?,?,?,?,?)');
+    (list || []).forEach((b, i) => { const name = String(b.name || '').trim(); if (!name) return; ins.run(coachId, name, String(b.color || '#1f9b57'), Math.max(0, parseInt(b.pre, 10) || 0), Math.max(0, parseInt(b.post, 10) || 0), i); });
+  });
+  tx();
+  return vaButtons(coachId);
+}
+
 module.exports = {
   db, settings, setSetting, slugify, uniqueSlug, DATA_DIR,
+  vaSessions, vaSession, vaCreateSession, vaUpdateSession, vaDeleteSession,
+  vaTags, vaAddTag, vaGetTag, vaUpdateTag, vaDeleteTag, vaButtons, vaSetButtons, vaYouTubeId, vaDetectType,
   recordVisit, visitStats, visitsTotal, resetVisits, dayKey,
   listUsers, findUser, createUser, setUserPassword, setUserActive, setUserPerms, deleteUser, countSupers, verifyLogin, ADMIN_MODULE_KEYS,
   listCoaches, createCoach, setCoachPassword, setCoachActive, setCoachRole, deleteCoach, verifyCoach,
