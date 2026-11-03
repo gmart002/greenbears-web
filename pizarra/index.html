@@ -733,6 +733,9 @@
           <div class="roster-bar" id="rosterBar"></div>
           <div class="pad" id="actionPad"></div>
           <div class="pad-hint" id="padHint">Selecciona un jugador y toca la acción.</div>
+          <div id="hustleWrap" style="display:none;text-align:center;margin:8px 0 2px">
+            <button id="btnHustle" style="background:#2a1d12;border:1px solid #c58a2a;color:#ffd77a;border-radius:999px;padding:10px 20px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit">⚡ Hustle Stats</button>
+          </div>
           <button class="undo" id="btnUndo" disabled>↶ Deshacer</button>
         </div>
         <div class="sheet-wrap">
@@ -1857,7 +1860,7 @@
   var storageWarned=false;
   function warnStorage(){ try{ toast('⚠ El dispositivo no pudo guardar (memoria llena)'); }catch(e){}
     if(!storageWarned){ storageWarned=true; try{ alert('Atención: el navegador no pudo guardar los datos en este dispositivo (almacenamiento lleno). Para no perder el partido: usa un logo más liviano y guarda el partido. Si hay conexión, los datos igual se envían al servidor.'); }catch(e){} } }
-  const CNT=['m2','a2','m3','a3','mft','aft','reb','rebd','rebo','ast','stl','blk','tov','pf'];
+  const CNT=['m2','a2','m3','a3','mft','aft','reb','rebd','rebo','ast','stl','blk','tov','pf','cs','defl','box','lb','sa'];
   const ACTIONS=[
     {id:'m2',label:'2P',small:'anotado',cls:'good',inc:{m2:1,a2:1}},
     {id:'x2',label:'2P',small:'fallado',cls:'bad',inc:{a2:1}},
@@ -1872,7 +1875,21 @@
     {id:'stl',label:'Robo',small:'ROB',inc:{stl:1}},
     {id:'blk',label:'Tapa',small:'TAP',inc:{blk:1}},
     {id:'tov',label:'Pérdida',small:'PÉR',inc:{tov:1}},
-    {id:'pf',label:'Falta',small:'FAL',inc:{pf:1}}
+    {id:'pf',label:'Falta',small:'FAL',inc:{pf:1}},
+    // Hustle Stats (esfuerzo/intangibles): se registran desde el modal, no en el pad.
+    {id:'cs',label:'Tiro punteado',small:'Contested',inc:{cs:1},hidden:true},
+    {id:'defl',label:'Desvío',small:'Deflection',inc:{defl:1},hidden:true},
+    {id:'box',label:'Bloqueo rebote',small:'Box out',inc:{box:1},hidden:true},
+    {id:'lb',label:'Balón suelto',small:'Loose ball',inc:{lb:1},hidden:true},
+    {id:'sa',label:'Asist. cortina',small:'Screen assist',inc:{sa:1},hidden:true}
+  ];
+  // Opciones del modal Hustle Stats (orden y etiquetas bilingües).
+  const HUSTLE=[
+    {id:'cs',  en:'Contested Shots',     es:'Tiros punteados',    color:'#2d6cdf'},
+    {id:'defl',en:'Deflections',         es:'Desvíos',            color:'#17a2b8'},
+    {id:'box', en:'Box Outs',            es:'Bloqueos de rebote', color:'#8e44ad'},
+    {id:'lb',  en:'Loose Balls',         es:'Balones recuperados',color:'#1f9b57'},
+    {id:'sa',  en:'Screen Assists',      es:'Asist. de cortina',  color:'#e0982a'}
   ];
   const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['rd','RD'],['ro','RO'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
   // Estadísticas de EQUIPO (contadores en vivo). Tipos de jugada para la matriz bien/mal.
@@ -2556,6 +2573,46 @@
     ov.querySelector('#rbDef').onclick=function(){ close(); applyCounter(ACTIONS.find(x=>x.id==='rebd'),pid,null); };
     ov.querySelector('#rbOf').onclick=function(){ close(); applyCounter(ACTIONS.find(x=>x.id==='rebo'),pid,null); };
   }
+  // Suma/resta una Hustle Stat a un jugador (mismo modelo que el pad: registro + Deshacer),
+  // sin cerrar el modal ni deseleccionar al jugador.
+  function hustleAdd(pid,id){ const a=ACTIONS.find(x=>x.id===id); if(!a) return;
+    const c=cnt(pid); for(const k in a.inc) c[k]+=a.inc[k];
+    game.log.push({p:pid,a:a.id,q:game.period}); saveGame(); renderSheet(); updateUndo(); }
+  function hustleSub(pid,id){ const a=ACTIONS.find(x=>x.id===id); if(!a) return; const c=cnt(pid);
+    if((c[id]||0)<=0) return;                            // nada que descontar
+    for(const k in a.inc) c[k]=Math.max(0,c[k]-a.inc[k]);
+    for(var i=game.log.length-1;i>=0;i--){ if(game.log[i] && game.log[i].p===pid && game.log[i].a===a.id){ game.log.splice(i,1); break; } }
+    saveGame(); renderSheet(); updateUndo(); }
+  // Ventana de Hustle Stats para el jugador seleccionado.
+  function openHustle(pid){
+    const p=roster.find(x=>x.id===pid);
+    let ov=document.getElementById('hustleOv'); if(ov) ov.remove();
+    ov=document.createElement('div'); ov.id='hustleOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9700;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,sans-serif';
+    const perLbl=(viewPeriod&&viewPeriod!==0)?((PERIODS.find(x=>x[0]===viewPeriod)||[0,''])[1]):'Total';
+    function rowsHtml(){ const c=viewCnt(pid); return HUSTLE.map(function(h){ const v=c[h.id]||0;
+      return '<div style="display:flex;align-items:center;gap:10px;background:#0c120f;border:1px solid #26332b;border-left:5px solid '+h.color+';border-radius:12px;padding:9px 11px">'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:.98rem;color:#eaf2ec;line-height:1.1">'+h.en+'</div><div style="font-size:.76rem;color:#8aa">'+escapeHtml(h.es)+'</div></div>'
+        +'<button class="hSub" data-id="'+h.id+'" style="width:42px;height:42px;border-radius:10px;background:#1a1110;border:1px solid #5a2630;color:#f1a7b0;font-size:1.5rem;font-weight:800;cursor:pointer;line-height:1">−</button>'
+        +'<div class="hVal" style="min-width:30px;text-align:center;font-weight:800;font-size:1.3rem;color:#eaf2ec">'+v+'</div>'
+        +'<button class="hAdd" data-id="'+h.id+'" style="width:46px;height:42px;border-radius:10px;background:#13331f;border:1px solid #2f7d4e;color:#7ee6a6;font-size:1.5rem;font-weight:800;cursor:pointer;line-height:1">+</button>'
+      +'</div>'; }).join(''); }
+    function draw(){
+      ov.innerHTML='<div style="background:#101613;border:1px solid #26332b;border-radius:16px;max-width:440px;width:100%;color:#eaf2ec;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 60px -20px #000;max-height:92vh">'
+        +'<div style="padding:12px 16px;border-bottom:1px solid #26332b;display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:1.05rem">⚡ Hustle Stats · '+escapeHtml((p&&p.num?'#'+p.num+' ':'')+(p?p.name:''))+'</b><button id="hX" style="background:none;border:0;color:#8aa;font-size:1.6rem;cursor:pointer;line-height:1">&times;</button></div>'
+        +'<div style="padding:8px 14px 0;color:#9fb0a5;font-size:.8rem">Esfuerzo e intangibles · '+escapeHtml(perLbl)+'</div>'
+        +'<div style="padding:12px 14px;display:flex;flex-direction:column;gap:9px;overflow:auto">'+rowsHtml()+'</div>'
+        +'<div style="padding:4px 14px 14px;text-align:right"><button id="hDone" style="background:#1f9b57;border:0;color:#fff;border-radius:10px;padding:10px 20px;font-weight:800;cursor:pointer">Listo</button></div>'
+        +'</div>';
+      const close=function(){ ov.remove(); };
+      ov.querySelector('#hX').onclick=close;
+      ov.querySelector('#hDone').onclick=close;
+      ov.onclick=function(e){ if(e.target===ov) close(); };
+      [].forEach.call(ov.querySelectorAll('.hAdd'),function(b){ b.onclick=function(){ hustleAdd(pid,b.getAttribute('data-id')); draw(); }; });
+      [].forEach.call(ov.querySelectorAll('.hSub'),function(b){ b.onclick=function(){ hustleSub(pid,b.getAttribute('data-id')); draw(); }; });
+    }
+    draw(); document.body.appendChild(ov);
+  }
   // Overlay de media cancha para ubicar el lanzamiento (o saltar la ubicación).
   function pickShotLocation(a,pid,cb){
     const p=roster.find(x=>x.id===pid);
@@ -2603,6 +2660,8 @@
   function renderRosterBar(){
     const bar=document.getElementById('rosterBar'); bar.innerHTML='';
     const pad=document.getElementById('actionPad'), hint=document.getElementById('padHint');
+    const hw=document.getElementById('hustleWrap');
+    if(hw){ hw.style.display=selPlayer?'':'none'; const hb=document.getElementById('btnHustle'); if(hb) hb.onclick=function(){ if(selPlayer) openHustle(selPlayer); }; }
     if(selPlayer){
       // --- Detalle del jugador: cabecera + acciones visibles ---
       const p=roster.find(x=>x.id===selPlayer); const c=viewCnt(selPlayer);
