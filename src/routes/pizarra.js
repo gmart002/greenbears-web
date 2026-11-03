@@ -132,6 +132,11 @@ module.exports = function (checkCsrf) {
       "media-src 'self' blob: https:; " +
       "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com; " +
       "connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'self'");
+    // YouTube rechaza el embed (error 153) si el referrer es "no-referrer"
+    // (el valor por defecto de helmet). Se envía el origen como referrer solo
+    // en esta página para que el reproductor cargue; el resto del sitio sigue
+    // con la política estricta.
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.sendFile(path.join(PIZARRA_DIR, 'video.html'));
   });
 
