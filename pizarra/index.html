@@ -733,8 +733,8 @@
           <div class="roster-bar" id="rosterBar"></div>
           <div class="pad" id="actionPad"></div>
           <div class="pad-hint" id="padHint">Selecciona un jugador y toca la acción.</div>
-          <div id="hustleWrap" style="display:none;text-align:center;margin:8px 0 2px">
-            <button id="btnHustle" style="background:#2a1d12;border:1px solid #c58a2a;color:#ffd77a;border-radius:999px;padding:10px 20px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit">⚡ Hustle Stats</button>
+          <div id="hustleWrap" style="display:none;text-align:center;margin:12px 0 4px">
+            <button id="btnHustle" style="background:#2a1d12;border:2px solid #c58a2a;color:#ffd77a;border-radius:16px;padding:16px 34px;font-weight:800;font-size:1.3rem;letter-spacing:.01em;cursor:pointer;font-family:inherit;width:100%;max-width:360px;box-shadow:0 6px 18px -8px #000">⚡ Hustle Stats</button>
           </div>
           <button class="undo" id="btnUndo" disabled>↶ Deshacer</button>
         </div>
@@ -1885,11 +1885,11 @@
   ];
   // Opciones del modal Hustle Stats (orden y etiquetas bilingües).
   const HUSTLE=[
-    {id:'cs',  en:'Contested Shots',     es:'Tiros punteados',    color:'#2d6cdf'},
-    {id:'defl',en:'Deflections',         es:'Desvíos',            color:'#17a2b8'},
-    {id:'box', en:'Box Outs',            es:'Bloqueos de rebote', color:'#8e44ad'},
-    {id:'lb',  en:'Loose Balls',         es:'Balones recuperados',color:'#1f9b57'},
-    {id:'sa',  en:'Screen Assists',      es:'Asist. de cortina',  color:'#e0982a'}
+    {id:'cs',  en:'Contested Shots',     es:'Tiros punteados',    rep:'Punteados', color:'#2d6cdf'},
+    {id:'defl',en:'Deflections',         es:'Desvíos',            rep:'Desvíos',   color:'#17a2b8'},
+    {id:'box', en:'Box Outs',            es:'Bloqueos de rebote', rep:'Box out',   color:'#8e44ad'},
+    {id:'lb',  en:'Loose Balls',         es:'Balones recuperados',rep:'B. sueltos',color:'#1f9b57'},
+    {id:'sa',  en:'Screen Assists',      es:'Asist. de cortina',  rep:'A. cortina',color:'#e0982a'}
   ];
   const COLS=[['pts','PTS'],['fg2','2P'],['fg3','3P'],['ft','TL'],['reb','REB'],['rd','RD'],['ro','RO'],['ast','AST'],['stl','ROB'],['blk','TAP'],['tov','PÉR'],['pf','FAL']];
   // Estadísticas de EQUIPO (contadores en vivo). Tipos de jugada para la matriz bien/mal.
@@ -2269,6 +2269,19 @@
         +'</tbody></table>';
       return '<div class="tsgrid">'+simple+'</div>'+plays;
     }
+    // Hustle Stats (esfuerzo/intangibles) por jugador
+    function hustleReportHtml(){
+      const tot2={}; HUSTLE.forEach(function(h){ tot2[h.id]=0; });
+      let t='<table class="rep"><thead><tr><th class="l">#</th><th class="l">Jugador</th>'
+        +HUSTLE.map(function(h){ return '<th>'+esc(h.rep)+'</th>'; }).join('')+'</tr></thead><tbody>';
+      rows.forEach(function(r){ const c=r.c; HUSTLE.forEach(function(h){ tot2[h.id]+=(c[h.id]||0); });
+        t+='<tr><td class="l num">'+(r.p.num||'–')+(isStarter(r.p.id)?' <span class="star">★</span>':'')+'</td><td class="l">'+esc(r.p.name)+'</td>'
+          +HUSTLE.map(function(h){ return '<td>'+(c[h.id]||0)+'</td>'; }).join('')+'</tr>';
+      });
+      t+='</tbody><tfoot><tr><td class="l" colspan="2">TOTAL</td>'
+        +HUSTLE.map(function(h){ return '<td>'+tot2[h.id]+'</td>'; }).join('')+'</tr></tfoot></table>';
+      return t+'<div class="note"><b>Hustle Stats</b> (esfuerzo e intangibles): <b>Punteados</b> = tiros defendidos a ≤6 pies · <b>Desvíos</b> = alterar pase/drible rival · <b>Box out</b> = bloqueo de rebote · <b>B. sueltos</b> = balones recuperados · <b>A. cortina</b> = bloqueos que liberan a un compañero para anotar.</div>';
+    }
     // Tabla
     // Métricas avanzadas
     function tsPct(c){ var den=2*((c.a2+c.a3)+0.44*c.aft); return den>0?Math.round(ptsOf(c)/den*100):null; }
@@ -2356,6 +2369,7 @@
       +'</div>'
       +'<div class="card"><h2>Minutos jugados</h2>'+barsH(byMin.map(function(r){return {l:nm(r.p),v:Math.round(r.min/60*10)/10,c:AMBER};}),'′')+'</div>'
       +'<div class="card"><h2>Estadísticas de equipo</h2>'+teamReportHtml()+'</div>'
+      +'<div class="card"><h2>Hustle Stats (esfuerzo)</h2><div class="repwrap" style="overflow-x:auto">'+hustleReportHtml()+'</div></div>'
       +((game.shots&&game.shots.length)?('<div class="card"><h2>Mapa de lanzamientos</h2><svg class="court" viewBox="0 0 500 470">'+HALFCOURT+'<g>'+game.shots.map(function(s){ var x=(s.x*500).toFixed(1),y=(s.y*470).toFixed(1); return s.made?'<circle cx="'+x+'" cy="'+y+'" r="8" fill="'+GREEN+'" stroke="#0a3b22" stroke-width="1.5"/>':'<path d="M'+(x-7)+' '+(y-7)+' l14 14 M'+(+x+7)+' '+(y-7)+' l-14 14" stroke="'+RED+'" stroke-width="3" stroke-linecap="round"/>'; }).join('')+'</g></svg><div class="legend"><span><i style="background:'+GREEN+'"></i>anotado</span><span><i style="background:'+RED+'"></i>fallado</span></div></div>'):'')
       +'</div><button class="printbtn" onclick="window.print()">Imprimir / PDF</button></body></html>';
 
