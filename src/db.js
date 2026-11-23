@@ -748,6 +748,10 @@ function teamMatchSummary(teamId, roster) {
 
 // ---------- Liga LBO: funciones ----------
 const LBO_TEAM = 'GREEN BEARS';
+// Equipos retirados de la competencia (clave normalizada por lboNorm): salen de
+// la tabla de posiciones, pero sus partidos jugados y los W.O. 20-0 siguen
+// contando para los rivales. Igual que en la app oficial lbo.greenbears.cl.
+const LBO_WITHDRAWN = new Set(['LOSCHAMOS']);
 function lboAll() { return db.prepare('SELECT * FROM lbo_matches ORDER BY sort, id').all(); }
 function lboGet(id) { return db.prepare('SELECT * FROM lbo_matches WHERE id = ?').get(id); }
 function lboSaveResult(id, hp, ap, wo) {
@@ -787,7 +791,7 @@ function lboStandings() {
     else if (r.hp > r.ap) { H.g++; A.p++; H.pts += 2; A.pts += 1; h2h[key(m.home, m.away)] = m.home; }
     else { A.g++; H.p++; A.pts += 2; H.pts += 1; h2h[key(m.home, m.away)] = m.away; }
   });
-  const arr = Object.values(T).map(t => Object.assign(t, { dif: t.pf - t.pc }));
+  const arr = Object.values(T).filter(t => !LBO_WITHDRAWN.has(lboNorm(t.team))).map(t => Object.assign(t, { dif: t.pf - t.pc }));
   arr.sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     if (b.dif !== a.dif) return b.dif - a.dif;
